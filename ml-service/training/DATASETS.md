@@ -1,99 +1,92 @@
 # Datasets
 
 Provenance for every corpus used to train a ScamSense model. The panel will ask where the data
-came from, and "a Kaggle CSV" is not an answer. Every source gets a row before a single row of it
-is trained on.
+came from, and "a Kaggle CSV" is not an answer.
 
-> **Status as of the last update to this file: no dataset has been obtained.**
-> No URL or message model has been trained, and no metric for either appears anywhere in this
-> repository. The training scripts run and are covered by plumbing tests, but they have never
-> been executed against real data. Any number quoted before this notice is removed did not come
-> from ScamSense.
+Raw files live in `ml-service/training/data/`, which is gitignored. This file is how they are
+traced.
 
 ---
 
-## Required for each source
-
-| Field | Why |
-|---|---|
-| Name and URL | Traceability |
-| Licence | Whether it may be used and redistributed at all |
-| Date obtained | Phishing corpora rot fast; a 2019 set describes 2019 attacks |
-| Rows, and class balance | Determines whether class weighting is needed |
-| Consent basis | Required for anything collected from real people |
-| Preprocessing applied | Deduplication, redaction, normalisation |
-
----
-
-## URL corpora — Phase 2
-
-### Source 1 — *not yet obtained*
+## URL corpus — `data/urls.csv` — **in use, model trained**
 
 | Field | Value |
 |---|---|
-| Name | |
-| URL | |
-| Licence | |
-| Date obtained | |
-| Rows / balance | |
-| Consent basis | Public dataset, no personal data |
+| Rows | 298,272, no exact duplicates |
+| Balance | Exactly 50/50 — 149,136 phishing, 149,136 legitimate |
+| Labels | `phishing` / `legitimate` |
+| Unique registrable domains | 136,154 |
+| Date obtained | 2026-08-10 |
+| Consent basis | Public research datasets; no personal data |
 | Preprocessing | Deduplicated on exact URL before splitting |
 
-Candidates worth evaluating, in rough order of usefulness:
+### Composition by source
 
-- **PhishTank** — community-verified phishing URLs, refreshed continuously. Registration is now
-  required for bulk access. Strongest source for *current* attacks; heavily English and
-  US/EU-weighted.
-- **OpenPhish** — a free community feed alongside a commercial one. Check the licence terms for
-  the free tier before use.
-- **Kaggle phishing URL datasets** — convenient and pre-labelled, but frequently undated and of
-  unclear provenance. If one is used, record which one exactly; several circulate with the same
-  name and different contents.
-- **Tranco / Majestic top sites** — a source of *legitimate* URLs. Needed because a phishing-only
-  corpus cannot train a classifier, and because the negative class must be varied. Sampling
-  legitimate URLs from a handful of domains teaches the model those domains rather than
-  legitimacy.
+| Source | Legitimate | Phishing | Total |
+|---|---:|---:|---:|
+| PhiUSIIL | 63,777 | 96,721 | 160,498 |
+| Kaggle set 2 | 58,759 | 47,160 | 105,919 |
+| Tranco | 23,936 | 0 | 23,936 |
+| Kaggle phishing set | 2,664 | 5,255 | 7,919 |
 
-**A caution that matters for this project.** These sources are English- and Western-heavy.
-A model trained only on them will underperform on precisely the Malaysian campaigns ScamSense
-exists to catch — `lhdn-refund.site`, `kwsp-semakan.top`, `tng-ewallet-reload.xyz`. Supplement
-with locally collected phishing URLs and record them below.
+### The finding that shaped the methodology
 
-### Source 2 — Malaysian phishing URLs, locally collected — *not yet started*
+**56.7% of rows sit on a registrable domain that appears more than once**, and the most frequent
+domains are free hosting and CDN platforms:
 
-| Field | Value |
-|---|---|
-| Collection method | |
-| Date range | |
-| Rows | |
-| Consent basis | |
+```
+web.app 6,869    firebaseapp.com 6,682   weeblysite.com 6,189   google.com 4,789
+cf-ipfs.com 3,882   repl.co 3,592   workers.dev 3,172   r2.dev 2,390
+```
 
-Collection routes worth pursuing: URLs shared in Malaysian scam-awareness Facebook groups,
-links reported to Semak Mule, campaigns circulated in family and community WhatsApp groups.
+These platforms are abused at scale for phishing, so thousands of malicious URLs share a handful
+of domains. Under a random split those domains land in **both** train and test, and the model can
+score well by memorising "web.app is phishing" without learning anything about phishing
+structure.
+
+Measured directly: a random split leaves **2,979 registrable domains in both train and test**.
+The reported F1 then partly measures how concentrated the corpus is rather than how well the
+classifier generalises to a domain it has never seen.
+
+Training therefore defaults to `--split-strategy domain`, which keeps every registrable domain
+inside one partition. See `docs/adr/0004` for the measured difference.
+
+377 domains carry both labels. That is not necessarily noise — legitimate hosting platforms
+genuinely serve both — but it is a further reason not to let a domain straddle the split.
 
 ---
 
-## Message corpora — Phase 3
-
-### Source 1 — UCI SMS Spam Collection — *not yet obtained*
+## Message corpus — `data/messages.csv` — **held for Phase 3, with a caveat that limits its use**
 
 | Field | Value |
 |---|---|
-| URL | https://archive.ics.uci.edu/dataset/228/sms+spam+collection |
-| Licence | CC BY 4.0 |
-| Rows / balance | ~5,574 messages, ~13% spam |
-| Consent basis | Public research dataset |
+| Rows | 1,732 unique Malay messages |
+| Balance | Imbalanced: 1,215 scam / 517 legitimate — use class weights, not resampling |
+| Labels | `scam` / `legitimate` |
+| Extra columns | `language`, `split`, `source`, `scam_type` |
+| Consent basis | Synthetic; no real person's message is included |
 
-Dated (2012) and entirely English. Useful as a baseline and for establishing the pipeline, but
-**it does not represent the target domain**: ScamSense's users receive Malay/English
-code-switched messages. Treat it as scaffolding, not as the corpus.
+### This corpus is templated synthetic data
 
-### Source 2 — Malaysian scam messages, locally collected — *not yet started*
+Generated from templates carrying authentic Malaysian context — LHDN, Touch 'n Go, Bantuan Tunai
+Rahmah, SAPS. That makes it genuinely useful for a v1 baseline: it exercises the right
+vocabulary, the right brands and the right code-switching, none of which the English public
+corpora contain.
 
-**This is the differentiator, and it is the long pole of the whole project.** Local-language
-coverage is what distinguishes ScamSense from ScamShield, and it only exists if the corpus is
-built. Start collecting in parallel with the earlier phases; it takes calendar time, not
-working hours.
+**It is not a valid final holdout.** Templated data means the test partition shares generator
+structure with the training partition, so a model can score highly by learning the templates.
+Any figure measured on it describes performance on the template set, not on real Malaysian scam
+messages.
+
+Consequence for Phase 3, and this is not negotiable in the write-up: a metric from this corpus
+must be reported as *"F1 on a synthetic template corpus"*, never as ScamSense's message-detection
+accuracy. The real number requires the corpus below.
+
+### Real Malaysian messages — *collection in progress, separate effort*
+
+The genuine holdout. Local-language coverage over authentic messages is what distinguishes
+ScamSense from ScamShield, and a defensible Chapter 4 figure for the message classifier depends
+on it.
 
 | Field | Value |
 |---|---|
@@ -102,25 +95,39 @@ working hours.
 | Rows | |
 | Consent basis | |
 
-Record for **every message**: where it came from, the date, and the basis on which it was
-collected. For messages contributed by individuals, that means asking, and noting that they
-agreed. A corpus that cannot answer "how did you get this" is a corpus that cannot be defended.
+Record for every message where it came from, the date, and the basis on which it was collected.
+Run each one through the redaction rules in `backend/app/Services/RedactorService.php` before it
+enters the dataset — a training corpus is a stored copy of personal data like any other.
 
-Run every collected message through the redaction rules before it enters the dataset — the same
-Malaysian phone, IC, email and bank account patterns implemented in
-`backend/app/Services/RedactorService.php`. A training corpus is a stored copy of the data like
-any other.
+---
+
+## Rejected sources
+
+Recording rejections matters as much as recording inclusions: it demonstrates the corpus was
+audited rather than accepted.
+
+### Malay `emails_cleaned.csv` — **rejected, label contamination**
+
+Two independent defects found on inspection:
+
+- **70 clause fragments appeared under both labels.** Identical text labelled both scam and
+  legitimate makes those rows pure noise, and worse, guarantees leakage across any split.
+- **140 texts labelled legitimate contained clear phishing markers.** Mislabelled positives in
+  the negative class teach the model that phishing language is benign — the most damaging
+  possible label error for this task.
+
+Training on it would have depressed real performance while potentially *raising* the reported
+score, since the same contaminated rows would appear in the test set. Excluded entirely.
 
 ---
 
 ## Rules for all corpora
 
-1. **Deduplicate before splitting.** The same URL or message in both train and test inflates
-   every reported metric. `train_url_model.py` enforces this for URLs.
-2. **Never resample before splitting.** Oversampling the minority class first leaks copies of
-   test rows into training. Prefer class weights.
-3. **Split once, commit the indices.** `split_indices.json` is written beside every artefact so a
-   reader can verify the test set was never trained on.
-4. **The test set is opened once per model version.** Thresholds are chosen on validation.
-5. **Nothing over 50 MB is committed** (AGENTS.md §5). Raw corpora live in
-   `ml-service/training/data/`, which is gitignored. This file is how they are traced.
+1. **Deduplicate before splitting.** Enforced in `load_dataset`.
+2. **Group by registrable domain when splitting URLs.** Enforced by `--split-strategy domain`,
+   which is the default, and asserted by a test.
+3. **Never resample before splitting.** Prefer class weights.
+4. **Split once, commit the indices.** `split_indices.json` ships beside every artefact.
+5. **The test set is opened once per model version.** Thresholds are chosen on validation.
+6. **Nothing over 50 MB is committed.** Raw corpora and model weights are gitignored; the JSON
+   metadata beside each artefact is tracked, because it is the evidence for Chapter 4.

@@ -56,17 +56,37 @@ from sklearn.metrics import (
     precision_recall_curve,
     roc_auc_score,
 )
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import StratifiedGroupKFold, train_test_split
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from app.features.url_features import (  # noqa: E402
     FEATURE_NAMES,
     extract_features,
+    parse,
     to_vector,
 )
 
 SEED = 42
+
+#: Accepted spellings of each class. Public corpora disagree about whether the
+#: positive class is 1, "phishing", "scam" or "malicious"; normalising here means
+#: a new source can be dropped in without editing the CSV by hand, and a typo
+#: raises rather than being silently coerced to a class.
+LABEL_ALIASES: dict[str, int] = {
+    "0": 0,
+    "legitimate": 0,
+    "legit": 0,
+    "benign": 0,
+    "ham": 0,
+    "safe": 0,
+    "1": 1,
+    "phishing": 1,
+    "phish": 1,
+    "scam": 1,
+    "malicious": 1,
+    "spam": 1,
+}
 
 #: Weighting recall above precision when choosing the decision threshold.
 #: beta=2 makes recall four times as important as precision in the F-beta
@@ -116,7 +136,14 @@ def load_dataset(path: Path) -> pd.DataFrame:
     frame = frame.dropna(subset=["url", "label"])
     frame["url"] = frame["url"].astype(str).str.strip()
     frame = frame[frame["url"] != ""]
-    frame["label"] = frame["label"].astype(int)
+
+    normalised = frame["label"].astype(str).str.strip().str.lower().map(LABEL_ALIASES)
+    unknown = sorted(set(frame.loc[normalised.isna(), "label"].astype(str)))
+    if unknown:
+        raise SystemExit(
+            f"Unrecognised label value(s): {unknown}\n" f"Accepted: {sorted(LABEL_ALIASES)}"
+        )
+    frame["label"] = normalised.astype(int)
 
     frame = frame.drop_duplicates(subset=["url"]).reset_index(drop=True)
     dropped = before - len(frame)
@@ -124,13 +151,15 @@ def load_dataset(path: Path) -> pd.DataFrame:
     if dropped:
         print(f"  dropped {dropped} blank or duplicate rows before splitting")
 
-    if set(frame["label"].unique()) - {0, 1}:
-        raise SystemExit("Labels must be 0 (legitimate) or 1 (phishing).")
-
     if frame["label"].nunique() < 2:
         raise SystemExit("Dataset contains only one class; cannot train.")
 
     return frame
+
+
+def registrable_domains(urls: pd.Series) -> np.ndarray:
+    """The registrable domain of each URL, used as the grouping key."""
+    return np.array([parse(url).registrable_domain for url in urls.astype(str)])
 
 
 def build_feature_matrix(urls: pd.Series) -> np.ndarray:
@@ -142,22 +171,71 @@ def build_feature_matrix(urls: pd.Series) -> np.ndarray:
     return np.array([to_vector(extract_features(url)) for url in urls], dtype=np.float64)
 
 
-def make_split(labels: np.ndarray, seed: int = SEED) -> Split:
-    """Stratified 70/15/15, computed once."""
+def make_split(
+    labels: np.ndarray,
+    seed: int = SEED,
+    groups: np.ndarray | None = None,
+) -> Split:
+    """Stratified 70/15/15, computed once.
+
+    With `groups`, no group straddles two partitions. That matters enormously
+    for URL corpora and is the difference between an honest generalisation
+    estimate and a flattering one.
+
+    Free hosting platforms — web.app, firebaseapp.com, weeblysite.com, repl.co,
+    workers.dev — are abused at scale, so thousands of phishing URLs share a
+    handful of registrable domains. Under a random split those domains appear in
+    both train and test, and the model can score well by memorising "web.app is
+    phishing" without having learned anything about phishing structure. The
+    reported F1 is then a measure of how concentrated the corpus is, not of how
+    well the classifier generalises to a domain it has never seen.
+
+    Grouping by registrable domain removes that shortcut. The resulting number
+    is lower and is the one worth defending.
+    """
     indices = np.arange(len(labels))
 
-    train_idx, holdout_idx = train_test_split(
-        indices, test_size=0.30, stratify=labels, random_state=seed
-    )
-    val_idx, test_idx = train_test_split(
-        holdout_idx, test_size=0.50, stratify=labels[holdout_idx], random_state=seed
-    )
+    if groups is None:
+        train_idx, holdout_idx = train_test_split(
+            indices, test_size=0.30, stratify=labels, random_state=seed
+        )
+        val_idx, test_idx = train_test_split(
+            holdout_idx, test_size=0.50, stratify=labels[holdout_idx], random_state=seed
+        )
+    else:
+        # StratifiedGroupKFold keeps groups intact while holding the class
+        # balance roughly constant. Seven folds gives ~14.3% each: take one for
+        # test, one for validation, and the remaining five for training, which
+        # lands close to the 70/15/15 the project standardises on.
+        splitter = StratifiedGroupKFold(n_splits=7, shuffle=True, random_state=seed)
+        folds = [test for _, test in splitter.split(indices, labels, groups)]
+        test_idx = folds[0]
+        val_idx = folds[1]
+        train_idx = np.concatenate(folds[2:])
 
     return Split(
         train=sorted(int(i) for i in train_idx),
         val=sorted(int(i) for i in val_idx),
         test=sorted(int(i) for i in test_idx),
     )
+
+
+def report_group_leakage(split: Split, groups: np.ndarray) -> dict[str, int]:
+    """How many registrable domains straddle the train and test partitions.
+
+    Printed for every run, including random-split runs, so the leakage is
+    visible in the log rather than discovered by an examiner.
+    """
+    train_groups = set(groups[split.train])
+    test_groups = set(groups[split.test])
+    shared = train_groups & test_groups
+    leaked_rows = int(np.isin(groups[split.test], list(shared)).sum())
+
+    return {
+        "domains_shared_train_test": len(shared),
+        "test_rows_on_shared_domains": leaked_rows,
+        "test_rows_total": len(split.test),
+    }
 
 
 def choose_threshold(y_val: np.ndarray, probabilities: np.ndarray) -> float:
@@ -253,6 +331,16 @@ def main() -> int:
     parser.add_argument("--n-estimators", type=int, default=300)
     parser.add_argument("--max-depth", type=int, default=None)
     parser.add_argument(
+        "--split-strategy",
+        choices=["random", "domain"],
+        default="domain",
+        help=(
+            "'domain' (default) keeps every registrable domain within one "
+            "partition, which is the honest generalisation estimate. 'random' "
+            "matches what most published work does and will score higher."
+        ),
+    )
+    parser.add_argument(
         "--out",
         type=Path,
         default=Path(__file__).resolve().parent.parent / "models",
@@ -271,9 +359,25 @@ def main() -> int:
     X = build_feature_matrix(frame["url"])
     y = frame["label"].to_numpy()
 
-    print("Splitting 70/15/15, stratified")
-    split = make_split(y, args.seed)
+    groups = registrable_domains(frame["url"])
+    print(f"  {len(set(groups)):,} unique registrable domains")
+
+    print(f"Splitting 70/15/15, stratified, strategy={args.split_strategy}")
+    split = make_split(y, args.seed, groups if args.split_strategy == "domain" else None)
     print(f"  train {len(split.train)}  val {len(split.val)}  test {len(split.test)}")
+
+    leakage = report_group_leakage(split, groups)
+    share = leakage["test_rows_on_shared_domains"] / max(leakage["test_rows_total"], 1)
+    print(
+        f"  domains in both train and test: {leakage['domains_shared_train_test']:,} "
+        f"({leakage['test_rows_on_shared_domains']:,} test rows, {share:.1%})"
+    )
+    if args.split_strategy == "random" and share > 0.10:
+        print(
+            "  NOTE: a substantial share of the test set sits on domains the model\n"
+            "  also saw in training. The score below is therefore optimistic. Run\n"
+            "  with --split-strategy domain for the number worth reporting."
+        )
 
     X_train, y_train = X[split.train], y[split.train]
     X_val, y_val = X[split.val], y[split.val]
@@ -332,8 +436,10 @@ def main() -> int:
                 "max_depth": args.max_depth,
                 "class_weight": "balanced",
                 "recall_beta": RECALL_BETA,
+                "split_strategy": args.split_strategy,
                 "dataset": str(args.data),
                 "dataset_rows": len(frame),
+                "unique_registrable_domains": len(set(groups)),
                 "python": platform.python_version(),
                 "scikit_learn": sklearn.__version__,
                 "numpy": np.__version__,
@@ -347,12 +453,17 @@ def main() -> int:
             {
                 "model": f"rf-url-v{args.version}",
                 "trained_at": datetime.now(UTC).isoformat(),
+                "split_strategy": args.split_strategy,
+                "group_leakage": leakage,
                 "validation": val_metrics,
                 "test": test_metrics,
                 "feature_importances": dict(importances),
                 "notes": (
                     "Threshold selected on the validation set only. The test set "
-                    "was evaluated once, after the threshold was fixed."
+                    "was evaluated once, after the threshold was fixed. "
+                    f"Split strategy: {args.split_strategy}. Under 'random', "
+                    "registrable domains appear in both train and test and the "
+                    "score is optimistic; 'domain' is the generalisation estimate."
                 ),
             },
             indent=2,

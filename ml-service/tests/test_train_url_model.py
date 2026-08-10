@@ -32,6 +32,8 @@ from training.train_url_model import (  # noqa: E402
     evaluate,
     load_dataset,
     make_split,
+    registrable_domains,
+    report_group_leakage,
 )
 
 
@@ -106,14 +108,38 @@ def test_a_single_class_dataset_is_rejected(tmp_path: Path) -> None:
         load_dataset(path)
 
 
-def test_non_binary_labels_are_rejected(tmp_path: Path) -> None:
+def test_an_unrecognised_label_is_rejected_rather_than_coerced(tmp_path: Path) -> None:
+    """A typo in a label column must fail loudly. Silently coercing it would
+    put mislabelled rows into training, which is unrecoverable later."""
     path = tmp_path / "bad-labels.csv"
     pd.DataFrame({"url": ["http://a.xyz", "http://b.xyz"], "label": [1, 7]}).to_csv(
         path, index=False
     )
 
-    with pytest.raises(SystemExit, match="Labels must be"):
+    with pytest.raises(SystemExit, match="Unrecognised label"):
         load_dataset(path)
+
+
+@pytest.mark.parametrize(
+    ("spelling", "expected"),
+    [
+        (["phishing", "legitimate"], [1, 0]),
+        (["scam", "legit"], [1, 0]),
+        (["1", "0"], [1, 0]),
+        (["MALICIOUS", " Benign "], [1, 0]),
+    ],
+)
+def test_label_spellings_are_normalised(
+    tmp_path: Path, spelling: list[str], expected: list[int]
+) -> None:
+    """Public corpora disagree about how to spell the classes; the provided
+    urls.csv uses phishing/legitimate rather than 1/0."""
+    path = tmp_path / "labels.csv"
+    pd.DataFrame({"url": ["http://a.xyz", "https://b.com.my"], "label": spelling}).to_csv(
+        path, index=False
+    )
+
+    assert load_dataset(path)["label"].tolist() == expected
 
 
 # ── The split ──────────────────────────────────────────────────────────────
@@ -154,6 +180,47 @@ def test_the_split_is_stratified(synthetic_csv: Path) -> None:
     overall = labels.mean()
     for partition in (split.train, split.val, split.test):
         assert labels[partition].mean() == pytest.approx(overall, abs=0.06)
+
+
+def test_a_domain_grouped_split_leaves_no_domain_in_two_partitions(
+    synthetic_csv: Path,
+) -> None:
+    """The guarantee the honest F1 depends on.
+
+    Free hosting platforms are abused at scale, so thousands of phishing URLs
+    share a few registrable domains. If one straddles train and test, the model
+    scores by memorising the platform rather than learning phishing structure.
+    """
+    frame = load_dataset(synthetic_csv)
+    groups = registrable_domains(frame["url"])
+    split = make_split(frame["label"].to_numpy(), groups=groups)
+
+    assert not set(groups[split.train]) & set(groups[split.test])
+    assert not set(groups[split.train]) & set(groups[split.val])
+    assert not set(groups[split.val]) & set(groups[split.test])
+
+
+def test_leakage_is_reported_as_zero_for_a_grouped_split(synthetic_csv: Path) -> None:
+    frame = load_dataset(synthetic_csv)
+    groups = registrable_domains(frame["url"])
+    split = make_split(frame["label"].to_numpy(), groups=groups)
+
+    assert report_group_leakage(split, groups)["domains_shared_train_test"] == 0
+
+
+def test_registrable_domains_groups_urls_by_site() -> None:
+    domains = registrable_domains(
+        pd.Series(
+            [
+                "https://www.maybank2u.com.my/a",
+                "https://maybank2u.com.my/b",
+                "http://evil.xyz/c",
+            ]
+        )
+    )
+
+    assert domains[0] == domains[1] == "maybank2u.com.my"
+    assert domains[2] == "evil.xyz"
 
 
 def test_the_split_is_reproducible_from_the_seed(synthetic_csv: Path) -> None:

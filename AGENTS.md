@@ -266,11 +266,13 @@ ruff check . && black . && pytest
 
 - [x] Phase 0 — repo scaffold, both services boot, health check green — see `docs/adr/0001`
 - [x] Phase 1 — DB schema, migrations, seeders — see `docs/adr/0002`
-- [~] Phase 2 — URL lexical features + Random Forest baseline — see `docs/adr/0003`
-      ↳ DONE: 23 lexical features, 53 unit tests, training script, DATASETS.md.
-      ↳ BLOCKED: no phishing URL dataset obtained, so **no model is trained and no
-        URL metrics exist**. /health correctly reports a null URL model version.
-        Do not quote an F1 for the URL model — there isn't one.
+- [x] Phase 2 — URL lexical features + Random Forest — see `docs/adr/0003`, `docs/adr/0004`
+      ↳ Shipped artefact: `models/rf-url-v1.1.0`. **Test F1 0.8952** (phishing class),
+        recall 0.9892, on 44,890 held-out rows with a domain-grouped split.
+      ↳ Quote the domain-grouped figure, not the random-split one. A random split
+        scores 0.9606 but leaks 2,979 domains between train and test.
+      ↳ The corpus is not Malaysian, and its legitimate half is Tranco-dominated.
+        See ADR 0004 "Limitations" before citing this number in the report.
 - [ ] Phase 3 — DistilBERT message classifier
       ↳ also export ONNX + int8 quantised, and benchmark memory/latency/F1 against the
         PyTorch checkpoint. This keeps a 1 GB VPS deployment viable and the measured
