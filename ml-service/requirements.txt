@@ -1,0 +1,15 @@
+# ScamSense ML service — runtime dependencies.
+#
+# Exact pins, per AGENTS.md §5: an FYP has to be reproducible months later and
+# on the examiner's machine, and "it worked in August" is not a defence.
+# Python 3.11 (NOT 3.14 — the torch/transformers wheels this project needs are
+# not published for 3.14 yet).
+#
+# Phase 0 installs only what the app factory and /health need. Phase 2 adds
+# scikit-learn and Phase 3 adds torch + transformers, each with its own pin.
+
+flask==3.1.0
+pydantic==2.10.4
+python-dotenv==1.0.1
+gunicorn==23.0.0 ; sys_platform != "win32"
+waitress==3.0.2 ; sys_platform == "win32"

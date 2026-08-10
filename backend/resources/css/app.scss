@@ -1,0 +1,15 @@
+// ScamSense — application stylesheet
+//
+// Bootstrap is imported from source rather than as a prebuilt CSS file so that
+// Phase 6 can override Sass variables directly. That matters for this project:
+// the target user is a non-technical Malaysian adult, often older, on a
+// mid-range Android phone, so the type scale and touch-target sizes need to be
+// raised above Bootstrap's defaults rather than patched with utility overrides.
+//
+// Override variables ABOVE the import — Bootstrap's `!default` values only take
+// effect if they have not already been set.
+
+// $font-size-base: 1.125rem;   // Phase 6
+// $min-contrast-ratio: 4.5;    // WCAG 2.1 AA, see AGENTS.md O2
+
+@import "bootstrap/scss/bootstrap";

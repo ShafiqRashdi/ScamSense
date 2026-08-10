@@ -1,0 +1,40 @@
+[project]
+name = "scamsense-ml"
+version = "0.1.0"
+description = "Internal ML service for ScamSense: URL and message scam classification."
+requires-python = "==3.11.*"
+
+[tool.black]
+line-length = 100
+target-version = ["py311"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+extend-exclude = [".venv", "models"]
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle
+    "F",   # pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "UP",  # pyupgrade
+    "ANN", # missing type hints — AGENTS.md §5 requires them on public functions
+    "S",   # flake8-bandit: this is a security project, so lint for it
+]
+ignore = [
+    "ANN401", # Any is occasionally the honest annotation for Flask config
+    "E501",   # line length is black's job
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Tests may use assert, and fixtures do not need return annotations.
+"tests/*" = ["S101", "ANN201"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q --strict-markers"
+markers = [
+    "slow: model training or inference benchmarks",
+]

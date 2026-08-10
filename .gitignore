@@ -1,0 +1,54 @@
+# ── Secrets ────────────────────────────────────────────────────────────────
+# AGENTS.md §3: no secrets in the repo, ever. .env.example ships with empty keys.
+.env
+.env.*
+!.env.example
+
+# ── PHP / Laravel ──────────────────────────────────────────────────────────
+vendor/
+node_modules/
+/backend/public/build
+/backend/public/hot
+/backend/public/storage
+/backend/storage/*.key
+.phpunit.result.cache
+/backend/.phpunit.cache
+
+# ── Python / ml-service ────────────────────────────────────────────────────
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# ── Model artefacts ────────────────────────────────────────────────────────
+# Trained weights are large and regenerable from training/train_*.py.
+# The JSON written beside them (metrics.json, feature_list.json, the split
+# indices) is the evidence behind the Chapter 4 numbers and MUST stay tracked —
+# see AGENTS.md §6 and the ml-endpoint skill. Ignore weights by extension rather
+# than ignoring models/ wholesale, so that metadata is never silently dropped.
+*.bin
+*.safetensors
+*.joblib
+*.pkl
+*.pt
+*.onnx
+*.h5
+ml-service/models/**/checkpoint-*/
+
+# ── Datasets ───────────────────────────────────────────────────────────────
+# Raw corpora are not committed: size, plus the provenance/consent basis that
+# AGENTS.md requires for every collected Malaysian message. Record each source
+# in ml-service/training/DATASETS.md instead. Small fixtures may be committed
+# with a _sample suffix.
+ml-service/training/data/
+*.csv
+!*_sample.csv
+
+# ── OS / editor ────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+/.idea
+/.vscode
