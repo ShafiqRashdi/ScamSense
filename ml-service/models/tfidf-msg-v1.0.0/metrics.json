@@ -1,0 +1,59 @@
+{
+  "model": "tfidf-msg-v1.0.0",
+  "trained_at": "2026-08-10T15:47:51.247382+00:00",
+  "REPORTING_QUALIFIER": "F1 on a synthetic template corpus. This is NOT ScamSense's message-detection accuracy on real Malaysian messages. The corpus is generated from a small number of templates; see ml-service/training/DATASETS.md.",
+  "split_strategy": "template",
+  "corpus": {
+    "rows": 1732,
+    "unique_templates": 56,
+    "effective_n": 56,
+    "test_templates": 3
+  },
+  "template_leakage": {
+    "templates_shared_train_test": 0,
+    "test_rows_on_shared_templates": 0,
+    "test_rows_total": 738
+  },
+  "validation": {
+    "threshold": 0.966301,
+    "accuracy": 1.0,
+    "f1_scam": 1.0,
+    "precision_scam": 1.0,
+    "recall_scam": 1.0,
+    "f1_legitimate": 1.0,
+    "f1_macro": 1.0,
+    "roc_auc": 1.0,
+    "average_precision": 1.0,
+    "confusion_matrix": {
+      "true_negative": 16,
+      "false_positive": 0,
+      "false_negative": 0,
+      "true_positive": 68
+    },
+    "support": {
+      "legitimate": 16,
+      "scam": 68
+    }
+  },
+  "test": {
+    "threshold": 0.966301,
+    "accuracy": 0.0,
+    "f1_scam": 0.0,
+    "precision_scam": 0.0,
+    "recall_scam": 0.0,
+    "f1_legitimate": 0.0,
+    "f1_macro": 0.0,
+    "roc_auc": null,
+    "average_precision": null,
+    "confusion_matrix": {
+      "true_negative": 0,
+      "false_positive": 0,
+      "false_negative": 738,
+      "true_positive": 0
+    },
+    "support": {
+      "legitimate": 0,
+      "scam": 738
+    }
+  }
+}

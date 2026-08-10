@@ -66,27 +66,46 @@ genuinely serve both — but it is a further reason not to let a domain straddle
 | Extra columns | `language`, `split`, `source`, `scam_type` |
 | Consent basis | Synthetic; no real person's message is included |
 
-### This corpus is templated synthetic data
+### Measured: this corpus cannot support an evaluation at all
 
-Generated from templates carrying authentic Malaysian context — LHDN, Touch 'n Go, Bantuan Tunai
-Rahmah, SAPS. That makes it genuinely useful for a v1 baseline: it exercises the right
-vocabulary, the right brands and the right code-switching, none of which the English public
-corpora contain.
+It was supplied as templated synthetic data with authentic Malaysian context, flagged as "good
+for a v1 baseline but not a valid final holdout". Measurement showed the limitation is more
+severe: it cannot support a baseline either.
 
-**It is not a valid final holdout.** Templated data means the test partition shares generator
-structure with the training partition, so a model can score highly by learning the templates.
-Any figure measured on it describes performance on the template set, not on real Malaysian scam
-messages.
+**1,732 rows are generated from 56 templates**, and 99.1% of rows sit on a repeated template.
+Three templates account for 65% of the corpus, and one legitimate template covers 394 of the 517
+legitimate rows — 76% of the entire negative class.
 
-Consequence for Phase 3, and this is not negotiable in the write-up: a metric from this corpus
-must be reported as *"F1 on a synthetic template corpus"*, never as ScamSense's message-detection
-accuracy. The real number requires the corpus below.
+| Split strategy | Test F1 | What it actually measures |
+|---|---:|---|
+| Random | **1.0000** | Template memorisation — every test template was seen in training |
+| Template-grouped | **0.0000** | Nothing — the test partition drew 3 templates, all one class |
 
-### Real Malaysian messages — *collection in progress, separate effort*
+The supplied `split` column shares 32 templates between train and test, so it has the same defect
+as a random split.
 
-The genuine holdout. Local-language coverage over authentic messages is what distinguishes
-ScamSense from ScamShield, and a defensible Chapter 4 figure for the message classifier depends
-on it.
+**No figure from this corpus may be reported as a performance result.** See `docs/adr/0005`.
+The effective sample size is 56, not 1,732 — `train_message_model.py` prints the template count
+on every run so this cannot be misjudged again.
+
+The corpus is retained as a smoke-test fixture proving the pipeline runs end to end. That is its
+only remaining use.
+
+### Real Malaysian messages — *collection in progress, and now the blocker for Phase 3*
+
+The genuine corpus. Local-language coverage over authentic messages is what distinguishes
+ScamSense from ScamShield, and **the entire message-classifier objective now depends on it** —
+there is no interim figure, because the synthetic corpus cannot produce one.
+
+What it needs to contain, from ADR 0005:
+
+1. **300+ distinct scam messages and 300+ distinct legitimate messages** as a floor, ideally
+   1,000+ total. Distinct *messages*, not rows: the template count is what matters.
+2. **A legitimate class as varied as the scam class.** The synthetic corpus failed partly
+   because its negative class was effectively one template. Real legitimate messages — bank TAC
+   codes, delivery notifications, appointment reminders, telco top-ups, government announcements
+   — must come from as many distinct sources as the scam examples.
+3. **Real messages**, not generated ones, however authentic the vocabulary.
 
 | Field | Value |
 |---|---|

@@ -278,10 +278,19 @@ ruff check . && black . && pytest
         scores 0.9606 but leaks 2,979 domains between train and test.
       ↳ The corpus is not Malaysian, and its legitimate half is Tranco-dominated.
         Read ADR 0004 "Limitations" before citing this number in the report.
-- [ ] Phase 3 — DistilBERT message classifier
-      ↳ also export ONNX + int8 quantised, and benchmark memory/latency/F1 against the
-        PyTorch checkpoint. This keeps a 1 GB VPS deployment viable and the measured
-        accuracy cost is a Chapter 4 result. See `docs/adr/0001`.
+- [~] Phase 3 — DistilBERT message classifier — **BLOCKED**, see `docs/adr/0005`
+      ↳ DONE: text_preprocess module, TF-IDF baseline pipeline, template-leakage
+        detection, 96 tests passing.
+      ↳ BLOCKED: `messages.csv` is 1,732 rows from only **56 templates**. A random
+        split reports F1 1.0000 (pure template memorisation); a template-grouped
+        split gives a single-class test partition and F1 0.0000. **No valid message
+        metric exists and none can be produced from this corpus.** Do not quote one.
+      ↳ DistilBERT fine-tuning is deliberately deferred, not skipped: on 39 training
+        templates it would produce a meaningless comparison at a cost of hours.
+      ↳ NEEDS: 300+ distinct real scam messages and 300+ distinct real legitimate
+        messages, with a negative class as varied as the positive one.
+      ↳ When resumed: also export ONNX + int8 quantised and benchmark memory/latency/F1
+        against the PyTorch checkpoint, to keep the 1 GB VPS option open (`docs/adr/0001`).
 - [ ] Phase 4 — Laravel ⇄ Flask integration with fallback
 - [ ] Phase 5 — Threat-intel clients (Safe Browsing, VirusTotal) with caching
 - [ ] Phase 6 — Public UI (submit, verdict, indicators)
