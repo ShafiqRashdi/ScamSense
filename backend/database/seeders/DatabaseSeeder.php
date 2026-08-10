@@ -15,8 +15,7 @@ class DatabaseSeeder extends Seeder
     {
         $this->call([
             AdminUserSeeder::class,
-            // Phase 1 adds the Malaysian sample submissions, verdicts and
-            // indicators here.
+            SampleSubmissionSeeder::class,
         ]);
     }
 }

@@ -119,8 +119,11 @@ objective.
   Defang URLs in the UI (`hxxps://example[.]com`) and never make them clickable.
 - **Redact before you store or log.** Malaysian phone numbers, IC numbers, emails, and bank
   account numbers get masked by a `Redactor` service before the submission is persisted or
-  written to any log line. Store a SHA-256 hash of the raw input for deduplication instead of
-  the raw string where possible.
+  written to any log line. Store a SHA-256 `content_hash` for deduplication instead of the raw
+  string. **Hash the redacted text, not the raw input** — submissions are short enough that a
+  digest of raw PII can be brute-forced back, which would undo the redaction it sits beside.
+  Hashing after redaction also collapses one scam template sent with a thousand different
+  callback numbers into a single hash, which is what dedup is for. See `docs/adr/0002` §1.
 - **No secrets in the repo.** API keys live in `.env`, which is gitignored. `.env.example`
   ships with empty keys. If you ever see a real key in a diff, stop and flag it.
 - **Rate limit everything public.** 10 verification requests/minute/IP, 30/hour/IP, enforced
@@ -262,7 +265,7 @@ ruff check . && black . && pytest
 ## 9. Current status
 
 - [x] Phase 0 — repo scaffold, both services boot, health check green — see `docs/adr/0001`
-- [ ] Phase 1 — DB schema, migrations, seeders
+- [x] Phase 1 — DB schema, migrations, seeders — see `docs/adr/0002`
 - [ ] Phase 2 — URL lexical features + Random Forest baseline
 - [ ] Phase 3 — DistilBERT message classifier
       ↳ also export ONNX + int8 quantised, and benchmark memory/latency/F1 against the
