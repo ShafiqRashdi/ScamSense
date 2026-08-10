@@ -267,12 +267,17 @@ ruff check . && black . && pytest
 - [x] Phase 0 — repo scaffold, both services boot, health check green — see `docs/adr/0001`
 - [x] Phase 1 — DB schema, migrations, seeders — see `docs/adr/0002`
 - [x] Phase 2 — URL lexical features + Random Forest — see `docs/adr/0003`, `docs/adr/0004`
-      ↳ Shipped artefact: `models/rf-url-v1.1.0`. **Test F1 0.8952** (phishing class),
-        recall 0.9892, on 44,890 held-out rows with a domain-grouped split.
-      ↳ Quote the domain-grouped figure, not the random-split one. A random split
+      ↳ CANONICAL FIGURE: **test F1 0.8984** (phishing class), from
+        `models/rf-url-v1.2.0-no-https`, the shipped artefact. Recall 0.9780,
+        precision 0.8308, on 44,890 held-out rows, domain-grouped split, 22 features.
+        Every other F1 in ADR 0004 belongs to a superseded or comparison artefact.
+      ↳ `uses_https` was dropped: all 23,936 Tranco rows had `https://` added during
+        dataset assembly, so the feature was partly an artefact of how the CSV was
+        built. Ablation showed it was not load-bearing (+0.003 test F1 without it).
+      ↳ Quote the domain-grouped figure, never the random-split one. A random split
         scores 0.9606 but leaks 2,979 domains between train and test.
       ↳ The corpus is not Malaysian, and its legitimate half is Tranco-dominated.
-        See ADR 0004 "Limitations" before citing this number in the report.
+        Read ADR 0004 "Limitations" before citing this number in the report.
 - [ ] Phase 3 — DistilBERT message classifier
       ↳ also export ONNX + int8 quantised, and benchmark memory/latency/F1 against the
         PyTorch checkpoint. This keeps a 1 GB VPS deployment viable and the measured

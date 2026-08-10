@@ -162,13 +162,26 @@ def registrable_domains(urls: pd.Series) -> np.ndarray:
     return np.array([parse(url).registrable_domain for url in urls.astype(str)])
 
 
-def build_feature_matrix(urls: pd.Series) -> np.ndarray:
+def build_feature_matrix(urls: pd.Series, feature_names: list[str] | None = None) -> np.ndarray:
     """Extract features using the SAME module the Flask service imports.
 
     Training and serving sharing one implementation is what prevents the skew
     that silently degrades a deployed model.
+
+    `feature_names` selects and orders the columns, defaulting to the full
+    FEATURE_NAMES. Passing a subset supports ablation studies — and whatever
+    subset is used is written to feature_list.json, so serving reconstructs the
+    same vector rather than assuming the full set.
     """
-    return np.array([to_vector(extract_features(url)) for url in urls], dtype=np.float64)
+    active = feature_names or FEATURE_NAMES
+
+    if active == FEATURE_NAMES:
+        return np.array([to_vector(extract_features(url)) for url in urls], dtype=np.float64)
+
+    return np.array(
+        [[extract_features(url)[name] for name in active] for url in urls],
+        dtype=np.float64,
+    )
 
 
 def make_split(
@@ -341,12 +354,33 @@ def main() -> int:
         ),
     )
     parser.add_argument(
+        "--drop-feature",
+        action="append",
+        default=[],
+        metavar="NAME",
+        help=(
+            "Exclude a feature from training. Repeatable. Use for ablation when a "
+            "feature is suspected of reflecting how the dataset was assembled "
+            "rather than a property of the URLs themselves."
+        ),
+    )
+    parser.add_argument(
         "--out",
         type=Path,
         default=Path(__file__).resolve().parent.parent / "models",
         help="Directory to write the versioned artefact into",
     )
     args = parser.parse_args()
+
+    unknown_features = sorted(set(args.drop_feature) - set(FEATURE_NAMES))
+    if unknown_features:
+        raise SystemExit(
+            f"Unknown feature(s) to drop: {unknown_features}\nAvailable: {FEATURE_NAMES}"
+        )
+
+    active_features = [name for name in FEATURE_NAMES if name not in args.drop_feature]
+    if not active_features:
+        raise SystemExit("Cannot drop every feature.")
 
     set_seeds(args.seed)
 
@@ -355,8 +389,10 @@ def main() -> int:
     counts = frame["label"].value_counts().to_dict()
     print(f"  {len(frame)} rows: {counts.get(0, 0)} legitimate, {counts.get(1, 0)} phishing")
 
-    print("Extracting features")
-    X = build_feature_matrix(frame["url"])
+    if args.drop_feature:
+        print(f"Ablation: dropping {sorted(args.drop_feature)}")
+    print(f"Extracting features ({len(active_features)} of {len(FEATURE_NAMES)})")
+    X = build_feature_matrix(frame["url"], active_features)
     y = frame["label"].to_numpy()
 
     groups = registrable_domains(frame["url"])
@@ -408,7 +444,7 @@ def main() -> int:
     print_report("Test (this is the number for Chapter 4)", test_metrics)
 
     importances = sorted(
-        zip(FEATURE_NAMES, (float(v) for v in model.feature_importances_), strict=True),
+        zip(active_features, (float(v) for v in model.feature_importances_), strict=True),
         key=lambda pair: pair[1],
         reverse=True,
     )
@@ -421,7 +457,14 @@ def main() -> int:
 
     joblib.dump(model, out_dir / "model.joblib")
     (out_dir / "feature_list.json").write_text(
-        json.dumps({"features": FEATURE_NAMES, "count": len(FEATURE_NAMES)}, indent=2),
+        json.dumps(
+            {
+                "features": active_features,
+                "count": len(active_features),
+                "dropped": sorted(args.drop_feature),
+            },
+            indent=2,
+        ),
         encoding="utf-8",
     )
     (out_dir / "split_indices.json").write_text(

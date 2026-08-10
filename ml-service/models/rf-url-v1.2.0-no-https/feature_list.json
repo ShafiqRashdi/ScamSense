@@ -1,0 +1,30 @@
+{
+  "features": [
+    "url_length",
+    "host_length",
+    "path_length",
+    "path_depth",
+    "query_param_count",
+    "subdomain_count",
+    "hyphen_count",
+    "dot_count",
+    "digit_ratio",
+    "host_entropy",
+    "path_entropy",
+    "host_is_ip_literal",
+    "has_punycode",
+    "has_at_symbol",
+    "has_double_slash_in_path",
+    "has_port",
+    "is_known_shortener",
+    "is_suspicious_tld",
+    "brand_token_in_subdomain",
+    "brand_lookalike",
+    "has_sensitive_keyword",
+    "longest_token_length"
+  ],
+  "count": 22,
+  "dropped": [
+    "uses_https"
+  ]
+}
