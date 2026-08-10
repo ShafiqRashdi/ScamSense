@@ -266,7 +266,11 @@ ruff check . && black . && pytest
 
 - [x] Phase 0 — repo scaffold, both services boot, health check green — see `docs/adr/0001`
 - [x] Phase 1 — DB schema, migrations, seeders — see `docs/adr/0002`
-- [ ] Phase 2 — URL lexical features + Random Forest baseline
+- [~] Phase 2 — URL lexical features + Random Forest baseline — see `docs/adr/0003`
+      ↳ DONE: 23 lexical features, 53 unit tests, training script, DATASETS.md.
+      ↳ BLOCKED: no phishing URL dataset obtained, so **no model is trained and no
+        URL metrics exist**. /health correctly reports a null URL model version.
+        Do not quote an F1 for the URL model — there isn't one.
 - [ ] Phase 3 — DistilBERT message classifier
       ↳ also export ONNX + int8 quantised, and benchmark memory/latency/F1 against the
         PyTorch checkpoint. This keeps a 1 GB VPS deployment viable and the measured
