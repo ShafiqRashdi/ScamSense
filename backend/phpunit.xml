@@ -23,9 +23,22 @@
         <env name="BCRYPT_ROUNDS" value="4"/>
         <env name="BROADCAST_CONNECTION" value="null"/>
         <env name="CACHE_STORE" value="array"/>
-        <env name="DB_CONNECTION" value="sqlite"/>
-        <env name="DB_DATABASE" value=":memory:"/>
-        <env name="DB_URL" value=""/>
+        <!--
+            Tests run against MySQL, not in-memory SQLite.
+
+            SQLite is faster, but it does not share MySQL's behaviour where this
+            schema depends on it: index length limits under utf8mb4, JSON column
+            semantics, and ENUM handling. Running the suite on a different engine
+            from the application hides exactly the bugs that would surface in a
+            live demo. The test database is separate from the development one and
+            is truncated by RefreshDatabase on every run.
+
+            Create it once with:
+              CREATE DATABASE scamsense_test
+                CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+        -->
+        <env name="DB_CONNECTION" value="mysql"/>
+        <env name="DB_DATABASE" value="scamsense_test"/>
         <env name="MAIL_MAILER" value="array"/>
         <env name="QUEUE_CONNECTION" value="sync"/>
         <env name="SESSION_DRIVER" value="array"/>
