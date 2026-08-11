@@ -264,6 +264,12 @@ ruff check . && black . && pytest
 
 ## 9. Current status
 
+> **Every metric quoted in the report comes from `docs/RESULTS.md`.** That file is the single
+> source of truth and is verified against the committed `metrics.json` artefacts. Commit
+> messages and superseded ADR revisions may contain figures from earlier configurations; where
+> anything disagrees with `docs/RESULTS.md`, that file wins.
+
+
 - [x] Phase 0 — repo scaffold, both services boot, health check green — see `docs/adr/0001`
 - [x] Phase 1 — DB schema, migrations, seeders — see `docs/adr/0002`
 - [x] Phase 2 — URL lexical features + Random Forest — see `docs/adr/0003`, `docs/adr/0004`
@@ -291,7 +297,15 @@ ruff check . && black . && pytest
         messages, with a negative class as varied as the positive one.
       ↳ When resumed: also export ONNX + int8 quantised and benchmark memory/latency/F1
         against the PyTorch checkpoint, to keep the 1 GB VPS option open (`docs/adr/0001`).
-- [ ] Phase 4 — Laravel ⇄ Flask integration with fallback
+- [x] Phase 4 — Flask prediction API with HMAC — see `docs/api-contract.md`
+      ↳ POST /api/v1/predict/url serves rf-url-v1.2.0-no-https. Median 30ms, p95 76ms
+        over HTTP including HMAC. 183 tests pass.
+      ↳ POST /api/v1/predict/message returns 503 model_unavailable — no artefact
+        exists (ADR 0005). Laravel must render a labelled partial verdict, never a 500.
+      ↳ **OPEN DEFECT, `docs/adr/0006`:** the model flags real banking and government
+        pages — 40% false positives on a 20-URL real-site probe, including the Maybank
+        login page at 0.93. Recall is fine (0 misses on 8 phishing shapes). Cause is
+        corpus prior, not code. Do NOT retune the threshold against that probe.
 - [ ] Phase 5 — Threat-intel clients (Safe Browsing, VirusTotal) with caching
 - [ ] Phase 6 — Public UI (submit, verdict, indicators)
 - [ ] Phase 7 — Feedback loop + moderation queue
