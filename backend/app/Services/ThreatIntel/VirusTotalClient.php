@@ -44,7 +44,7 @@ class VirusTotalClient
         $key = (string) config('services.virustotal.key');
 
         if ($key === '') {
-            return ThreatIntelResult::unknown(self::PROVIDER, 'no_api_key');
+            return ThreatIntelResult::notConfigured(self::PROVIDER);
         }
 
         $hash = ThreatIntelCache::hashUrl($url);

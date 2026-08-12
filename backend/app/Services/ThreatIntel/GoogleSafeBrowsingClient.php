@@ -36,7 +36,7 @@ class GoogleSafeBrowsingClient
         if ($key === '') {
             // Not an error. The project must run without paid or registered
             // keys, degrading to model-only analysis.
-            return ThreatIntelResult::unknown(self::PROVIDER, 'no_api_key');
+            return ThreatIntelResult::notConfigured(self::PROVIDER);
         }
 
         $hash = ThreatIntelCache::hashUrl($url);

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Services\Detection;
 
+use App\DataTransferObjects\VerifiedInstitution;
+
 /**
  * Recognises registrable domains operated by verified Malaysian institutions.
  *
@@ -29,37 +31,64 @@ namespace App\Services\Detection;
  * would convert the mitigation into a bypass: an attacker registering
  * `maybank2u.com.my.secure-verify.xyz` has the registrable domain
  * `secure-verify.xyz`, and must not match. A test asserts precisely that.
+ *
+ * ## Residual risk
+ *
+ * A match caps every path under the domain, so open redirects and compromised
+ * subpages on a verified domain are capped too. Threat-intel escalation runs
+ * before the gate and covers the reported cases; the window before a report
+ * exists is an accepted residual risk, documented in ADR 0007.
  */
 class VerifiedDomainRegistry
 {
+    /** @var array<string, VerifiedInstitution> keyed by registrable domain */
+    private array $byDomain = [];
+
+    /** @var array<string, array<string, string>> keyed by restricted suffix */
+    private array $bySuffix = [];
+
     /**
-     * @param  list<string>  $suffixes  Restricted-registration suffixes
-     * @param  list<string>  $domains  Exact registrable domains
+     * @param  array<string, array<string, mixed>>  $institutions
+     * @param  array<string, array<string, string>>  $suffixes
      */
-    public function __construct(
-        private array $suffixes = [],
-        private array $domains = [],
-    ) {
-        $this->suffixes = array_map(strtolower(...), $suffixes);
-        $this->domains = array_map(strtolower(...), $domains);
+    public function __construct(array $institutions = [], array $suffixes = [])
+    {
+        foreach ($institutions as $institution) {
+            foreach ((array) ($institution['domains'] ?? []) as $domain) {
+                $this->byDomain[strtolower((string) $domain)] = new VerifiedInstitution(
+                    domain: strtolower((string) $domain),
+                    name: (string) $institution['name'],
+                    nameMs: isset($institution['name_ms']) ? (string) $institution['name_ms'] : null,
+                    authority: (string) $institution['authority'],
+                    reference: (string) $institution['reference'],
+                    verifiedOn: (string) $institution['verified_on'],
+                );
+            }
+        }
+
+        foreach ($suffixes as $suffix => $meta) {
+            $this->bySuffix[strtolower((string) $suffix)] = $meta;
+        }
     }
 
     public static function fromConfig(): self
     {
-        /** @var array{suffixes: list<string>, domains: list<string>} $config */
-        $config = config('scamsense.verified_domains', ['suffixes' => [], 'domains' => []]);
+        /** @var array<string, array<string, mixed>> $institutions */
+        $institutions = config('verified_institutions.institutions', []);
+        /** @var array<string, array<string, string>> $suffixes */
+        $suffixes = config('verified_institutions.suffixes', []);
 
-        return new self($config['suffixes'] ?? [], $config['domains'] ?? []);
+        return new self($institutions, $suffixes);
     }
 
     /**
-     * The verified registrable domain for a URL, or null.
+     * The institution behind a URL's registrable domain, or null.
      *
-     * Returns the matched domain rather than a boolean so the caller can record
-     * it as indicator evidence — a gated verdict must be able to say *which*
-     * institution it recognised.
+     * Returns the institution rather than a boolean so the caller can name it
+     * to the user — "this is the real Maybank website" is far more reassuring,
+     * and far better teaching, than "this domain is verified".
      */
-    public function match(string $url): ?string
+    public function match(string $url): ?VerifiedInstitution
     {
         $host = $this->hostOf($url);
 
@@ -73,16 +102,24 @@ class VerifiedDomainRegistry
             return null;
         }
 
-        if (in_array($registrable, $this->domains, true)) {
-            return $registrable;
+        if (isset($this->byDomain[$registrable])) {
+            return $this->byDomain[$registrable];
         }
 
-        foreach ($this->suffixes as $suffix) {
-            // Endswith on ".{suffix}" or exact equality. The leading dot is
+        foreach ($this->bySuffix as $suffix => $meta) {
+            // Exact equality, or ends with ".{suffix}". The leading dot is
             // essential: without it "notgov.my" would match the "gov.my"
-            // suffix, which is exactly the bypass this class must not permit.
+            // suffix, which is precisely the bypass this must not permit.
             if ($registrable === $suffix || str_ends_with($registrable, '.'.$suffix)) {
-                return $registrable;
+                return new VerifiedInstitution(
+                    domain: $registrable,
+                    name: (string) $meta['name'],
+                    nameMs: isset($meta['name_ms']) ? (string) $meta['name_ms'] : null,
+                    authority: (string) $meta['authority'],
+                    reference: (string) $meta['reference'],
+                    verifiedOn: (string) $meta['verified_on'],
+                    bySuffix: true,
+                );
             }
         }
 
@@ -91,7 +128,7 @@ class VerifiedDomainRegistry
 
     public function isVerified(string $url): bool
     {
-        return $this->match($url) !== null;
+        return $this->match($url) instanceof VerifiedInstitution;
     }
 
     private function hostOf(string $url): ?string

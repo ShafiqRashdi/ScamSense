@@ -167,6 +167,47 @@ U Mobile, Astro, Pos Malaysia, and the e-wallet operators licensed by BNM.
 
 Each entry is a registrable domain, not a pattern.
 
+### Residual risk: the gate caps every path under a verified domain
+
+Matching is on the registrable domain, so a match caps the verdict for **any** URL on that
+domain — every path, every subdomain, every query string. That is a deliberate simplification
+with a real cost, and it is stated here rather than discovered later.
+
+Three shapes are not addressed by the gate itself:
+
+- **Open redirects.** `bank.com.my/redirect?to=evil.xyz` is served by the verified domain and
+  will be capped at Low, even though following it lands the user somewhere hostile.
+- **Compromised subpages.** A verified institution can be breached and serve phishing content
+  from its own domain.
+- **Subdomain takeover.** An abandoned DNS record under a verified domain, pointed at
+  infrastructure an attacker now controls, inherits the cap.
+
+What covers them, partially: **threat-intel escalation runs before the gate** (step 2 before
+step 3), so once Safe Browsing or VirusTotal reports a specific URL, the verdict is High
+regardless of who owns the domain. That is the mitigation, and it is genuinely useful because
+these three shapes are exactly the kind that get reported and blocklisted — they are attacks on
+well-known domains, which attract attention quickly.
+
+But it is only partial, and the reasons matter:
+
+- It inherits the reporting lag from Decision 1. A freshly abused open redirect on a real bank
+  domain is clean everywhere for hours, and the gate will cap it during precisely that window.
+- Threat intel is per-URL, whereas the gate is per-domain, so an escalation on one path does not
+  raise the verdict for a sibling path.
+- Threat intel may be absent entirely — no API key configured is the default state of this
+  project, and both providers can be unreachable or rate-limited.
+
+**The honest summary:** the gate trades a narrow, low-frequency false-negative risk on verified
+domains for the removal of a broad, high-frequency false-positive problem affecting every user
+who checks their own bank. Given that the false positives are certain and constant while the
+open-redirect case is occasional and partly covered, that trade is worth making — but it is a
+trade, not a free win, and the user-facing copy reflects it by scoping the claim to the address
+rather than the page ("we checked the address, not the page").
+
+A future improvement, out of scope here: refuse to gate a URL whose query string contains
+another URL, which is the observable signature of an open redirect and needs no fetching to
+detect.
+
 ### Maintenance is a real cost, and it is accepted
 
 The list needs review when an institution changes domain, merges, or is licensed. A stale list

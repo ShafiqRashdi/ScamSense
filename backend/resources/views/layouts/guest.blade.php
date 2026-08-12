@@ -14,7 +14,7 @@
         <div class="row justify-content-center">
             <div class="col-12 col-sm-10 col-md-7 col-lg-5">
                 <div class="text-center mb-4">
-                    <a href="{{ route('home') }}" class="text-decoration-none">
+                    <a href="{{ route('verify.show') }}" class="text-decoration-none">
                         <span class="fs-3 fw-semibold text-body">ScamSense</span>
                     </a>
                 </div>

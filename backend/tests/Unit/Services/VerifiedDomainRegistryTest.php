@@ -36,9 +36,47 @@ it('recognises an institutional suffix without needing a list entry', function (
     'a university' => 'https://www.uptm.edu.my',
 ]);
 
-it('returns the matched domain so it can be recorded as evidence', function (): void {
-    expect($this->registry->match('https://www.maybank2u.com.my/home/login.do'))
-        ->toBe('maybank2u.com.my');
+it('returns the institution so the UI can name it', function (): void {
+    // "This is the real Maybank website" is far more reassuring, and far
+    // better teaching, than "this address is verified".
+    $match = $this->registry->match('https://www.maybank2u.com.my/home/login.do');
+
+    expect($match)->not->toBeNull()
+        ->and($match->domain)->toBe('maybank2u.com.my')
+        ->and($match->name)->toBe('Maybank')
+        ->and($match->authority)->toBe('bnm_licensed_bank');
+});
+
+it('carries the verification citation with every entry', function (): void {
+    /*
+     * ADR 0007 claims these entries are third-party checkable. That is only
+     * true if the citation travels with the fact — an allowlist entry nobody
+     * can trace is an assertion, and an unsourced assertion in an allowlist is
+     * the one genuinely dangerous mistake available here.
+     */
+    $match = $this->registry->match('https://www.maybank2u.com.my');
+
+    expect($match->reference)->toContain('Bank Negara Malaysia')
+        ->and($match->verifiedOn)->toMatch('/^\d{4}-\d{2}-\d{2}$/');
+});
+
+it('groups an institution\'s several domains under one name', function (string $url): void {
+    // Many banks run separate marketing and online-banking addresses; the
+    // display name is stated once so it cannot drift between them.
+    expect($this->registry->match($url)->name)->toBe('Maybank');
+})->with([
+    'online banking' => 'https://www.maybank2u.com.my/login',
+    'corporate my' => 'https://www.maybank.com.my/about',
+    'corporate com' => 'https://www.maybank.com/en/index.page',
+]);
+
+it('marks a suffix match so the copy can explain the rule instead of naming a company', function (): void {
+    $match = $this->registry->match('https://www.hasil.gov.my/en/');
+
+    expect($match->bySuffix)->toBeTrue()
+        ->and($match->authority)->toBe('mynic_restricted');
+
+    expect($this->registry->match('https://www.maybank2u.com.my')->bySuffix)->toBeFalse();
 });
 
 /*

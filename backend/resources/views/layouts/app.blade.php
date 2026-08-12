@@ -12,7 +12,7 @@
 <body class="bg-body-secondary d-flex flex-column min-vh-100">
     <nav class="navbar navbar-expand-md bg-body border-bottom">
         <div class="container">
-            <a class="navbar-brand fw-semibold" href="{{ route('home') }}">ScamSense</a>
+            <a class="navbar-brand fw-semibold" href="{{ route('verify.show') }}">ScamSense</a>
 
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
                     data-bs-target="#primaryNav" aria-controls="primaryNav"

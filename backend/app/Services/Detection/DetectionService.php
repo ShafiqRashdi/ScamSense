@@ -67,11 +67,18 @@ class DetectionService
         $indicators = $prediction->indicators;
         $hits = array_values(array_filter($intel, static fn (ThreatIntelResult $r): bool => $r->hit));
 
-        // A provider that could not be reached contributes nothing, but the
-        // user is entitled to know a signal was missing.
-        $unreachable = array_values(array_filter(
+        /*
+         * A configured provider that could not answer degrades the verdict —
+         * the user is entitled to know a signal was missing.
+         *
+         * A provider with no API key does NOT. ScamSense must run without
+         * registered keys, so treating "not configured" as a missing signal
+         * would mark every verdict partial, and a partial notice shown on every
+         * result carries no information and teaches users to ignore it.
+         */
+        $degraded = array_values(array_filter(
             $intel,
-            static fn (ThreatIntelResult $r): bool => ! $r->isInformative(),
+            static fn (ThreatIntelResult $r): bool => $r->degradesVerdict(),
         ));
 
         foreach ($hits as $hit) {
@@ -115,11 +122,11 @@ class DetectionService
         }
 
         $probability = $prediction->probability;
-        $isPartial = $unreachable !== [];
+        $isPartial = $degraded !== [];
         $partialReason = $isPartial
             ? 'threat_intel_unavailable:'.implode(',', array_map(
                 static fn (ThreatIntelResult $r): string => $r->provider,
-                $unreachable,
+                $degraded,
             ))
             : null;
 
@@ -146,7 +153,7 @@ class DetectionService
                 $indicators[] = new IndicatorData(
                     code: 'verified_institutional_domain',
                     weight: 0.0,
-                    evidence: $verified,
+                    evidence: $verified->domain,
                     source: IndicatorSource::Registry,
                 );
 
@@ -164,6 +171,7 @@ class DetectionService
                     partialReason: $partialReason,
                     inferenceMs: $prediction->inferenceMs,
                     gatedByVerifiedDomain: true,
+                    institution: $verified,
                 );
             }
         }

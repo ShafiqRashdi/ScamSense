@@ -30,6 +30,7 @@ final readonly class ThreatIntelResult
         /** @var array<string, mixed> */
         public array $raw,
         public ?string $detail,
+        public bool $configured = true,
     ) {}
 
     /**
@@ -48,20 +49,50 @@ final readonly class ThreatIntelResult
         return new self($provider, false, true, $raw, null);
     }
 
+    /**
+     * A configured provider that could not answer — timeout, rate limit, error.
+     *
+     * This degrades the verdict: a signal that should have been there was not.
+     */
     public static function unknown(string $provider, string $detail): self
     {
         return new self($provider, false, false, [], $detail);
     }
 
     /**
-     * Whether this result carries information at all.
+     * A provider with no API key in this deployment.
      *
-     * Named so that call sites read as intent rather than as a boolean check:
-     * an unreachable provider contributes nothing, and must not be silently
-     * treated as a clean result.
+     * Distinct from `unknown` and the distinction matters. ScamSense must run
+     * without registered API keys, so treating "not configured" as a degraded
+     * signal would mark *every* verdict partial — and a partial notice shown on
+     * every result carries no information and trains users to ignore it, which
+     * is worse than not having one.
+     *
+     * A provider that was never part of this deployment is not a missing
+     * signal; it is a smaller system. Only a provider that should have
+     * answered and did not degrades the verdict.
+     */
+    public static function notConfigured(string $provider): self
+    {
+        return new self($provider, false, false, [], 'no_api_key', configured: false);
+    }
+
+    /**
+     * Whether this result carries information.
+     *
+     * An unreachable or unconfigured provider contributes nothing, and must
+     * never be silently treated as a clean result.
      */
     public function isInformative(): bool
     {
         return $this->reachable;
+    }
+
+    /**
+     * Whether this result's absence should mark the verdict partial.
+     */
+    public function degradesVerdict(): bool
+    {
+        return $this->configured && ! $this->reachable;
     }
 }

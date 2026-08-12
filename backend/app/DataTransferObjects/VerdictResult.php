@@ -31,6 +31,12 @@ final readonly class VerdictResult
         public ?string $partialReason,
         public ?int $inferenceMs,
         public bool $gatedByVerifiedDomain = false,
+        /**
+         * The institution recognised, when the gate fired. Carried so the UI
+         * can name it — "this is the real Maybank website" is both far more
+         * reassuring and far better teaching than "this address is verified".
+         */
+        public ?VerifiedInstitution $institution = null,
     ) {}
 
     /**

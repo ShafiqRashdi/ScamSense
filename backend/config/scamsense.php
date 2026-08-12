@@ -46,72 +46,10 @@ return [
     ],
 
     /*
-    |--------------------------------------------------------------------------
-    | Verified institutional domains
-    |--------------------------------------------------------------------------
-    |
-    | A SAFETY MITIGATION, NOT A MODEL IMPROVEMENT. See docs/adr/0007.
-    |
-    | The URL classifier flags genuine bank login pages because its training
-    | corpus under-represents legitimate authenticated URLs (docs/adr/0006).
-    | This list gates the verdict for domains whose legitimacy is an externally
-    | verifiable registry fact — not a guess, and not the absence of a
-    | blocklist entry.
-    |
-    | Every model metric in docs/RESULTS.md is measured with this gate DISABLED.
-    | Reporting a figure that includes it would be measuring the allowlist.
-    |
-    | Matching is on the registrable domain, exactly. Adding an entry for a
-    | domain the project cannot verify is the one dangerous mistake here — cite
-    | the register that confirms it.
-    |
-    */
-    'verified_domains' => [
-
-        /*
-         | Suffixes whose registration is restricted by policy, so membership
-         | is structural. MYNIC permits .gov.my only to accredited government
-         | bodies, so future services are covered without maintenance.
-         */
-        'suffixes' => [
-            'gov.my',
-            'edu.my',
-            'mil.my',
-        ],
-
-        /*
-         | Exact registrable domains. Banks and e-wallets are verifiable against
-         | Bank Negara Malaysia's register of licensed financial institutions;
-         | telcos and utilities against their MCMC/SPAN licences.
-         */
-        'domains' => [
-            // Licensed banks (BNM register)
-            'maybank2u.com.my', 'maybank.com', 'maybank2u.com',
-            'cimb.com.my', 'cimbclicks.com.my', 'cimbbank.com.my',
-            'publicbank.com.my', 'pbebank.com',
-            'rhbgroup.com', 'rhbbank.com.my',
-            'hlb.com.my', 'hongleongconnect.my',
-            'ambank.com.my', 'amonline.com.my',
-            'bankislam.com', 'bankislam.biz',
-            'bsn.com.my', 'affinbank.com.my', 'affinalways.com',
-            'ocbc.com.my', 'uob.com.my', 'hsbc.com.my', 'sc.com',
-            'bnm.gov.my',
-
-            // Payments and e-wallets (BNM licensed)
-            'touchngo.com.my', 'tngdigital.com.my', 'myboost.com.my',
-            'duitnow.my', 'paynet.my',
-
-            // Utilities and telcos
-            'tnb.com.my', 'mytnb.com.my', 'syabas.com.my',
-            'tm.com.my', 'unifi.com.my', 'maxis.com.my', 'mymaxis.com.my',
-            'celcom.com.my', 'digi.com.my', 'u.com.my', 'astro.com.my',
-
-            // Logistics and major platforms
-            'poslaju.com.my', 'pos.com.my',
-            'shopee.com.my', 'lazada.com.my', 'grab.com',
-            'myeg.com.my',
-        ],
-    ],
+     | The verified-domain allowlist lives in config/verified_institutions.php,
+     | because each entry carries a citation and a verification date and the
+     | file is long enough to deserve its own home. See docs/adr/0007.
+     */
 
     /*
      | Two-part public suffixes, so `maybank2u.com.my` reduces to itself rather
