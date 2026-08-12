@@ -9,6 +9,7 @@ use App\Http\Requests\VerifySubmissionRequest;
 use App\Models\Submission;
 use App\Models\Verdict;
 use App\Services\Detection\DetectionService;
+use App\Services\Feedback\SessionTokenService;
 use App\Services\RedactorService;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -24,6 +25,7 @@ class VerifyController extends Controller
     public function __construct(
         private DetectionService $detection,
         private RedactorService $redactor,
+        private SessionTokenService $sessionToken,
     ) {}
 
     public function show(): View
@@ -48,6 +50,9 @@ class VerifyController extends Controller
             'content_redacted' => $redaction->text,
             'content_hash' => Submission::hashContent($redaction->text),
             'ip_hash' => $this->hashIp($request),
+            // Links this verdict to the visitor's session so that they, and
+            // only they, can leave feedback on it. See SessionTokenService.
+            'session_token_hash' => $this->sessionToken->hash(),
         ]);
 
         $record = new Verdict($verdict->toVerdictAttributes());
@@ -69,6 +74,7 @@ class VerifyController extends Controller
         return view('verify.result', [
             'verdict' => $verdict,
             'submission' => $submission,
+            'verdictRecord' => $record,
             'isUrl' => $type === SubmissionType::Url,
         ]);
     }

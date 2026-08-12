@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 /**
  * A community report agreeing with or disputing a verdict (objective O3).
@@ -61,7 +62,25 @@ class Feedback extends Model
     }
 
     /**
-     * The Phase 8 moderation queue: unreviewed items, oldest first.
+     * @return HasOne<TrainingSample, $this>
+     */
+    public function trainingSample(): HasOne
+    {
+        return $this->hasOne(TrainingSample::class);
+    }
+
+    public function isApproved(): bool
+    {
+        return $this->status === FeedbackStatus::Approved;
+    }
+
+    public function isPending(): bool
+    {
+        return $this->status === FeedbackStatus::Pending;
+    }
+
+    /**
+     * The moderation queue: unreviewed items, oldest first.
      *
      * @param  Builder<Feedback>  $query
      */

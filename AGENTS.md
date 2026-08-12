@@ -315,7 +315,15 @@ ruff check . && black . && pytest
         accuracy: every figure in docs/RESULTS.md is measured with it disabled.
       ↳ ML service unreachable, 503, or malformed → partial verdict, never a 500.
 - [ ] Phase 6 — Public UI (submit, verdict, indicators)
-- [ ] Phase 7 — Feedback loop + moderation queue
+- [x] Phase 7 — Feedback loop + moderation queue — see `docs/adr/0008`
+      ↳ The gate is a MODEL INVARIANT, not a service convention: TrainingSample
+        refuses to create a community row without approved feedback and a named
+        approver. Tests attack it via direct create, mass assignment, an origin
+        flip after insert, and a seeder-style insert, and assert no bulk-approve
+        route exists.
+      ↳ Three steps: approve → export to a dataset version → train. Never collapsed.
+      ↳ The MODERATOR supplies the label, not the reporter. No default selection.
+      ↳ Provenance survives: feedback_id, submission_id, origin, approved_by.
 - [ ] Phase 8 — Admin dashboard + metrics
 - [ ] Phase 9 — Hardening, UAT, deployment
       ↳ Docker Compose regardless of the hosting outcome: it serves the local demo, a VPS

@@ -149,6 +149,38 @@
                 </div>
             </div>
 
+            {{-- ── Community feedback (objective O3) ──────────────────────
+                 Goes to a moderation queue. Nothing here reaches a model
+                 without an administrator reviewing it — see ADR 0008. --}}
+            @if (session('feedback_received'))
+                <div class="alert alert-success" role="status">
+                    {{ __('feedback.thanks') }}
+                </div>
+            @else
+                <div class="card shadow-sm mb-4">
+                    <div class="card-body p-4">
+                        <h2 class="h6 fw-semibold">{{ __('feedback.heading') }}</h2>
+                        <p class="small text-body-secondary">{{ __('feedback.explain') }}</p>
+
+                        <div class="d-flex gap-2">
+                            @foreach ([1 => 'feedback.agree', 0 => 'feedback.dispute'] as $agrees => $key)
+                                <form method="POST" action="{{ route('feedback.store') }}" class="flex-fill">
+                                    @csrf
+                                    <input type="hidden" name="verdict_id" value="{{ $verdictRecord->id }}">
+                                    <input type="hidden" name="agrees" value="{{ $agrees }}">
+                                    <button type="submit"
+                                            class="btn btn-outline-{{ $agrees ? 'success' : 'secondary' }} w-100 py-3">
+                                        {{ __($key) }}
+                                    </button>
+                                </form>
+                            @endforeach
+                        </div>
+
+                        <p class="small text-body-secondary mt-3 mb-0">{{ __('feedback.moderated') }}</p>
+                    </div>
+                </div>
+            @endif
+
             <a href="{{ route('verify.show') }}" class="btn btn-outline-primary btn-lg w-100 py-3">
                 {{ __('verdict.check_another') }}
             </a>

@@ -7,10 +7,12 @@ use App\Enums\VerdictLabel;
 use App\Models\Feedback;
 use App\Models\Indicator;
 use App\Models\Submission;
+use App\Models\TrainingSample;
 use App\Models\User;
 use App\Models\Verdict;
 use App\Services\RedactorService;
 use Database\Seeders\AdminUserSeeder;
+use Database\Seeders\FeedbackQueueSeeder;
 use Database\Seeders\SampleSubmissionSeeder;
 
 it('seeds an administrator with a generated password and no default credentials', function (): void {
@@ -65,10 +67,34 @@ it('seeds a partial verdict so the degraded UI path has data', function (): void
 
 it('seeds a moderation queue that is entirely pending', function (): void {
     $this->seed(SampleSubmissionSeeder::class);
+    $this->seed(FeedbackQueueSeeder::class);
 
-    expect(Feedback::count())->toBeGreaterThan(0)
+    expect(Feedback::count())->toBeGreaterThan(10)
         ->and(Feedback::pending()->count())->toBe(Feedback::count())
         ->and(Feedback::approved()->count())->toBe(0);
+});
+
+it('seeds no training samples at all', function (): void {
+    /*
+     * A seeder that could create a community training sample would be a code
+     * path around the moderation gate. The gate would reject it, but the
+     * assertion belongs here too: the seeded state a screenshot is taken from
+     * must show work waiting for a human, not work a machine did.
+     */
+    $this->seed(SampleSubmissionSeeder::class);
+    $this->seed(FeedbackQueueSeeder::class);
+
+    expect(TrainingSample::count())->toBe(0);
+});
+
+it('redacts PII in seeded feedback comments', function (): void {
+    $this->seed(SampleSubmissionSeeder::class);
+    $this->seed(FeedbackQueueSeeder::class);
+
+    $comments = Feedback::query()->whereNotNull('comment')->pluck('comment')->implode("\n");
+
+    expect($comments)->not->toContain('012-345 6789')
+        ->and($comments)->toContain('DILINDUNGI');
 });
 
 /*

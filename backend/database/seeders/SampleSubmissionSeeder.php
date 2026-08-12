@@ -4,12 +4,10 @@ declare(strict_types=1);
 
 namespace Database\Seeders;
 
-use App\Enums\FeedbackStatus;
 use App\Enums\IndicatorSource;
 use App\Enums\RiskLevel;
 use App\Enums\SubmissionType;
 use App\Enums\VerdictLabel;
-use App\Models\Feedback;
 use App\Models\Indicator;
 use App\Models\Submission;
 use App\Models\Verdict;
@@ -81,7 +79,6 @@ class SampleSubmissionSeeder extends Seeder
         }
 
         $this->seedDegradedVerdict();
-        $this->seedFeedback();
     }
 
     /**
@@ -112,26 +109,6 @@ class SampleSubmissionSeeder extends Seeder
             'partial_reason' => 'ml_service_unavailable',
             'inference_ms' => null,
         ]);
-    }
-
-    /**
-     * A moderation queue with something in it, all of it pending.
-     */
-    private function seedFeedback(): void
-    {
-        $verdicts = Verdict::query()->where('is_partial', false)->take(4)->get();
-
-        foreach ($verdicts as $i => $verdict) {
-            Feedback::query()->create([
-                'verdict_id' => $verdict->id,
-                'agrees' => $i % 3 !== 0,
-                'comment' => $i % 3 === 0
-                    ? 'Ini mesej sah daripada bank saya, bukan penipuan.'
-                    : null,
-                'status' => FeedbackStatus::Pending,
-                'ip_hash' => hash('sha256', fake()->ipv4()),
-            ]);
-        }
     }
 
     /**
