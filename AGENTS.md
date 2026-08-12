@@ -314,7 +314,12 @@ ruff check . && black . && pytest
         an indicator with source `registry`. A SAFETY MITIGATION, never model
         accuracy: every figure in docs/RESULTS.md is measured with it disabled.
       ↳ ML service unreachable, 503, or malformed → partial verdict, never a 500.
-- [ ] Phase 6 — Public UI (submit, verdict, indicators)
+- [x] Phase 6 — Public UI (submit, verdict, indicators) — bilingual, three risk bands
+      ↳ Verified-address panel names the institution; the "we checked the address,
+        not the page" scoping stays visible and is asserted outside <details>.
+      ↳ Malay reviewed by Shafiq: `pelik`, `tidak pasti`, `alamat` throughout.
+      ↳ Risk carried by icon + text + colour; icons are inline SVG so a failed
+        webfont cannot reduce the verdict to colour alone.
 - [x] Phase 7 — Feedback loop + moderation queue — see `docs/adr/0008`
       ↳ The gate is a MODEL INVARIANT, not a service convention: TrainingSample
         refuses to create a community row without approved feedback and a named
