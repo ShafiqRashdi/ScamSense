@@ -19,11 +19,11 @@ Last verified against the artefacts: 2026-08-11.
 >
 > Phishing class, `rf-url-v1.2.0-no-https`, on a frozen 44,890-row test set.
 >
-> **This is a corpus metric, not real-world accuracy.** On a 20-URL probe of real Malaysian
-> sites the same model has a **40% false-positive rate**, flagging genuine banking and
-> government pages including the Maybank login page at 0.93 confidence. Recall is unaffected —
-> all 8 phishing shapes probed were caught. See `adr/0006`. Quote 0.8984 as measured
-> performance on the held-out corpus and cite that limitation alongside it.
+> **This is a corpus metric, not real-world accuracy.** On a probe of real Malaysian sites the
+> same model produces **one hard false positive and seven calibrated uncertainties** — see the
+> band analysis below. Recall is unaffected: all 8 phishing shapes probed were caught, every one
+> in the high band. See `adr/0006`. Quote 0.8984 as measured performance on the held-out corpus
+> and cite that limitation alongside it.
 
 | Metric | Value |
 |---|---:|
@@ -94,14 +94,37 @@ not a claim of parity.
 
 ## Risk bands for the UI
 
-Measured on the frozen test set. Phase 6 uses three bands rather than a binary flag, because the
-recall-weighted threshold alone produces a high false-alarm rate.
+Measured on the frozen test set. Phase 6 uses three bands rather than a binary flag.
 
 | Band | Probability | Test rows | Actually phishing |
 |---|---|---:|---:|
 | Low | < 0.20 | 17,345 | 2.0% |
 | Medium | 0.20 – 0.60 | 4,437 | 28.3% |
 | High | > 0.60 | 23,108 | 95.2% |
+
+### The real-site probe, banded — the accurate characterisation
+
+Reporting a flat "40% false-positive rate" overstates the problem, because it counts every
+verdict above the recall-weighted 0.2640 threshold as a failure. Banded, the picture is
+different and better:
+
+| Band | Genuine Malaysian sites (17) | Known phishing (8) |
+|---|---:|---:|
+| Low | 9 | 0 |
+| Medium | **7** | 0 |
+| High | **1** | **8** |
+
+**One hard false positive, plus seven calibrated uncertainties.** The seven medium-band sites
+score 0.2916–0.5651, which is exactly what a band measured at 28.3% actually-phishing is *for*:
+the model is expressing genuine uncertainty, not asserting a wrong answer. Shown as "be careful,
+we are not sure", those seven are honest rather than incorrect.
+
+There is also a clean separation: every medium-band false positive is ≤ 0.5651 and every probed
+phishing URL is ≥ 0.9004. Nothing genuine intrudes into the high band except one case.
+
+**The single hard failure is `maybank2u.com.my/home/m2u/common/login.do` at 0.9337** — a genuine
+bank login page presented as high risk. Banding does not rescue it. That one case is what the
+Phase 5 verified-domain gate addresses (`adr/0007`), and what corpus work must eventually fix.
 
 ---
 

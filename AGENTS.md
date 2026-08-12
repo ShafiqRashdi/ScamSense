@@ -306,7 +306,14 @@ ruff check . && black . && pytest
         pages — 40% false positives on a 20-URL real-site probe, including the Maybank
         login page at 0.93. Recall is fine (0 misses on 8 phishing shapes). Cause is
         corpus prior, not code. Do NOT retune the threshold against that probe.
-- [ ] Phase 5 — Threat-intel clients (Safe Browsing, VirusTotal) with caching
+- [x] Phase 5 — Laravel integration, fusion, threat intel — see `docs/adr/0007`
+      ↳ DetectionService implements the ADR 0007 fusion order. Clean threat intel
+        NEVER lowers a verdict — a clean lookup is absence of evidence, and would
+        de-escalate most reliably on freshly registered phishing domains.
+      ↳ Verified-domain gate caps genuine institutional URLs at Low, recorded as
+        an indicator with source `registry`. A SAFETY MITIGATION, never model
+        accuracy: every figure in docs/RESULTS.md is measured with it disabled.
+      ↳ ML service unreachable, 503, or malformed → partial verdict, never a 500.
 - [ ] Phase 6 — Public UI (submit, verdict, indicators)
 - [ ] Phase 7 — Feedback loop + moderation queue
 - [ ] Phase 8 — Admin dashboard + metrics
