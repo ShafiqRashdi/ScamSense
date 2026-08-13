@@ -53,15 +53,45 @@ Flagged genuine sites, with model probability:
 The same domains **without a path** score low: `maybank2u.com.my` 0.1498,
 `cimbclicks.com.my` 0.1069, `shopee.com.my` 0.0391.
 
-### A hypothesis that turned out to be wrong
+### A hypothesis that was dismissed too quickly — CORRECTION, 2026-08-12
 
 The obvious explanation — Tranco contributed 23,936 bare domains, so the model learned
-"path present = phishing" — was tested and **rejected**. Path presence is near-identical across
-classes: legitimate 37.2%, phishing 38.0%. "Has a path" alone classifies 50.4% of the corpus,
-which is chance.
+"path present = phishing" — was originally tested against the **marginal** distribution and
+recorded here as rejected. Path presence is indeed near-identical across classes: legitimate
+37.2%, phishing 38.0%, and "has a path" alone classifies 50.4% of the corpus, which is chance.
 
-It is recorded here because the wrong explanation is plausible enough that someone will propose
-it again, and because arriving at the real cause required discarding it.
+**That test was the wrong test, and the conclusion drawn from it was wrong.** A feature can be
+useless on its own and enormously influential in combination, which is precisely what a Random
+Forest is built to exploit.
+
+Measured directly, by adding a single trailing slash and changing nothing else:
+
+| URL | no slash | with `/` | change |
+|---|---:|---:|---|
+| `https://shopee.com.my` | 0.0391 | **0.8814** | low → HIGH |
+| `https://www.publicbank.com.my` | 0.1082 | **0.7861** | low → HIGH |
+| `https://en.wikipedia.org` | 0.2637 | **0.7046** | medium → HIGH |
+| `https://www.maybank2u.com.my` | 0.1498 | **0.6426** | low → HIGH |
+| `https://www.google.com` | 0.2395 | **0.6735** | medium → HIGH |
+| `https://www.uptm.edu.my` | 0.1013 | 0.2964 | low → medium |
+
+The only features that differ are `url_length` (+1) and `path_length` (0 → 1).
+
+**`path_length == 0` is functioning as a near-decisive legitimacy signal**, because PhiUSIIL and
+Tranco together contributed 87,713 legitimate URLs — 59% of the negative class — of which
+**none** carry a path. Tranco is a ranked list of *domains*, not URLs, so a path was never
+possible in that source.
+
+This is the same family of defect as the `uses_https` contamination in ADR 0004: a property of
+how the corpus was assembled, learned as though it were a property of phishing.
+
+It is worse than the credential-vocabulary finding below in one important respect: **browsers add
+trailing slashes.** A user copying their bank's address from the URL bar will very often paste
+one, so this affects ordinary usage rather than an unusual shape.
+
+The credential-vocabulary finding remains real and is documented below; it is simply not the
+dominant effect. Both share one root cause — the legitimate class does not look like the URLs
+real users paste.
 
 ### The actual cause
 
@@ -107,6 +137,22 @@ Three candidate fixes, none of which should be applied on the evidence available
 
 Recommendation: **(2), then re-derive the threshold on the widened corpus.** In the meantime the
 defect is documented, tested and visible.
+
+### A fourth option, added with the trailing-slash correction
+
+4. **Normalise an empty path and a bare `/` to the same value before feature extraction.**
+   `https://x.com` and `https://x.com/` are the same resource, and treating them as different
+   inputs is indefensible on its own terms — this is ordinary URL normalisation, not threshold
+   tuning, and it would remove the single sharpest edge in the model's behaviour.
+
+   **It requires a retrain, and must not be applied at serving time alone.** The shipped model
+   was fitted on unnormalised features; changing extraction only on the serving side would
+   create exactly the training/serving skew that `url_features` being a shared module exists to
+   prevent. Retraining also means the F1 in `docs/RESULTS.md` is re-measured, since the feature
+   distribution changes.
+
+   This is worth doing when the corpus work in (2) happens, in the same retrain — not as a
+   separate hurried change.
 
 ## What was done
 
