@@ -17,7 +17,7 @@ it('authenticates an administrator with valid credentials', function (): void {
     ]);
 
     $this->assertAuthenticated();
-    $response->assertRedirect(route('dashboard', absolute: false));
+    $response->assertRedirect(route('admin.dashboard', absolute: false));
 });
 
 it('rejects an invalid password', function (): void {
@@ -54,6 +54,6 @@ it('exposes no self-service account routes', function (string $uri): void {
     'verify email' => '/verify-email',
 ]);
 
-it('keeps the dashboard behind authentication', function (): void {
-    $this->get('/dashboard')->assertRedirect('/login');
+it('keeps the admin area behind authentication', function (): void {
+    $this->get('/admin')->assertRedirect('/login');
 });

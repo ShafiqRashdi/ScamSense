@@ -284,7 +284,7 @@ ruff check . && black . && pytest
         scores 0.9606 but leaks 2,979 domains between train and test.
       ↳ The corpus is not Malaysian, and its legitimate half is Tranco-dominated.
         Read ADR 0004 "Limitations" before citing this number in the report.
-- [~] Phase 3 — DistilBERT message classifier — **BLOCKED**, see `docs/adr/0005`
+- [x] Phase 3 — Message classifier — see `docs/adr/0005`, `docs/adr/0009`
       ↳ DONE: text_preprocess module, TF-IDF baseline pipeline, template-leakage
         detection, 96 tests passing.
       ↳ BLOCKED: `messages.csv` is 1,732 rows from only **56 templates**. A random
@@ -329,7 +329,15 @@ ruff check . && black . && pytest
       ↳ Three steps: approve → export to a dataset version → train. Never collapsed.
       ↳ The MODERATOR supplies the label, not the reporter. No default selection.
       ↳ Provenance survives: feedback_id, submission_id, origin, approved_by.
-- [ ] Phase 8 — Admin dashboard + metrics
+- [x] Phase 8 — Admin dashboard + metrics
+      ↳ Submission volume (zero-filled), verdict distribution, indicator frequency
+        split by source, degraded-verdict rate and reasons, threat-intel cache hit
+        rate, retraining set split by provenance, verdicts by model version.
+      ↳ Model performance is READ from the committed metrics.json artefacts, never
+        recomputed, so a dashboard figure and a Chapter 4 figure cannot drift.
+        The REPORTING_QUALIFIER travels with each metric into the UI.
+      ↳ `auth` plus an explicit role check on the whole admin group. A Viewer role
+        exists so the check is testable rather than vacuous.
 - [ ] Phase 9 — Hardening, UAT, deployment
       ↳ Docker Compose regardless of the hosting outcome: it serves the local demo, a VPS
         deploy, and reproducibility on an examiner's machine equally.

@@ -23,9 +23,9 @@
             <div class="collapse navbar-collapse" id="primaryNav">
                 <ul class="navbar-nav me-auto">
                     <li class="nav-item">
-                        <a class="nav-link {{ request()->routeIs('dashboard') ? 'active' : '' }}"
-                           @if (request()->routeIs('dashboard')) aria-current="page" @endif
-                           href="{{ route('dashboard') }}">{{ __('Dashboard') }}</a>
+                        <a class="nav-link {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}"
+                           @if (request()->routeIs('admin.dashboard')) aria-current="page" @endif
+                           href="{{ route('admin.dashboard') }}">{{ __('Dashboard') }}</a>
                     </li>
                 </ul>
 

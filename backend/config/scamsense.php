@@ -69,4 +69,23 @@ return [
         'high_from' => 0.60,
     ],
 
+    /*
+     | Where the admin dashboard reads model performance from.
+     |
+     | It reads the committed metrics.json artefacts rather than storing its own
+     | numbers, so a figure on the dashboard and a figure in Chapter 4 cannot
+     | drift apart. Laravel never runs Python (AGENTS.md §2 rule 2) — this is a
+     | file read, not a call into the ML service.
+     */
+    'models_path' => env('ML_MODELS_PATH', base_path('../ml-service/models')),
+
+    /*
+     | The artefacts actually being served, so the dashboard can mark everything
+     | else as superseded or experimental. Must match ml-service/app/predictors.
+     */
+    'shipped_models' => [
+        'url' => 'rf-url-v2.0.0-pathnorm',
+        'message' => 'tfidf-msg-v2.0.0-collected-my',
+    ],
+
 ];

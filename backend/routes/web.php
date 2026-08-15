@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\ModerationController;
 use App\Http\Controllers\FeedbackController;
 use App\Http\Controllers\VerifyController;
@@ -51,10 +52,6 @@ Route::post('/feedback', [FeedbackController::class, 'store'])
     ->middleware(['throttle:feedback-minute', 'throttle:feedback-hour'])
     ->name('feedback.store');
 
-Route::view('/dashboard', 'dashboard')
-    ->middleware(['auth'])
-    ->name('dashboard');
-
 /*
  | Admin area. `auth` and the role check are both applied: being signed in and
  | being allowed to moderate are different questions.
@@ -63,6 +60,7 @@ Route::middleware(['auth', EnsureUserCanModerate::class])
     ->prefix('admin')
     ->name('admin.')
     ->group(function (): void {
+        Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
         Route::get('/moderation', [ModerationController::class, 'index'])->name('moderation.index');
         Route::post('/moderation/{feedback}/approve', [ModerationController::class, 'approve'])
             ->name('moderation.approve');
