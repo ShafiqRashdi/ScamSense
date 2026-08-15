@@ -41,7 +41,6 @@ from typing import Any
 
 import joblib
 import numpy as np
-import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
@@ -97,8 +96,12 @@ def bootstrap_f1_difference(
         if len(np.unique(y_true[idx])) < 2:
             continue
 
-        f1_a = f1_score(y_true[idx], (probabilities_a[idx] >= threshold_a).astype(int), zero_division=0)
-        f1_b = f1_score(y_true[idx], (probabilities_b[idx] >= threshold_b).astype(int), zero_division=0)
+        f1_a = f1_score(
+            y_true[idx], (probabilities_a[idx] >= threshold_a).astype(int), zero_division=0
+        )
+        f1_b = f1_score(
+            y_true[idx], (probabilities_b[idx] >= threshold_b).astype(int), zero_division=0
+        )
         differences.append(f1_b - f1_a)
 
     array = np.array(differences)

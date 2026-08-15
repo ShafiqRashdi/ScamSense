@@ -80,6 +80,36 @@ recomputed one.
 
 **Both meet the 0.85 threshold objective O1 requires.**
 
+### Was DistilBERT tried? Yes — see `adr/0009`
+
+The proposal names DistilBERT, so the answer needs to be a number rather than an excuse.
+
+| | TF-IDF + LogReg *(shipped)* | DistilBERT *(experiment)* |
+|---|---:|---:|
+| Test F1 (scam) | 0.9735 | **0.9913** |
+| Precision | 1.0000 | 1.0000 |
+| Recall | 0.9483 | 0.9828 |
+| Missed scams (of 58) | 3 | 1 |
+| False positives (of 48) | 0 | 0 |
+
+**DistilBERT scored 0.0179 higher.** But a paired bootstrap over the 106 test messages
+(5,000 resamples) puts the 95% interval on that difference at **[−0.0167, +0.0560]** — it
+**spans zero**, with 77.2% of resamples favouring DistilBERT.
+
+**The corpus cannot resolve a difference this size.** With 58 positives in test, the standard
+error on recall alone is around 0.03, so anything under roughly six points is inside the noise;
+the observed difference is 1.8 points, and in absolute terms the whole advantage is two messages.
+
+It is therefore **not shipped**: the improvement is not demonstrated, while the cost — roughly
+250 MB of weights plus 1–2 GB of runtime memory — is certain, and would discard the deployment
+headroom that ADR 0001 and ADR 0004 were written to protect. Revisit at a few thousand messages,
+where the evaluation could actually resolve it.
+
+The correct sentence for the report: *"DistilBERT was evaluated and scored F1 0.9913 against the
+baseline's 0.9735; the difference is within the 95% confidence interval on a 528-message corpus,
+so the baseline was retained."* Not *"DistilBERT was no better"* — it may well be better, and the
+measurement simply cannot say.
+
 ### Provenance — keep `collected_my` separate
 
 Two corpora were collected specifically for this project and must stay distinguishable from the
