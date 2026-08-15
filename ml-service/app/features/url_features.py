@@ -273,15 +273,50 @@ def parse(url: str) -> ParsedUrl:
         # feature, so the submission is not lost.
         port = None
 
+    path = normalise_path(split.path)
+
+    # `raw` feeds url_length, digit_ratio and has_at_symbol, so it has to be
+    # normalised alongside the path. Otherwise the trailing slash would still
+    # shift two features and the normalisation would be half-applied — which a
+    # test would catch, but only if someone thought to write it.
+    raw = url.strip()
+    if split.path == "/" and raw.endswith("/"):
+        raw = raw[:-1]
+
     return ParsedUrl(
-        raw=url.strip(),
+        raw=raw,
         scheme=split.scheme.lower(),
         host=(split.hostname or "").lower(),
         port=port,
-        path=split.path,
+        path=path,
         query=split.query,
         fragment=split.fragment,
     )
+
+
+def normalise_path(path: str) -> str:
+    """Treat a bare root path and an absent path as the same thing.
+
+    `https://example.com` and `https://example.com/` address the identical
+    resource, and every browser adds the trailing slash when a user copies from
+    the address bar. Treating them as different inputs is indefensible on its
+    own terms.
+
+    It was also, measurably, the single sharpest edge in the model's behaviour.
+    Before this normalisation, adding one slash moved `shopee.com.my` from 0.039
+    to 0.881 and `publicbank.com.my` from 0.108 to 0.786 — low risk to high risk
+    on a character that carries no information. The cause was corpus
+    composition: PhiUSIIL and Tranco contributed 87,713 legitimate URLs, 59% of
+    the negative class, none of which carry a path, because Tranco is a list of
+    domains rather than URLs. `path_length == 0` therefore became a near-decisive
+    legitimacy signal. See docs/adr/0006.
+
+    This lives in `parse` so that training and serving normalise identically.
+    Applying it on one side only would be exactly the training/serving skew this
+    module is shared to prevent — which is why the change required a retrain
+    rather than a hotfix.
+    """
+    return "" if path == "/" else path
 
 
 # ── Individual features ────────────────────────────────────────────────────

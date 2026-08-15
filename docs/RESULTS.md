@@ -15,40 +15,88 @@ Last verified against the artefacts: 2026-08-11.
 
 ### URL classifier — **complete**
 
-> ## Test F1 = 0.8984
+> ## Test F1 = 0.8979
 >
-> Phishing class, `rf-url-v1.2.0-no-https`, on a frozen 44,890-row test set.
+> Phishing class, `rf-url-v2.0.0-pathnorm`, on a frozen 44,890-row test set, domain-grouped
+> split, 22 lexical features.
 >
 > **This is a corpus metric, not real-world accuracy.** On a probe of real Malaysian sites the
-> same model produces **one hard false positive and seven calibrated uncertainties** — see the
-> band analysis below. Recall is unaffected: all 8 phishing shapes probed were caught, every one
-> in the high band. See `adr/0006`. Quote 0.8984 as measured performance on the held-out corpus
-> and cite that limitation alongside it.
+> model produces **one hard false positive and nine calibrated uncertainties** out of 19 genuine
+> sites, and catches **9 of 9** phishing shapes in the high band. See `adr/0006`.
+
+### Message classifier — **complete**
+
+> ## Test F1 = 0.9735
+>
+> Scam class, `tfidf-msg-v2.0.0-collected-my`, on the corpus's own held-out test split
+> (106 messages, 105 distinct templates).
+>
+> **Quote it as:** *"F1 on a 528-message collected Malaysian corpus."* Real collected
+> SMS/WhatsApp, redacted at source, 493 distinct templates (93% distinct). Class balance is
+> uneven — **legitimate is the smaller class at 238** against 290 scam.
+>
+> Precision 1.0000, recall 0.9483, ROC AUC 0.9896. Zero false positives on the 48 legitimate
+> test messages; 3 scams missed out of 58.
+>
+> **Secondary figure: F1 = 0.9684** on the 97 test rows whose template never appeared in train or
+> validation. The shipped split has 5 templates shared across partitions (9 test rows, 8.5%), so
+> the leak-free subset bounds the primary figure from below. Both are reported because both are
+> informative; the gap is small.
+>
+> **This is a small corpus.** With 58 positives in test, the 95% interval on recall is roughly
+> ±6 points. Do not present this figure as equivalent to one measured on a large public dataset.
+
+#### URL classifier, in full — `rf-url-v2.0.0-pathnorm`
 
 | Metric | Value |
 |---|---:|
-| **F1 (phishing)** | **0.8984** |
-| Precision (phishing) | 0.8308 |
-| Recall (phishing) | 0.9780 |
-| ROC AUC | 0.9658 |
-| Decision threshold | 0.2640 |
-| Test rows | 44,890 |
+| **F1 (phishing)** | **0.8979** |
+| Precision (phishing) | 0.8368 |
+| Recall (phishing) | 0.9687 |
+| ROC AUC | 0.9576 |
+| Decision threshold | 0.3105 |
+| Test rows | 51,467 (30,607 phishing) |
 | Domain leakage | 0 |
 
-Configuration: 22 lexical features (`uses_https` excluded — see below), Random Forest with 200
-trees at `max_depth=18`, `class_weight="balanced"`, seed 42, domain-grouped stratified split.
-Trained on 298,272 URLs from PhiUSIIL, two Kaggle sets and Tranco.
+Configuration: 22 lexical features (`uses_https` excluded, trailing-slash path normalisation
+applied), Random Forest with 200 trees at `max_depth=18`, `class_weight="balanced"`, seed 42,
+domain-grouped stratified split. Trained on 298,490 URLs across 136,258 registrable domains —
+PhiUSIIL, two Kaggle sets, Tranco, and 221 collected Malaysian URLs.
 
-**Meets the 0.85 threshold objective O1 requires.**
+#### Message classifier, in full — `tfidf-msg-v2.0.0-collected-my`
 
-### Message classifier — **no result**
+| Metric | Full test split | Leak-free subset |
+|---|---:|---:|
+| **F1 (scam)** | **0.9735** | 0.9684 |
+| Precision (scam) | 1.0000 | 1.0000 |
+| Recall (scam) | 0.9483 | 0.9388 |
+| ROC AUC | 0.9896 | 0.9877 |
+| Rows | 106 | 97 |
+| Distinct templates | 105 | 97 |
 
-There is no message-classifier figure, and none can be produced from the corpus currently
-available. `messages.csv` is 1,732 rows generated from 56 templates; a random split reports
-F1 1.0000 by memorisation and a template-grouped split gives a single-class test partition and
-F1 0.0000. See `adr/0005`.
+Configuration: TF-IDF over character n-grams (`char_wb`, 2–5), Logistic Regression with
+`class_weight="balanced"`, seed 42, using the split shipped with the corpus rather than a
+recomputed one.
 
-Do not quote a message-detection metric. Blocked on the collection of real Malaysian messages.
+**Both meet the 0.85 threshold objective O1 requires.**
+
+### Provenance — keep `collected_my` separate
+
+Two corpora were collected specifically for this project and must stay distinguishable from the
+public datasets in every table:
+
+| Corpus | Rows | Source tag | Role |
+|---|---:|---|---|
+| `messages_my.csv` | 528 | `collected_my` | The message model is trained and measured entirely on this |
+| `legit_urls_my.csv` | 221 | `collected_my` | Folded into the URL corpus — but see the note below |
+
+**The 221 Malaysian URLs are 0.074% of the combined URL corpus.** At that share they cannot
+meaningfully shift what the URL model learns. Their value is as *evidence*, not training signal,
+and the URL figure above should not be described as having been improved by them. The honest
+statement is that the collected URLs confirmed the defect and the retrain fixed part of it.
+
+The superseded synthetic message corpus (1,732 rows, 56 templates) produced no usable figure and
+is retained only as a demonstration of why — see `adr/0005`.
 
 ---
 
@@ -153,3 +201,67 @@ The URL figure has real limitations, set out in `adr/0004`:
 | `docs/adr/0004` | URL model methodology and reasoning |
 | `docs/adr/0005` | Why there is no message figure |
 | `ml-service/training/DATASETS.md` | Corpus provenance, including rejected sources |
+
+---
+
+## v1 → v2 URL model: what the retrain changed
+
+Two corpus artefacts were fixed together in `rf-url-v2.0.0-pathnorm`.
+
+### The corpus figure barely moved
+
+| | v1.2.0 | v2.0.0 |
+|---|---:|---:|
+| Test F1 (phishing) | 0.8984 | **0.8979** |
+
+That is the point. The defects were invisible to the corpus metric, which is why they survived
+two ADRs — a held-out split of a corpus validates a model against *that corpus* and cannot detect
+that the corpus is drawn from a different distribution than production.
+
+### The real-world behaviour moved a great deal
+
+| | v1.2.0 | v2.0.0 |
+|---|---|---|
+| Trailing slash shifts the score | up to **+0.84** | **0.000000** |
+| Genuine sites in the high band | 1 of 17 | 1 of 19 |
+| Genuine sites the model mislabels | 8 | **5** |
+| Phishing shapes caught in the high band | 8 of 8 | **9 of 9** |
+
+Three sites moved from wrong to right — `jpj.gov.my`, `bnm.gov.my`, `cimb.com.my` — recorded as
+`xfail` cases turning XPASS, which is what makes a fix measurable rather than asserted.
+
+### The systematic artefact audit
+
+`training/audit_url_artefacts.py` looks for the *next* `uses_https` instead of waiting for it to
+be found by accident. Within the legitimate class alone, the features predict which source file a
+row came from with **97.99% accuracy** against a 42.70% majority baseline — the legitimate class
+is five different populations wearing one label.
+
+Per feature, ranked by how much better it predicts source than label:
+
+| feature | label AUC | source AUC |
+|---|---:|---:|
+| `url_length` | 0.5896 | **0.8978** |
+| `subdomain_count` | 0.5693 | **0.8975** |
+| `dot_count` | 0.5620 | **0.8811** |
+| `path_length` | 0.5888 | **0.8005** |
+| `host_length` | 0.6839 | 0.7705 |
+
+`path_length` was addressed by normalisation. `url_length` was tested for removal and **kept**,
+because the audit produces suspects rather than verdicts and this one turned out to be
+load-bearing:
+
+| Artefact | Features | Test F1 |
+|---|---:|---:|
+| `rf-url-v2.0.0-pathnorm` | 22 | **0.8979** |
+| `rf-url-v2.1.0-minus-urllength` | 21 | 0.8093 |
+
+Dropping it costs **8.9 F1 points** and falls below the 0.85 objective O1 requires. So
+`url_length` correlates strongly with corpus source *and* carries real signal the model needs;
+both are true at once. It is documented as a known artefact-correlated feature rather than
+removed, and it is one more reason the legitimate class needs to be broadened rather than the
+feature set narrowed.
+
+`subdomain_count` and `dot_count` were not ablated: they carry obvious phishing semantics, and
+removing them would trade a false-positive problem for a false-negative one — the wrong direction
+for this project.

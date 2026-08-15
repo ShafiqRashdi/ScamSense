@@ -22,8 +22,14 @@ logger = logging.getLogger(__name__)
 #: point at a fixture without touching the real models directory.
 DEFAULT_MODELS_DIR = Path(__file__).resolve().parent.parent.parent / "models"
 
-#: The artefact ScamSense ships. See docs/RESULTS.md — test F1 0.8984.
-URL_MODEL_DIRNAME = "rf-url-v1.2.0-no-https"
+#: The artefact ScamSense ships. See docs/RESULTS.md.
+#:
+#: This MUST be kept in step with app/features/url_features.py. The v2 artefact
+#: was trained with the trailing-slash path normalisation; serving the older
+#: v1.2.0 artefact through the newer extractor would feed it features from a
+#: distribution it was never fitted on — the training/serving skew that sharing
+#: the extraction module exists to prevent.
+URL_MODEL_DIRNAME = "rf-url-v2.0.0-pathnorm"
 
 MESSAGE_MODEL: object | None = None
 URL_MODEL: UrlClassifier | None = None

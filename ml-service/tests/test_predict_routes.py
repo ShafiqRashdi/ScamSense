@@ -72,7 +72,7 @@ def test_the_model_version_is_the_shipped_artefact(loaded_client: FlaskClient) -
     """Persisted with every verdict so a Chapter 4 screenshot is traceable."""
     body = predict_url(loaded_client, PHISH).get_json()
 
-    assert body["model_version"] == "rf-url-v1.2.0-no-https"
+    assert body["model_version"] == "rf-url-v2.0.0-pathnorm"
 
 
 @url_model_required
@@ -268,7 +268,7 @@ def test_the_url_route_returns_503_when_no_model_is_loaded(client: FlaskClient) 
 def test_health_reports_the_url_model_when_loaded(loaded_client: FlaskClient) -> None:
     body = loaded_client.get("/health").get_json()
 
-    assert body["models"]["url"] == "rf-url-v1.2.0-no-https"
+    assert body["models"]["url"] == "rf-url-v2.0.0-pathnorm"
     # models_loaded stays false because the message model has no artefact, and
     # /health must report what is actually loaded rather than what is expected.
     assert body["models"]["message"] is None

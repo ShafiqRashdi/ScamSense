@@ -72,6 +72,42 @@ SYNTHETIC_QUALIFIER = (
 )
 
 
+def build_qualifier(frame: pd.DataFrame, shape: CorpusShape) -> str:
+    """The sentence any figure from this run must be quoted with.
+
+    Derived from what the corpus actually contains rather than hardcoded, so a
+    number cannot be lifted out of metrics.json and attributed to a corpus it
+    did not come from. The row count, the class balance and the minority class
+    all appear, because "F1 0.9" means something quite different on 528 rows
+    with an imbalanced minority class than it does on 100,000 balanced ones.
+    """
+    sources = set(frame["source"].astype(str)) if "source" in frame.columns else set()
+    counts = frame["label"].value_counts()
+    n_legit = int(counts.get(0, 0))
+    n_scam = int(counts.get(1, 0))
+    minority = "legitimate" if n_legit <= n_scam else "scam"
+    minority_n = min(n_legit, n_scam)
+
+    if sources == {"collected_my"}:
+        return (
+            f"F1 on a {shape.rows}-message collected Malaysian corpus "
+            f"({shape.templates} distinct templates, {shape.templates / shape.rows:.0%} distinct). "
+            f"Real collected SMS/WhatsApp, redacted at source. Class balance is uneven: "
+            f"{minority} is the smaller class at {minority_n}. "
+            "This is a small corpus — treat the confidence interval as wide, and do not "
+            "present this figure as equivalent to one measured on a large public dataset."
+        )
+
+    if sources and "collected_my" in sources:
+        return (
+            f"F1 on a {shape.rows}-message MIXED corpus (collected Malaysian plus other "
+            f"sources: {sorted(sources)}). Provenance must be reported separately; see "
+            "ml-service/training/DATASETS.md."
+        )
+
+    return SYNTHETIC_QUALIFIER
+
+
 @dataclass(frozen=True)
 class CorpusShape:
     """What the corpus actually contains, as opposed to how many rows it has."""
@@ -114,6 +150,48 @@ def load_messages(path: Path) -> pd.DataFrame:
         raise SystemExit("Dataset contains only one class; cannot train.")
 
     return frame
+
+
+def split_from_column(frame: pd.DataFrame) -> Split:
+    """Use a `split` column that already exists in the data.
+
+    For a deliberately constructed split — stratified, checked, and shipped with
+    the corpus — recomputing one would discard that work and produce a different
+    partition, making the reported figure incomparable with anything the corpus
+    author measured.
+
+    Leakage is reported rather than silently corrected: if the given split has
+    templates in common across partitions, the caller is told, and the metric is
+    additionally computed on the leak-free subset so both numbers are visible.
+    """
+    if "split" not in frame.columns:
+        raise SystemExit("--split-strategy given requires a `split` column.")
+
+    aliases = {
+        "train": "train",
+        "training": "train",
+        "val": "val",
+        "valid": "val",
+        "validation": "val",
+        "dev": "val",
+        "test": "test",
+        "holdout": "test",
+    }
+    normalised = frame["split"].astype(str).str.strip().str.lower().map(aliases)
+
+    unknown = sorted(set(frame.loc[normalised.isna(), "split"].astype(str)))
+    if unknown:
+        raise SystemExit(f"Unrecognised split value(s): {unknown}")
+
+    partitions = {
+        name: [int(i) for i in frame.index[normalised == name]] for name in ("train", "val", "test")
+    }
+
+    for name, rows in partitions.items():
+        if not rows:
+            raise SystemExit(f"The given split has no rows in '{name}'.")
+
+    return Split(train=partitions["train"], val=partitions["val"], test=partitions["test"])
 
 
 def describe_corpus(frame: pd.DataFrame) -> CorpusShape:
@@ -258,7 +336,16 @@ def main() -> int:
     parser.add_argument("--data", type=Path, required=True)
     parser.add_argument("--version", default="1.0.0")
     parser.add_argument("--seed", type=int, default=SEED)
-    parser.add_argument("--split-strategy", choices=["random", "template"], default="template")
+    parser.add_argument(
+        "--split-strategy",
+        choices=["random", "template", "given"],
+        default="template",
+        help=(
+            "'given' preserves a `split` column already present in the data. Use "
+            "it when the corpus ships a split that was constructed deliberately "
+            "and must not be reshuffled."
+        ),
+    )
     parser.add_argument(
         "--out", type=Path, default=Path(__file__).resolve().parent.parent / "models"
     )
@@ -270,6 +357,7 @@ def main() -> int:
     print(f"Loading {args.data}")
     frame = load_messages(args.data)
     shape = describe_corpus(frame)
+    qualifier = build_qualifier(frame, shape)
     counts = frame["label"].value_counts().to_dict()
 
     print(f"  {shape.rows} rows: {counts.get(0, 0)} legitimate, {counts.get(1, 0)} scam")
@@ -284,7 +372,11 @@ def main() -> int:
     templates = frame["template"].to_numpy()
 
     print(f"\nSplitting, strategy={args.split_strategy}")
-    split = make_split(y, args.seed, templates if args.split_strategy == "template" else None)
+    if args.split_strategy == "given":
+        split = split_from_column(frame)
+        print("  using the split shipped with the corpus; not reshuffled")
+    else:
+        split = make_split(y, args.seed, templates if args.split_strategy == "template" else None)
     leakage = report_template_leakage(split, templates)
     print(f"  train {len(split.train)}  val {len(split.val)}  test {len(split.test)}")
     print(
@@ -317,6 +409,34 @@ def main() -> int:
     test_metrics = evaluate(y[split.test], test_probabilities, threshold)
     print_report("Test", test_metrics, test_templates)
 
+    # A secondary metric on the test rows whose template was never seen in
+    # train or validation.
+    #
+    # The primary figure above uses the split exactly as shipped, which is the
+    # honest thing to report. But if some test templates also appear in
+    # training, part of that figure measures recall of a memorised pattern
+    # rather than generalisation, so the leak-free subset bounds it from below.
+    # Reporting both is more informative than arguing about which is correct.
+    seen_templates = set(templates[split.train]) | set(templates[split.val])
+    clean_rows = [i for i in split.test if templates[i] not in seen_templates]
+    leaked_rows = len(split.test) - len(clean_rows)
+
+    clean_metrics = None
+    if leaked_rows:
+        print(
+            f"\n  NOTE: {leaked_rows} of {len(split.test)} test rows "
+            f"({leaked_rows / len(split.test):.1%}) sit on a template also present in "
+            "train or validation."
+        )
+        if clean_rows and len(set(y[clean_rows])) > 1:
+            clean_probabilities = model.predict_proba(frame["text"].to_numpy()[clean_rows])[:, 1]
+            clean_metrics = evaluate(y[clean_rows], clean_probabilities, threshold)
+            print_report(
+                "Test — leak-free subset only",
+                clean_metrics,
+                len(set(templates[clean_rows])),
+            )
+
     out_dir = args.out / f"tfidf-msg-v{args.version}"
     out_dir.mkdir(parents=True, exist_ok=True)
 
@@ -347,17 +467,29 @@ def main() -> int:
             {
                 "model": f"tfidf-msg-v{args.version}",
                 "trained_at": datetime.now(UTC).isoformat(),
-                "REPORTING_QUALIFIER": SYNTHETIC_QUALIFIER,
+                "REPORTING_QUALIFIER": qualifier,
                 "split_strategy": args.split_strategy,
                 "corpus": {
                     "rows": shape.rows,
                     "unique_templates": shape.templates,
                     "effective_n": shape.effective_n,
                     "test_templates": test_templates,
+                    "sources": (
+                        sorted(set(frame["source"].astype(str)))
+                        if "source" in frame.columns
+                        else ["unknown"]
+                    ),
+                    "class_counts": {
+                        "legitimate": int((frame["label"] == 0).sum()),
+                        "scam": int((frame["label"] == 1).sum()),
+                    },
                 },
                 "template_leakage": leakage,
                 "validation": val_metrics,
                 "test": test_metrics,
+                # The leak-free subset, when the given split has overlap. Null
+                # when there is none, so its absence is unambiguous.
+                "test_leak_free_subset": clean_metrics,
             },
             indent=2,
         ),
@@ -365,7 +497,7 @@ def main() -> int:
     )
 
     print(f"\nWrote {out_dir}")
-    print(f"\n  {SYNTHETIC_QUALIFIER}")
+    print(f"\n  REPORT THIS AS:\n  {qualifier}")
 
     return 0
 

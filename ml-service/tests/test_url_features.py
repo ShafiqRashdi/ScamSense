@@ -94,6 +94,34 @@ def test_parse_survives_a_malformed_port() -> None:
     assert parsed.host == "evil.example"
 
 
+def test_a_bare_root_path_is_normalised_away() -> None:
+    """`https://x.com` and `https://x.com/` are the same resource.
+
+    Before this normalisation a single trailing slash moved shopee.com.my from
+    0.039 to 0.881 — low risk to high risk on a character carrying no
+    information (docs/adr/0006). Browsers add that slash when a user copies from
+    the address bar, so it affected ordinary use rather than an edge case.
+    """
+    assert uf.parse("https://example.com/").path == ""
+    assert uf.parse("https://example.com").path == ""
+
+    # A real path is untouched.
+    assert uf.parse("https://example.com/login").path == "/login"
+    assert uf.parse("https://example.com/a/").path == "/a/"
+
+
+def test_a_trailing_slash_changes_no_feature() -> None:
+    """The regression guard. If this fails, the defect in ADR 0006 is back."""
+    for url in (
+        "https://www.maybank2u.com.my",
+        "https://shopee.com.my",
+        "https://www.publicbank.com.my",
+        "https://en.wikipedia.org",
+        "https://www.google.com",
+    ):
+        assert features(url) == features(url + "/"), url
+
+
 def test_malaysian_two_part_suffix_is_not_counted_as_a_subdomain() -> None:
     """Without this, every `.com.my` site would score one subdomain too many
     and the model would be biased against Malaysian domains specifically."""

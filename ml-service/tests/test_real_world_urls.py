@@ -26,7 +26,11 @@ from tests.conftest import url_model_required
 pytestmark = url_model_required
 
 
-#: Real Malaysian sites the model currently gets right.
+#: Real Malaysian sites the model gets right.
+#:
+#: The last three moved here from KNOWN_FALSE_POSITIVES after the v2 retrain
+#: (path normalisation plus the artefact audit), which is what an xfail turning
+#: XPASS is for — it makes a fix measurable rather than assumed.
 CORRECTLY_LEGITIMATE = [
     "https://www.maybank2u.com.my",
     "https://www.cimbclicks.com.my",
@@ -37,19 +41,24 @@ CORRECTLY_LEGITIMATE = [
     "https://www.astro.com.my",
     "https://www.touchngo.com.my",
     "https://www.uptm.edu.my",
+    "https://www.jpj.gov.my/en/web/main-site/utama",
+    "https://www.bnm.gov.my/",
+    "https://www.cimb.com.my/en/personal/index.html",
 ]
 
-#: Real Malaysian sites the model currently gets WRONG. Every one is a genuine
-#: site a user could plausibly paste.
+#: Real Malaysian sites the model still gets WRONG. Every one is a genuine site
+#: a user could plausibly paste.
+#:
+#: Down from eight to five after the v2 retrain. What remains are deep paths on
+#: government and utility sites, plus the bank login page — the shape the corpus
+#: still under-represents, because its legitimate class is dominated by bare
+#: domains from Tranco and PhiUSIIL. Only corpus work closes these.
 KNOWN_FALSE_POSITIVES = [
     "https://www.maybank2u.com.my/home/m2u/common/login.do",
     "https://www.hasil.gov.my/en/",
     "https://www.kwsp.gov.my/en/member/overview",
     "https://www.poslaju.com.my/track-trace/",
     "https://www.tnb.com.my/residential/billing",
-    "https://www.jpj.gov.my/en/web/main-site/utama",
-    "https://www.bnm.gov.my/",
-    "https://www.cimb.com.my/en/personal/index.html",
 ]
 
 PHISHING_SHAPES = [
