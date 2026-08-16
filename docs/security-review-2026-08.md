@@ -4,7 +4,7 @@
 - **Scope:** whole application, ahead of a live cloud deployment with a public URL
 - **Method:** the checklist in `.claude/skills/security-review`, plus the eight verification
   payloads, plus targeted empirical probes where a claim needed evidence rather than reading
-- **Status:** findings only. Nothing in this pass has been fixed.
+- **Status:** all ten findings fixed in a second pass, each with a regression test.
 
 ---
 
@@ -12,16 +12,16 @@
 
 | # | Severity | Finding | Fixed |
 |---|---|---|---|
-| 1 | **High** | Google Safe Browsing API key is written to the log on any connection failure | ☐ |
-| 2 | **High** | Submitted URL reaches the log through the VirusTotal exception path | ☐ |
-| 3 | **High** | No security headers — no CSP, nosniff, HSTS, frame options | ☐ |
-| 4 | **High** | The chosen deployment topology puts the ML service on the public internet | ☐ |
-| 5 | **High** | No retention period and no purge command, despite the privacy notice | ☐ |
-| 6 | Medium | `.env.example` ships production-unsafe defaults | ☐ |
-| 7 | Medium | Application database user is `root` | ☐ |
-| 8 | Medium | HMAC window bounds replay but does not prevent it | ☐ |
-| 9 | Low | One `{!! !!}` in a view, currently safe but unpinned | ☐ |
-| 10 | Low | Generated admin password is printed to stdout | ☐ |
+| 1 | **High** | Google Safe Browsing API key is written to the log on any connection failure | ✅ |
+| 2 | **High** | Submitted URL reaches the log through the VirusTotal exception path | ✅ |
+| 3 | **High** | No security headers — no CSP, nosniff, HSTS, frame options | ✅ |
+| 4 | **High** | The chosen deployment topology puts the ML service on the public internet | ✅ |
+| 5 | **High** | No retention period and no purge command, despite the privacy notice | ✅ |
+| 6 | Medium | `.env.example` ships production-unsafe defaults | ✅ |
+| 7 | Medium | Application database user is `root` | ✅ |
+| 8 | Medium | HMAC window bounds replay but does not prevent it | ✅ |
+| 9 | Low | One `{!! !!}` in a view, currently safe but unpinned | ✅ |
+| 10 | Low | Generated admin password is printed to stdout | ✅ |
 
 Findings 1, 2 and 4 were not visible by reading; they needed a probe. Recorded because the same
 is likely true of the next one.
@@ -42,8 +42,8 @@ Verified, not assumed:
 - **The moderation gate is a model invariant**, on both `creating` and `updating`, so a seeder or
   a bulk action cannot route around it.
 - **Session is regenerated on login**, so fixation is handled.
-- **Flask binds to `127.0.0.1`** in `wsgi.py` — see finding 4 for why that is about to become a
-  problem rather than a reassurance.
+- **Flask binds to `127.0.0.1` by default**, now configurable so the deployment can use the
+  platform's private network without a public hostname — see finding 4.
 - **Nothing that should not ship is tracked**: no corpus CSV, no model weights. The committed
   `metrics.json` files contain no URLs or message text, and `split_indices.json` is row integers.
 
@@ -280,3 +280,64 @@ relying on the printed value, and should rotate it after first login.
   beyond the change already made is required.
 - **The 60-second HMAC window and the verified-domain gate** are both documented trade-offs with
   reasoning recorded in ADRs. Neither is an oversight, and both should be presented as decisions.
+
+
+---
+
+## How each finding was closed
+
+Every fix has at least one regression test. 270 Laravel tests and 213 Python tests pass.
+
+| # | Fix | Tests |
+|---|---|---|
+| 1, 2 | `App\Support\SafeLog` scrubs secrets, URLs, credential parameters and long opaque tokens out of any string before it reaches a log. Wired into all three HTTP clients. | `LogLeakageTest` — 10 tests, including both timeout paths and a full failed submission at every log level |
+| 3 | `SecurityHeaders` middleware on the web group: CSP with `default-src 'self'`, `frame-ancestors 'none'`, `object-src 'none'`, `base-uri 'none'`, `form-action 'self'`, plus nosniff, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`, and HSTS only over HTTPS | `HardeningTest` — headers on public and admin pages, and no HSTS over plain HTTP |
+| 4 | Topology changed to all-Railway with the ML service on the private network. `wsgi.py` binding is now configuration with a `127.0.0.1` default, and `docs/deployment.md` states the public domain must never be generated | Documented; verified by the deployment checklist |
+| 5 | `scamsense:purge` deletes submissions past `RETENTION_SUBMISSION_DAYS`, cascading to verdicts, indicators and feedback, exempting approved training samples. Scheduled daily at 03:15. The privacy notice states the period from the same config value | `HardeningTest` — 8 tests including the exemption, the dry run, and one asserting the command is actually scheduled |
+| 6 | `.env.example` carries explicit PRODUCTION guidance on `APP_DEBUG`, `APP_ENV` and `SESSION_SECURE_COOKIE`; the deployment guide sets them as platform variables rather than a copied file | Documented |
+| 7 | Two scoped MySQL users in the deployment guide: `scamsense_app` with DML only on `scamsense.*`, and a separate `scamsense_migrate` for schema changes | Documented |
+| 8 | Bounded, self-expiring nonce cache in `ml-service/app/security.py`. A signature seen twice inside the window is rejected, recorded only after the signature verifies so nonces cannot be burned by unsigned traffic | `test_security.py` — 5 tests including the bound and expiry |
+| 9 | Comment at the call site explaining why the value cannot be user-derived | `HardeningTest` — a payload test and one asserting every enum case's SVG contains no interpolation point |
+| 10 | Deployment guide sets `ADMIN_PASSWORD` from the platform secret store and requires rotation after first login | Documented |
+
+---
+
+## The sanitisation-boundary lesson (Chapter 4 material)
+
+Findings 1 and 2 are the most instructive result of this review, and they share
+one cause worth stating generally.
+
+`RedactorService` was applied correctly and consistently. Every submission is
+redacted before it is persisted, before it is rendered, and before it reaches the
+model. Tests covered each of those paths. The boundary was drawn carefully — on
+the **inbound** side.
+
+What nobody had drawn was the outbound side. When a submitted URL is sent to a
+reputation provider it becomes part of a request, and when that request fails,
+the HTTP client's exception message embeds the whole URL. The error handler then
+logged that message verbatim. The user's content had **re-entered the system
+through a path that was never thought of as an input**, so no redaction stood in
+front of it:
+
+- Google Safe Browsing takes its API key as a query parameter, so a timeout
+  wrote the live key into the log.
+- VirusTotal identifies a URL by its base64url encoding in the request path, so
+  a timeout wrote the submitted URL there in a trivially reversible form.
+
+Both fired on the **timeout path** — the normal failure this code was written to
+handle gracefully. The safe-looking branch was the leaking one.
+
+**The generalisation:** redaction has to be applied where data *leaves* a trust
+boundary, not only where it arrives. An exception message is an egress point
+like any other, and so is a log line, an error page, a metrics label and a
+crash report. A boundary drawn on one side only is not a boundary.
+
+Neither defect was visible by reading the code. Both were found by constructing
+a failure and inspecting what came out — which is the practical argument for
+probing a system rather than reviewing it exclusively on the page.
+
+The fix is `App\Support\SafeLog`, which scrubs by configured secret value,
+then by URL, then by named credential parameter, then by long opaque token — in
+that order, because each pass can only work on what the previous ones left
+behind. Ten regression tests assert that no API key and no submitted URL can
+appear in the log at any level, including on the timeout path.

@@ -70,6 +70,20 @@ return [
     ],
 
     /*
+     | Data retention (security review finding 5, PDPA 2010).
+     |
+     | The submission form promises storage; this is the period behind that
+     | promise, and `scamsense:purge` is what enforces it. Change this and the
+     | privacy notice together — the two must not drift apart.
+     |
+     | 90 days is long enough to be useful for retraining and short enough to
+     | defend as proportionate.
+     */
+    'retention' => [
+        'submission_days' => (int) env('RETENTION_SUBMISSION_DAYS', 90),
+    ],
+
+    /*
      | Where the admin dashboard reads model performance from.
      |
      | It reads the committed metrics.json artefacts rather than storing its own

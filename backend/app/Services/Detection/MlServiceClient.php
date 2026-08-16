@@ -6,6 +6,7 @@ namespace App\Services\Detection;
 
 use App\DataTransferObjects\MlPrediction;
 use App\Enums\SubmissionType;
+use App\Support\SafeLog;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -101,13 +102,13 @@ class MlServiceClient
                 ->withBody($body, 'application/json')
                 ->post($this->baseUrl().$path);
         } catch (ConnectionException $exception) {
-            Log::warning('ML service unreachable.', ['reason' => $exception->getMessage()]);
+            Log::warning('ML service unreachable.', ['reason' => SafeLog::reason($exception)]);
 
             return MlPrediction::unavailable('ml_service_unreachable');
         } catch (Throwable $exception) {
             // Deliberately broad. Anything unexpected here must still degrade
             // to a partial verdict rather than reaching the user as an error.
-            Log::error('ML service call failed.', ['reason' => $exception->getMessage()]);
+            Log::error('ML service call failed.', ['reason' => SafeLog::reason($exception)]);
 
             return MlPrediction::unavailable('ml_service_error');
         }

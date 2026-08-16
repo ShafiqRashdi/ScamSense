@@ -76,7 +76,7 @@
                     <h2 class="h6 fw-semibold">{{ __('What happens to what you paste') }}</h2>
                     <ul class="small text-body-secondary mb-0 ps-3">
                         <li>{{ __('We remove phone numbers, IC numbers, emails and account numbers before saving anything.') }}</li>
-                        <li>{{ __('We keep the message so we can improve our scam detection.') }}</li>
+                        <li>{{ __('We keep the message for :days days so we can improve our scam detection, then delete it automatically.', ['days' => config('scamsense.retention.submission_days')]) }}</li>
                         <li>{{ __('We never open the link you paste, and we never ask who you are.') }}</li>
                     </ul>
                 </div>

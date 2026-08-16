@@ -22,6 +22,13 @@
 
                     <p class="d-flex align-items-center gap-2 mb-3">
                         <span class="badge text-bg-{{ $risk->colour() }} fs-6 px-3 py-2 d-inline-flex align-items-center gap-2">
+                            {{-- The only unescaped output in the application.
+                                 $risk is a RiskLevel enum with four cases and
+                                 iconSvg() returns a hardcoded SVG string, so no
+                                 user input can reach it. Pinned by a test that
+                                 asserts the rendered SVG is unaffected by
+                                 submitted content, so it cannot silently start
+                                 taking user data later. --}}
                             <span aria-hidden="true">{!! $risk->iconSvg() !!}</span>
                             {{ __('verdict.'.$band.'.label') }}
                         </span>

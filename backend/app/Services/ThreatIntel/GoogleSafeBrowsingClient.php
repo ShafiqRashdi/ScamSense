@@ -6,6 +6,7 @@ namespace App\Services\ThreatIntel;
 
 use App\DataTransferObjects\ThreatIntelResult;
 use App\Models\ThreatIntelCache;
+use App\Support\SafeLog;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -64,11 +65,11 @@ class GoogleSafeBrowsingClient
                     ],
                 ]);
         } catch (ConnectionException $exception) {
-            Log::warning('Safe Browsing unreachable.', ['reason' => $exception->getMessage()]);
+            Log::warning('Safe Browsing unreachable.', ['reason' => SafeLog::reason($exception)]);
 
             return ThreatIntelResult::unknown(self::PROVIDER, 'unreachable');
         } catch (Throwable $exception) {
-            Log::error('Safe Browsing call failed.', ['reason' => $exception->getMessage()]);
+            Log::error('Safe Browsing call failed.', ['reason' => SafeLog::reason($exception)]);
 
             return ThreatIntelResult::unknown(self::PROVIDER, 'error');
         }

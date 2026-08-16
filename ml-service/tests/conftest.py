@@ -12,7 +12,12 @@ from flask import Flask
 from flask.testing import FlaskClient
 
 from app import create_app, predictors
-from app.security import SIGNATURE_HEADER, TIMESTAMP_HEADER, compute_signature
+from app.security import (
+    SIGNATURE_HEADER,
+    TIMESTAMP_HEADER,
+    compute_signature,
+    reset_nonces,
+)
 
 TEST_SECRET = "test-secret-not-a-real-key"  # noqa: S105
 
@@ -30,6 +35,14 @@ url_model_required = pytest.mark.skipif(
         "checkout must run training/train_url_model.py first."
     ),
 )
+
+
+@pytest.fixture(autouse=True)
+def _clear_nonces() -> Iterator[None]:
+    """The nonce cache is module-level, so it must not leak between tests."""
+    reset_nonces()
+    yield
+    reset_nonces()
 
 
 @pytest.fixture

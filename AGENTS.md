@@ -338,7 +338,18 @@ ruff check . && black . && pytest
         The REPORTING_QUALIFIER travels with each metric into the UI.
       ↳ `auth` plus an explicit role check on the whole admin group. A Viewer role
         exists so the check is testable rather than vacuous.
-- [ ] Phase 9 — Hardening, UAT, deployment
+- [x] Phase 9 — Hardening, security review, deployment guide, user manual
+      ↳ Security review found 10 issues (5 High); all fixed with regression tests.
+        See `docs/security-review-2026-08.md`.
+      ↳ Findings 1 and 2 are Chapter 4 material: redaction was applied thoroughly
+        inbound, but a submitted URL re-entering through an OUTBOUND API call
+        reached the log via the HTTP client's exception message. Neither was
+        visible by reading the code.
+      ↳ Deployment is ALL-RAILWAY. The ML service stays on the private network
+        and MUST NOT be given a public domain — that single click breaks
+        AGENTS.md §2 rule 1. See `docs/deployment.md`.
+      ↳ `docs/user-manual.md` covers the public interface and the admin area,
+        English and Bahasa Malaysia.
       ↳ Docker Compose regardless of the hosting outcome: it serves the local demo, a VPS
         deploy, and reproducibility on an examiner's machine equally.
       ↳ Deployment target is still open. Ask the supervisor the narrow question: does a

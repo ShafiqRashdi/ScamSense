@@ -5,17 +5,22 @@ rejects anything unsigned or older than 60 seconds.
 
 ## What this defends against, and what it does not
 
-The ML service binds to loopback and is never exposed to the internet
-(AGENTS.md §2, rule 1), so this is defence in depth rather than the only
-control. It matters because loopback is not a trust boundary on a shared host:
-any local process, any other container on the same network, and any SSRF
-elsewhere in the stack could otherwise reach the prediction routes directly.
+The ML service is never exposed to the internet (AGENTS.md §2, rule 1): it
+binds loopback locally and the platform's private network in deployment. This
+is defence in depth rather than the only control — but a private network is not
+a trust boundary either. Any other service on it, any compromised container,
+and any SSRF elsewhere in the stack could otherwise reach the prediction routes
+directly.
 
-The timestamp window bounds replay. It does not eliminate it — an attacker who
-captures a signed request can resend it within 60 seconds. Full replay
-prevention needs a nonce cache, which is deliberately out of scope: the
-requests carry no side effects, so a replay produces a duplicate prediction and
-nothing more.
+The timestamp window bounds replay, and a nonce cache closes what it leaves
+open. Security review finding 8: on loopback an attacker must already be on the
+host, but the service now runs on a platform's private network, so a replay
+window worth 60 seconds is worth closing rather than documenting.
+
+Each request carries a `request_id`, which is already part of the contract, so
+the nonce is free — a `request_id` seen twice inside the window is rejected.
+The cache is bounded and self-expiring, because an unbounded set keyed on
+attacker-supplied values is itself a denial-of-service vector.
 
 ## Why the signature covers the timestamp
 
@@ -35,6 +40,47 @@ SIGNATURE_HEADER = "X-ScamSense-Signature"
 TIMESTAMP_HEADER = "X-ScamSense-Timestamp"
 
 DEFAULT_TTL_SECONDS = 60
+
+#: Refuse to grow the nonce cache past this many entries. At the project's rate
+#: limits a minute's traffic is far below it, so hitting the cap means something
+#: abnormal is happening — and dropping the oldest entries degrades to the
+#: timestamp window rather than exhausting memory.
+MAX_NONCES = 10_000
+
+#: request_id -> the timestamp it was first seen at. Module-level because the
+#: service is single-process; a multi-worker deployment would need shared state,
+#: which is noted in docs/deployment.md.
+_seen_nonces: dict[str, float] = {}
+
+
+def _remember_nonce(nonce: str, now: float, ttl_seconds: int) -> bool:
+    """Record a nonce, returning False if it has already been used.
+
+    Expired entries are dropped on the way through, so the cache stays bounded
+    by the request rate inside one window rather than growing forever.
+    """
+    cutoff = now - ttl_seconds
+    for seen, first in list(_seen_nonces.items()):
+        if first < cutoff:
+            del _seen_nonces[seen]
+
+    if nonce in _seen_nonces:
+        return False
+
+    if len(_seen_nonces) >= MAX_NONCES:
+        # Drop the oldest rather than refuse service. Falling back to the
+        # timestamp window is a weaker guarantee, not a broken one.
+        oldest = min(_seen_nonces, key=lambda k: _seen_nonces[k])
+        del _seen_nonces[oldest]
+
+    _seen_nonces[nonce] = now
+
+    return True
+
+
+def reset_nonces() -> None:
+    """Clear the nonce cache. For tests only."""
+    _seen_nonces.clear()
 
 
 @dataclass(frozen=True)
@@ -63,6 +109,7 @@ def verify_request(
     body: bytes,
     ttl_seconds: int = DEFAULT_TTL_SECONDS,
     now: float | None = None,
+    request_id: str | None = None,
 ) -> VerificationResult:
     """Check a request's signature and freshness.
 
@@ -104,6 +151,14 @@ def verify_request(
     # compare_digest, never ==. A plain comparison returns early on the first
     # differing byte, leaking the correct prefix through response timing.
     if not hmac.compare_digest(expected, signature):
+        return VerificationResult(False, "signature_invalid", "Signature verification failed.")
+
+    # Replay: the signature is valid, so this is a genuine request — but it may
+    # be the same genuine request arriving twice. The nonce is recorded only
+    # after the signature verifies, so an attacker cannot burn nonces by
+    # sending unsigned garbage.
+    nonce = signature if request_id is None else f"{request_id}:{signature}"
+    if not _remember_nonce(nonce, time.time() if now is None else now, ttl_seconds):
         return VerificationResult(False, "signature_invalid", "Signature verification failed.")
 
     return VerificationResult(True)

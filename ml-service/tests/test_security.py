@@ -170,3 +170,90 @@ def test_health_needs_no_signature(client: FlaskClient) -> None:
     """Laravel's health check is unauthenticated by design; it exposes only
     version strings."""
     assert client.get("/health").status_code == 200
+
+
+# ── Replay: security review finding 8 ──────────────────────────────────────
+
+
+def test_a_replayed_request_is_rejected() -> None:
+    """The timestamp window bounds replay; the nonce cache closes it.
+
+    On loopback an attacker had to already be on the host. The service now runs
+    on a platform's private network, so a 60-second window is worth closing
+    rather than documenting as accepted.
+    """
+    body = b'{"url":"https://example.com","request_id":"abc"}'
+    timestamp = str(time.time())
+    signature = compute_signature(TEST_SECRET, timestamp, body)
+
+    first = verify_request(TEST_SECRET, signature, timestamp, body, request_id="abc")
+    second = verify_request(TEST_SECRET, signature, timestamp, body, request_id="abc")
+
+    assert first.ok
+    assert not second.ok
+
+
+def test_two_genuinely_different_requests_both_verify() -> None:
+    """The nonce must not reject ordinary traffic."""
+    timestamp = str(time.time())
+
+    for request_id in ("req-1", "req-2", "req-3"):
+        body = f'{{"url":"https://example.com","request_id":"{request_id}"}}'.encode()
+        signature = compute_signature(TEST_SECRET, timestamp, body)
+        assert verify_request(
+            TEST_SECRET, signature, timestamp, body, request_id=request_id
+        ).ok, request_id
+
+
+def test_a_replay_is_rejected_through_the_route(client: FlaskClient) -> None:
+    raw, headers = signed_headers(BODY)
+
+    first = client.post("/api/v1/predict/url", data=raw, headers=headers)
+    second = client.post("/api/v1/predict/url", data=raw, headers=headers)
+
+    # The first is rejected only because no model is loaded in this fixture;
+    # what matters is that the second fails on the signature instead.
+    assert first.status_code != 401
+    assert second.status_code == 401
+    assert second.get_json()["error"] == "signature_invalid"
+
+
+def test_the_nonce_cache_stays_bounded() -> None:
+    """An unbounded set keyed on attacker-supplied values is itself a DoS."""
+    from app.security import MAX_NONCES, _seen_nonces
+
+    now = time.time()
+    for i in range(MAX_NONCES + 50):
+        verify_request(
+            TEST_SECRET,
+            compute_signature(TEST_SECRET, str(now), f"{i}".encode()),
+            str(now),
+            f"{i}".encode(),
+            now=now,
+        )
+
+    assert len(_seen_nonces) <= MAX_NONCES
+
+
+def test_expired_nonces_are_dropped_so_the_cache_does_not_grow_forever() -> None:
+    from app.security import _seen_nonces
+
+    old = time.time() - 3600
+    verify_request(
+        TEST_SECRET,
+        compute_signature(TEST_SECRET, str(old), b"old"),
+        str(old),
+        b"old",
+        now=old,
+    )
+
+    now = time.time()
+    verify_request(
+        TEST_SECRET,
+        compute_signature(TEST_SECRET, str(now), b"new"),
+        str(now),
+        b"new",
+        now=now,
+    )
+
+    assert len(_seen_nonces) == 1

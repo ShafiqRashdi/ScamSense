@@ -223,6 +223,15 @@ The URL figure has real limitations, set out in `adr/0004`:
 
 ## Where each number comes from
 
+### A methodological result from Phase 9
+
+The security review produced a finding worth reporting alongside the model
+numbers: redaction had been applied thoroughly to **inbound** user content, but
+a submitted URL re-entering the system through an **outbound** API call bypassed
+it entirely, reaching the log through an HTTP client's exception message. See
+"The sanitisation-boundary lesson" in `security-review-2026-08.md`. Neither
+defect was visible by reading the code.
+
 | Source | Contains |
 |---|---|
 | `ml-service/models/*/metrics.json` | Raw measurements, committed |

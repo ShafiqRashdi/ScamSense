@@ -6,6 +6,7 @@ namespace App\Services\ThreatIntel;
 
 use App\DataTransferObjects\ThreatIntelResult;
 use App\Models\ThreatIntelCache;
+use App\Support\SafeLog;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -60,11 +61,11 @@ class VirusTotalClient
                 ->retry((int) config('services.virustotal.retries', 1), 200, throw: false)
                 ->get(self::ENDPOINT.$this->urlId($url));
         } catch (ConnectionException $exception) {
-            Log::warning('VirusTotal unreachable.', ['reason' => $exception->getMessage()]);
+            Log::warning('VirusTotal unreachable.', ['reason' => SafeLog::reason($exception)]);
 
             return ThreatIntelResult::unknown(self::PROVIDER, 'unreachable');
         } catch (Throwable $exception) {
-            Log::error('VirusTotal call failed.', ['reason' => $exception->getMessage()]);
+            Log::error('VirusTotal call failed.', ['reason' => SafeLog::reason($exception)]);
 
             return ThreatIntelResult::unknown(self::PROVIDER, 'error');
         }
