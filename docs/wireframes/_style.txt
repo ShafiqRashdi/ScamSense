@@ -1,1 +1,0 @@
-shared helmet block - kept here as a note only, inlined per file

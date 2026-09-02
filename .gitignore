@@ -62,3 +62,8 @@ Thumbs.db
 # it lives with the author, not in version control.
 /ScamSense_Chapter_4.docx
 /example wireframe.png
+
+# Generated design canvas. Built from the .dc.html sources in docs/wireframes/
+# by the design skill's seeder; each rebuild is a fresh 2.2 MB blob, so
+# tracking it would grow the repository every time a figure changes.
+/docs/wireframes/scamsense-chapter-4-wireframes.html
