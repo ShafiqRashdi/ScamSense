@@ -78,7 +78,20 @@ Configuration: TF-IDF over character n-grams (`char_wb`, 2–5), Logistic Regres
 `class_weight="balanced"`, seed 42, using the split shipped with the corpus rather than a
 recomputed one.
 
-**Both meet the 0.85 threshold objective O1 requires.**
+**Both models meet the 0.85 threshold objective O1 sets for the metric.**
+
+That sentence is narrower than it looks, and the distinction matters twice over:
+
+- **Until 2026-08-18 the message model was not being served at all.** The artefact was trained,
+  measured and committed, but nothing loaded it: `app/predictors/__init__.py` never constructed
+  a message classifier and `/predict/message` returned a hardcoded 503. Every message submission
+  in the running product came back *"We could not check this properly."* The metric was honest;
+  the claim that the product met O1 on both tasks was not. Fixed and covered by a regression
+  test that asserts `/health` reports both models loaded.
+- **The message model does not generalise as well as 0.9735 suggests.** On 24 hand-written
+  messages outside the corpus it reaches **70.8% accuracy and misses 6 of 12 scams** — see
+  *Message generalisation probe* below. The frozen-test-set figure remains the honest headline
+  for O1; the probe is what it means in a user's hands.
 
 ### Was DistilBERT tried? Yes — see `adr/0009`
 
@@ -109,6 +122,75 @@ The correct sentence for the report: *"DistilBERT was evaluated and scored F1 0.
 baseline's 0.9735; the difference is within the 95% confidence interval on a 528-message corpus,
 so the baseline was retained."* Not *"DistilBERT was no better"* — it may well be better, and the
 measurement simply cannot say.
+
+#### How much data would settle it? — `training/power_analysis.py`
+
+"Collect more data" is not a plan anyone can act on, so the requirement was measured rather than
+guessed. The script resamples from the error rates the two models actually produced (baseline
+missed 3 of 58 scams, DistilBERT 1 of 58, neither produced a false positive) and runs the same
+paired bootstrap at increasing corpus sizes.
+
+| Test messages | Total corpus at 70/15/15 | Trials where the interval excludes zero |
+|---:|---:|---:|
+| 106 *(current)* | 530 | 7% |
+| 200 | 1,000 | 35% |
+| 400 | 2,000 | 55% |
+| 800 | 4,000 | 83% |
+| 1,500 | 7,500 | 97% |
+| 3,000 | 15,000 | 100% |
+
+**Around 800 test messages — roughly 4,000 collected in total — gives an ~80% chance of
+resolving a difference this size.** The 7% at the current size is a useful check on the method:
+it is consistent with what actually happened, and says the comparison was never going to resolve
+at 528 rows.
+
+**The caveat is not optional.** This assumes the observed +0.0179 is the true difference, which
+is precisely what a zero-spanning interval says we do not know. If the real gap is smaller the
+requirement grows; if larger, it shrinks. It is a target to aim at, not a threshold that promises
+a result.
+
+**Collection is targeted at 1,200–1,500 rows, not 4,000.** That is a deliberate scope decision:
+1,500 rows puts roughly 300 messages in test, which the table above places well below the point
+where this comparison resolves. If the DistilBERT interval still spans zero at that size, **that
+is the finding, not a failure** — a single-semester collection effort by one person cannot
+support a definitive answer to this question, and reporting that honestly is worth more than
+reporting a result the data cannot carry.
+
+### Message generalisation probe — `training/message_probe.py`
+
+The 0.9735 above is measured on messages drawn from the same collection effort as the training
+rows: same 11 legitimate and 7 scam categories, same collector, same weeks. The probe asks the
+harder question — does it work on a scam it has never seen phrased this way? — using 24 messages
+written by hand, independently of the corpus, following patterns documented by the NSRC and Bank
+Negara Malaysia.
+
+| | Result |
+|---|---:|
+| Overall accuracy | **17/24 (70.8%)** |
+| Scams missed | **6/12** |
+| Legitimate flagged | 1/12 |
+
+**Recall tracks category support almost exactly.** Every miss falls in a category with fewer
+than 21 training rows:
+
+| Category | Corpus rows | Probe |
+|---|---:|---:|
+| Parcel scam | 18 | 0/2 |
+| Macau scam / impersonation | 19 | 1/3 |
+| Lucky draw / prize | 20 | 1/2 |
+| Phishing link | 40 | 2/3 |
+| Loan scam | 39 | 1/1 |
+| Job offer scam | 76 | 1/1 |
+
+**This is the single most useful finding for the next collection round:** the sparse categories
+are the ones that fail, and they are sparse by roughly a factor of four against Job offer scam.
+Weighting collection towards parcel, impersonation and prize scams will do more than adding rows
+uniformly.
+
+The missed messages are textbook Malaysian scams — a JPJ summons demand, a customs-held parcel,
+an LHDN tax refund, a Touch 'n Go suspension. **A user pasting any of those into ScamSense today
+is told there are no warning signs.** Quote this as a generalisation probe, never as the model's
+F1; it is small and deliberately adversarial, and the two figures measure different things.
 
 ### Provenance — keep `collected_my` separate
 

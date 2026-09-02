@@ -117,34 +117,44 @@ def predict_url() -> tuple[Response, int]:
 @api.post("/predict/message")
 @require_signature
 def predict_message() -> tuple[Response, int]:
-    """Message classification — currently unavailable.
+    """Message classification.
 
-    There is no message model. The available corpus is 1,732 rows from 56
-    templates and cannot support a valid evaluation, so no artefact was
-    produced rather than one that would look finished (ADR 0005).
+    Serves `tfidf-msg-v2.0.0-collected-my`. When the artefact is absent this
+    returns 503 with a structured body rather than a guessed prediction, and
+    Laravel turns that into a clearly-labelled partial verdict rather than a
+    failure (AGENTS.md §2, rule 4).
 
-    This returns 503 with a structured body rather than a guessed prediction.
-    That choice keeps the success contract in AGENTS.md §4 unchanged — adding a
-    "partial" field to the response envelope would be a breaking change — while
-    giving Laravel exactly what it needs to build a clearly-labelled partial
-    verdict. The request is still validated first, so a malformed body gets a
-    422 whether or not the model exists; otherwise this route would start
-    accepting rubbish the moment the model was unloaded.
+    The body is validated before the model is consulted, so a malformed request
+    gets a 422 whether or not the model is loaded. Reversing that would mean the
+    route silently started accepting rubbish the moment an artefact failed to
+    load.
     """
     try:
         payload = PredictMessageRequest.model_validate(request.get_json(silent=True) or {})
     except ValidationError as exc:
         return _error("validation_failed", _first_error(exc), 422)
 
-    return _error(
-        "model_unavailable",
-        (
-            "The message model is not loaded. No artefact exists: the available "
-            "corpus cannot support a valid evaluation (see docs/adr/0005)."
-        ),
-        503,
-        payload.request_id,
+    model = predictors.MESSAGE_MODEL
+    if model is None:
+        return _error(
+            "model_unavailable",
+            "The message model is not loaded.",
+            503,
+            payload.request_id,
+        )
+
+    prediction = model.predict(payload.text)
+
+    response = PredictionResponse(
+        request_id=payload.request_id,
+        label=prediction.label,
+        confidence=prediction.confidence,
+        indicators=prediction.indicators,
+        model_version=prediction.model_version,
+        inference_ms=prediction.inference_ms,
     )
+
+    return jsonify(response.model_dump()), 200
 
 
 def _first_error(exc: ValidationError) -> str:

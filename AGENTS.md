@@ -285,23 +285,27 @@ ruff check . && black . && pytest
       ↳ The corpus is not Malaysian, and its legitimate half is Tranco-dominated.
         Read ADR 0004 "Limitations" before citing this number in the report.
 - [x] Phase 3 — Message classifier — see `docs/adr/0005`, `docs/adr/0009`
-      ↳ DONE: text_preprocess module, TF-IDF baseline pipeline, template-leakage
-        detection, 96 tests passing.
-      ↳ BLOCKED: `messages.csv` is 1,732 rows from only **56 templates**. A random
-        split reports F1 1.0000 (pure template memorisation); a template-grouped
-        split gives a single-class test partition and F1 0.0000. **No valid message
-        metric exists and none can be produced from this corpus.** Do not quote one.
-      ↳ DistilBERT fine-tuning is deliberately deferred, not skipped: on 39 training
-        templates it would produce a meaningless comparison at a cost of hours.
-      ↳ NEEDS: 300+ distinct real scam messages and 300+ distinct real legitimate
-        messages, with a negative class as varied as the positive one.
-      ↳ When resumed: also export ONNX + int8 quantised and benchmark memory/latency/F1
-        against the PyTorch checkpoint, to keep the 1 GB VPS option open (`docs/adr/0001`).
+      ↳ SERVING: `tfidf-msg-v2.0.0-collected-my`, test F1 0.9735 on 528 collected
+        Malaysian messages. ADR 0005 rejected the *synthetic* corpus (1,732 rows,
+        56 templates, no valid metric obtainable); ADR 0009 supersedes it.
+      ↳ DistilBERT evaluated once as a documented comparison: F1 0.9913 vs 0.9735,
+        difference +0.0179 with a 95% interval of [−0.0167, +0.0560] spanning zero.
+        Not shipped. `training/power_analysis.py` puts the corpus needed to resolve
+        it at ~800 test messages (~4,000 total); collection targets 1,200–1,500, so
+        an unresolved interval is an expected and reportable outcome.
+      ↳ **KNOWN LIMIT, `training/message_probe.py`:** 70.8% accuracy and 6 of 12
+        scams missed on hand-written out-of-corpus messages. Misses cluster in the
+        categories with under 21 training rows — parcel, impersonation, prize.
+        Weight the next collection round towards those rather than uniformly.
+      ↳ When DistilBERT is revisited: also export ONNX + int8 quantised and benchmark
+        memory/latency/F1 against the PyTorch checkpoint, to keep the 1 GB VPS option
+        open (`docs/adr/0001`).
 - [x] Phase 4 — Flask prediction API with HMAC — see `docs/api-contract.md`
       ↳ POST /api/v1/predict/url serves rf-url-v1.2.0-no-https. Median 30ms, p95 76ms
         over HTTP including HMAC. 183 tests pass.
-      ↳ POST /api/v1/predict/message returns 503 model_unavailable — no artefact
-        exists (ADR 0005). Laravel must render a labelled partial verdict, never a 500.
+      ↳ POST /api/v1/predict/message serves tfidf-msg-v2.0.0-collected-my. It returns
+        503 model_unavailable only when an artefact is missing or fails to load, and
+        Laravel renders a labelled partial verdict, never a 500.
       ↳ **OPEN DEFECT, `docs/adr/0006`:** the model flags real banking and government
         pages — 40% false positives on a 20-URL real-site probe, including the Maybank
         login page at 0.93. Recall is fine (0 misses on 8 phishing shapes). Cause is

@@ -69,13 +69,18 @@ rather than a plausible version string.
   "status": "ok",
   "service": "scamsense-ml",
   "version": "0.2.0",
-  "models": { "message": null, "url": "rf-url-v1.2.0-no-https" },
-  "models_loaded": false
+  "models": {
+    "message": "tfidf-msg-v2.0.0-collected-my",
+    "url": "rf-url-v2.0.0-pathnorm"
+  },
+  "models_loaded": true
 }
 ```
 
-`models_loaded` is `false` while any model is absent. It is currently `false` and correctly so:
-there is no message model (ADR 0005).
+`models_loaded` is `false` while any model is absent, and the `models` map reports what is
+actually loaded rather than what is expected — a health check that lies about its models is worse
+than no health check. Both models ship as of 2026-08-18; a `null` here now means an artefact
+failed to load and every verdict for that task is degrading to a partial.
 
 ---
 
@@ -132,16 +137,25 @@ assume its caller validated correctly.
 
 `text` is required, 1–5000 chars. `request_id` as above.
 
-### Current behaviour — 503
+### Response — 200
 
-**There is no message model.** The available corpus is 1,732 rows from 56 templates and cannot
-support a valid evaluation, so no artefact was produced rather than one that would look finished
-(ADR 0005).
+Serves `tfidf-msg-v2.0.0-collected-my`. Returns the same envelope as `/predict/url`.
+
+Message indicators always carry `"source": "pattern"` and `"weight": 0.0`. They come from a
+curated keyword layer running *alongside* the classifier, not from it: the model is TF-IDF over
+character n-grams, whose real coefficients are per-n-gram and useless to a reader. Emitting them
+as `model` with a nonzero weight would present a regex match as interpretability. A test asserts
+this and ADR 0010 documents the hybrid.
+
+### Degraded — 503
+
+Returned when the artefact is missing, or present but unloadable — most often a scikit-learn
+version skew between training and serving.
 
 ```json
 {
   "error": "model_unavailable",
-  "detail": "The message model is not loaded. No artefact exists...",
+  "detail": "The message model is not loaded.",
   "request_id": "uuid"
 }
 ```
@@ -150,9 +164,9 @@ Laravel must turn this into a **partial verdict clearly labelled as such** — n
 never a confident answer (AGENTS.md §2, rule 4). The `verdicts` table already carries
 `is_partial` and `partial_reason` for exactly this.
 
-Validation still runs first, so a malformed body gets a 422 whether or not the model exists.
-
-When a model does exist this route returns the same 200 envelope as `/predict/url`.
+Validation still runs first, so a malformed body gets a 422 whether or not the model is loaded.
+Reversing that order would mean the route silently began accepting rubbish the moment an artefact
+failed to load.
 
 ---
 

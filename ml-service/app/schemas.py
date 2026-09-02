@@ -39,7 +39,11 @@ IndicatorCode = Literal[
     "sensitive_keyword_path",
     "non_standard_port",
     "high_entropy_host",
-    # Message indicators (Phase 3, not yet emitted)
+    "long_hostname",
+    "many_hyphens",
+    # Message indicators. Emitted by the curated pattern layer that runs
+    # alongside the classifier, never with source "model" — see the docstring
+    # in app/indicators.py.
     "urgency_language",
     "prize_claim",
     "credential_request",

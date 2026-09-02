@@ -114,8 +114,11 @@ class MlServiceClient
         }
 
         if ($response->status() === 503) {
-            // The service is up but has no model for this task — currently the
-            // permanent state of the message classifier (ADR 0005).
+            // The service is up but could not load a model for this task —
+            // a missing artefact, or one that fails to deserialise because the
+            // serving scikit-learn differs from the training one. Both models
+            // now ship, so this is a deployment fault to investigate rather
+            // than an expected state.
             return MlPrediction::unavailable('model_unavailable');
         }
 

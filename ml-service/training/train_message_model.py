@@ -64,6 +64,11 @@ from training.train_url_model import (  # noqa: E402
 SEED = 42
 F1_TARGET = 0.85
 
+#: Ceiling on the TF-IDF vocabulary. At 528 rows the corpus produces far fewer
+#: than this, so the cap is currently inert; it exists so that growing the
+#: corpus cannot quietly grow the served artefact without anyone deciding to.
+MAX_TFIDF_FEATURES = 200_000
+
 #: Stamped into metrics.json so a figure cannot be quoted without its caveat.
 SYNTHETIC_QUALIFIER = (
     "F1 on a synthetic template corpus. This is NOT ScamSense's message-detection "
@@ -143,7 +148,21 @@ def load_messages(path: Path) -> pd.DataFrame:
         raise SystemExit(f"Unrecognised label value(s): {unknown}")
     frame["label"] = normalised.astype(int)
 
+    # Deduplication happens before any split is read, so it can silently change
+    # the composition of a split that was constructed and verified on the file
+    # as written. At 528 unique rows this is a no-op; once collection batches
+    # are being merged, duplicates become likely and a silent change to the
+    # partitions would make the reported figure incomparable with the corpus
+    # author's. Report it rather than let it pass unseen.
+    before = len(frame)
     frame = frame.drop_duplicates(subset=["text"]).reset_index(drop=True)
+    dropped = before - len(frame)
+    if dropped:
+        print(f"  NOTE: dropped {dropped} duplicate row(s) of {before} before splitting.")
+        if "split" in frame.columns:
+            print("        The shipped `split` column now covers a different set of rows")
+            print("        than when it was constructed. Re-verify it before reporting.")
+
     frame["template"] = frame["text"].map(template_key)
 
     if frame["label"].nunique() < 2:
@@ -191,7 +210,47 @@ def split_from_column(frame: pd.DataFrame) -> Split:
         if not rows:
             raise SystemExit(f"The given split has no rows in '{name}'.")
 
+    report_given_split_balance(frame, partitions)
+
     return Split(train=partitions["train"], val=partitions["val"], test=partitions["test"])
+
+
+#: How far a partition's scam rate may drift from the corpus rate before the
+#: split stops being meaningfully stratified. Ten points is loose enough not to
+#: fire on the rounding a small partition inevitably produces, and tight enough
+#: to catch a partition that was assigned without stratifying.
+STRATIFICATION_TOLERANCE = 0.10
+
+
+def report_given_split_balance(frame: pd.DataFrame, partitions: dict[str, list[int]]) -> None:
+    """Check that a shipped split is actually stratified, and say so either way.
+
+    A given split is trusted not to be reshuffled, which means nothing else in
+    this script will notice if it is skewed. Appending rows to a corpus and
+    hand-assigning their partition is exactly how a split stops being
+    stratified, and the symptom — a metric that moved for no visible reason —
+    is very hard to trace back here.
+
+    This warns rather than exits: the corpus author may have had a reason, and
+    silently refusing to train on their data is worse than telling them what
+    the balance is and letting them decide.
+    """
+    overall = float(frame["label"].mean())
+    print(f"  class balance: corpus {overall:.1%} scam")
+
+    for name in ("train", "val", "test"):
+        rows = partitions[name]
+        rate = float(frame["label"].iloc[rows].mean())
+        drift = abs(rate - overall)
+        flag = "  <-- DRIFT" if drift > STRATIFICATION_TOLERANCE else ""
+
+        print(f"    {name:<6} {len(rows):>5} rows  {rate:.1%} scam  ({drift:+.1%}){flag}")
+
+        if drift > STRATIFICATION_TOLERANCE:
+            print(
+                f"        WARNING: '{name}' is {drift:.1%} from the corpus rate. "
+                "This split is not stratified."
+            )
 
 
 def describe_corpus(frame: pd.DataFrame) -> CorpusShape:
@@ -282,12 +341,13 @@ def print_report(title: str, metrics: dict[str, Any], templates: int | None = No
 
 
 def build_pipeline(seed: int) -> Pipeline:
-    """TF-IDF over word and character n-grams, then Logistic Regression.
+    """TF-IDF over character n-grams, then Logistic Regression.
 
-    Character n-grams matter for Malay/English code-switching: they catch
-    morphological variation ("sahkan", "pengesahan", "disahkan") that word
-    features treat as unrelated tokens, and they degrade gracefully on the
-    misspellings scam messages use to dodge keyword filters.
+    Character n-grams only — there is no word analyser. Characters are the right
+    unit for Malay/English code-switching: they catch morphological variation
+    ("sahkan", "pengesahan", "disahkan") that word features treat as unrelated
+    tokens, and they degrade gracefully on the misspellings scam messages use to
+    dodge keyword filters.
 
     class_weight="balanced" rather than resampling — oversampling before the
     split leaks, and after it duplicates rows the model overfits.
@@ -304,6 +364,13 @@ def build_pipeline(seed: int) -> Pipeline:
                     analyzer="char_wb",
                     ngram_range=(2, 5),
                     min_df=2,
+                    # Uncapped, char_wb 2-5 grams grow roughly linearly with the
+                    # corpus, and so does the artefact the Flask service loads at
+                    # every cold start. The cap bounds that at a size that still
+                    # comfortably exceeds the vocabulary a few thousand messages
+                    # produce, so it does not bind today and does not need
+                    # revisiting when the corpus reaches its target.
+                    max_features=MAX_TFIDF_FEATURES,
                     sublinear_tf=True,
                 ),
             ),

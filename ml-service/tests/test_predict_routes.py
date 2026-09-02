@@ -235,9 +235,10 @@ def test_validation_errors_do_not_leak_the_whole_schema(client: FlaskClient) -> 
 
 
 def test_the_message_route_returns_503_not_a_guess(client: FlaskClient) -> None:
-    """No message model exists (ADR 0005). Returning 503 rather than a guessed
-    prediction is what lets Laravel build a clearly-labelled partial verdict
-    instead of showing a confident answer nobody measured."""
+    """`client` has LOAD_MODELS off, standing in for an absent or unloadable
+    artefact. Returning 503 rather than a guessed prediction is what lets
+    Laravel build a clearly-labelled partial verdict instead of showing a
+    confident answer nobody measured."""
     response = post(
         client, "/api/v1/predict/message", {"text": "Tahniah anda menang", "request_id": "r1"}
     )
@@ -265,11 +266,62 @@ def test_the_url_route_returns_503_when_no_model_is_loaded(client: FlaskClient) 
     assert response.get_json()["error"] == "model_unavailable"
 
 
-def test_health_reports_the_url_model_when_loaded(loaded_client: FlaskClient) -> None:
+def test_health_reports_both_models_when_loaded(loaded_client: FlaskClient) -> None:
+    """/health must report what is actually loaded, never what is expected — a
+    health check that lies about its models is worse than none."""
     body = loaded_client.get("/health").get_json()
 
     assert body["models"]["url"] == "rf-url-v2.0.0-pathnorm"
-    # models_loaded stays false because the message model has no artefact, and
-    # /health must report what is actually loaded rather than what is expected.
-    assert body["models"]["message"] is None
-    assert body["models_loaded"] is False
+    assert body["models"]["message"] == "tfidf-msg-v2.0.0-collected-my"
+    assert body["models_loaded"] is True
+
+
+def test_the_message_route_predicts_when_the_model_is_loaded(
+    loaded_client: FlaskClient,
+) -> None:
+    """The regression this exists for: the artefact shipped and was measured,
+    but nothing loaded it, so every message submission returned 503 and the
+    message half of the product was dark while the metric looked healthy."""
+    response = post(
+        loaded_client,
+        "/api/v1/predict/message",
+        {
+            "text": (
+                "TAHNIAH! Anda memenangi RM5,000. Sila klik pautan dan sahkan "
+                "kata laluan anda sekarang untuk menuntut hadiah."
+            ),
+            "request_id": "r1",
+        },
+    )
+
+    assert response.status_code == 200
+    body = response.get_json()
+    assert body["label"] in ("scam", "legitimate")
+    assert 0.0 <= body["confidence"] <= 1.0
+    assert body["model_version"] == "tfidf-msg-v2.0.0-collected-my"
+    assert body["request_id"] == "r1"
+
+
+def test_message_indicators_never_claim_model_attribution(
+    loaded_client: FlaskClient,
+) -> None:
+    """Message indicators are a curated pattern layer running alongside a
+    character-n-gram model whose real coefficients are per-n-gram and useless to
+    a reader. Emitting them as source `model` with a nonzero weight would
+    present a regex match as interpretability — the precise dishonesty the
+    source field exists to prevent."""
+    response = post(
+        loaded_client,
+        "/api/v1/predict/message",
+        {
+            "text": "Akaun anda akan disekat segera. Sahkan kata laluan dan bayar RM50.",
+            "request_id": "r1",
+        },
+    )
+
+    indicators = response.get_json()["indicators"]
+    assert indicators, "expected the pattern layer to fire on this message"
+
+    for indicator in indicators:
+        assert indicator["source"] == "pattern"
+        assert indicator["weight"] == 0.0

@@ -19,22 +19,13 @@ from __future__ import annotations
 
 import json
 import time
-from dataclasses import dataclass
 from pathlib import Path
 
 import joblib
 
 from app.features.url_features import extract_features
 from app.indicators import build_url_indicators
-
-
-@dataclass(frozen=True)
-class Prediction:
-    label: str
-    confidence: float
-    indicators: list[dict[str, object]]
-    model_version: str
-    inference_ms: int
+from app.predictors.prediction import Prediction
 
 
 class UrlClassifier:
