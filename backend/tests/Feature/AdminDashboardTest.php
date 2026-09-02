@@ -264,3 +264,126 @@ it('escapes a model name rather than rendering it', function (): void {
         ->assertOk()
         ->assertDontSee('<script>alert(1)</script>', escape: false);
 })->skipOnWindows();
+
+/*
+|--------------------------------------------------------------------------
+| Density — the dashboard shows what is acted on, not everything it knows
+|--------------------------------------------------------------------------
+*/
+
+/**
+ * Writes a models directory holding one serving artefact and several retired
+ * ones, which is the real shape: ten directories, two of them serving.
+ */
+function modelsDirectoryWithRetiredRuns(): string
+{
+    $dir = sys_get_temp_dir().'/scamsense-models-'.uniqid();
+
+    foreach (['rf-url-v9.9.9-serving', 'rf-url-v0.1.0-old', 'rf-url-v0.2.0-randomsplit'] as $name) {
+        mkdir($dir.'/'.$name, 0777, true);
+        file_put_contents(
+            $dir.'/'.$name.'/metrics.json',
+            json_encode(['test' => ['f1_phishing' => 0.9, 'threshold' => 0.5]]),
+        );
+    }
+
+    config()->set('scamsense.models_path', $dir);
+    config()->set('scamsense.shipped_models.url', 'rf-url-v9.9.9-serving');
+    config()->set('scamsense.shipped_models.message', 'not-present');
+
+    return $dir;
+}
+
+it('shows only serving models, with retired runs behind a disclosure', function (): void {
+    /*
+     | ModelMetricsReader returns every directory with a metrics.json, which is
+     | ten today and grows with each retrain. Rendering all of them made this
+     | panel more than half the page while only two were serving traffic.
+     */
+    modelsDirectoryWithRetiredRuns();
+
+    $html = $this->actingAs(admin())->get('/admin')->assertOk()->getContent();
+
+    $serving = strpos($html, 'rf-url-v9.9.9-serving');
+    $disclosure = strpos($html, '<details');
+
+    expect($serving)->not->toBeFalse('the serving model must be visible')
+        ->and($disclosure)->not->toBeFalse('retired runs need a disclosure')
+        ->and($serving)->toBeLessThan($disclosure, 'serving models come before the disclosure')
+        ->and($html)->toContain('Show superseded and experimental runs (2)');
+});
+
+it('keeps retired runs reachable rather than dropping them', function (): void {
+    // They are real evidence for the report; the point is that they are not
+    // what anyone opens this page to see.
+    modelsDirectoryWithRetiredRuns();
+
+    $this->actingAs(admin())->get('/admin')
+        ->assertSee('rf-url-v0.1.0-old')
+        ->assertSee('rf-url-v0.2.0-randomsplit');
+});
+
+it('warns when no model is serving rather than showing nothing', function (): void {
+    $dir = sys_get_temp_dir().'/scamsense-models-'.uniqid();
+    mkdir($dir.'/rf-url-v0.1.0-old', 0777, true);
+    file_put_contents($dir.'/rf-url-v0.1.0-old/metrics.json', json_encode(['test' => ['f1_phishing' => 0.9]]));
+    config()->set('scamsense.models_path', $dir);
+    config()->set('scamsense.shipped_models.url', 'nothing-matches-this');
+    config()->set('scamsense.shipped_models.message', 'nor-this');
+
+    $this->actingAs(admin())->get('/admin')->assertSee('No serving model found');
+});
+
+it('does not repeat a figure that a panel already breaks down', function (): void {
+    /*
+     | "In retraining set" and "Partial verdicts" were headline counters as well
+     | as panels, and "Pending review" appears again on the moderation page. A
+     | number repeated across one screen is not emphasis — it costs the reader a
+     | moment working out whether the two are the same thing.
+     */
+    $html = $this->actingAs(admin())->get('/admin')->assertOk()->getContent();
+
+    expect(substr_count($html, 'In retraining set'))->toBe(0)
+        ->and(substr_count($html, 'Partial verdicts'))->toBe(0);
+});
+
+it('puts the range control on the only chart it changes', function (): void {
+    /*
+     | DashboardService::summary() passes $days to submissionVolume() and to
+     | nothing else, so every other figure is all-time. In the page header the
+     | control read as a page-wide filter and implied the counters beside it
+     | followed the same window.
+     */
+    $html = $this->actingAs(admin())->get('/admin')->assertOk()->getContent();
+
+    $heading = strpos($html, 'Submissions over time');
+    $control = strpos($html, 'Change the range of this chart');
+
+    expect($control)->not->toBeFalse()
+        ->and($control)->toBeGreaterThan($heading - 400)
+        ->and($html)->toContain('every other figure on this page is all time');
+});
+
+it('seeds only indicator codes the system can actually emit', function (): void {
+    /*
+     | The seeders invented fifteen codes that exist nowhere else —
+     | `no_link_present`, `contact_off_platform`, `authority_impersonation`,
+     | `uses_https` and others. They rendered in the dashboard's indicator panel
+     | and would have gone into Figure 4.14 of the report, where a reader
+     | cross-referencing the indicator table in docs/api-contract.md would find
+     | codes that do not exist. Any that reached a verdict page would render the
+     | raw translation key to a user.
+     |
+     | The existing translation test compares en against ms, so it stays green
+     | while the seeders invent codes neither file has. This compares seeded
+     | data against the language file, which is the real contract.
+     */
+    $this->seed(SampleSubmissionSeeder::class);
+    $this->seed(FeedbackQueueSeeder::class);
+
+    $known = array_keys(require lang_path('en/indicators.php'));
+    $seeded = Indicator::query()->distinct()->pluck('code')->all();
+
+    expect($seeded)->not->toBeEmpty()
+        ->and(array_values(array_diff($seeded, $known)))->toBe([]);
+});

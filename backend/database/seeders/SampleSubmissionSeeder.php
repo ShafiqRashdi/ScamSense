@@ -141,7 +141,6 @@ class SampleSubmissionSeeder extends Seeder
                     ['prize_claim', 0.3400, 'Anda telah memenangi RM5,000', $pattern],
                     ['urgency_language', 0.2900, 'dalam tempoh 24 jam', $pattern],
                     ['payment_demand', 0.2100, 'no. akaun bank', $pattern],
-                    ['contact_off_platform', 0.1200, '012-345 6789', $pattern],
                 ],
             ],
             [
@@ -153,10 +152,10 @@ class SampleSubmissionSeeder extends Seeder
                 'risk' => RiskLevel::High,
                 'confidence' => 0.9800,
                 'indicators' => [
-                    ['brand_impersonation', 0.3600, 'MAYBANK', $model],
+                    ['brand_lookalike', 0.3600, 'maybank2u-verify.xyz', $model],
                     ['credential_request', 0.3100, 'Sahkan identiti anda', $pattern],
                     ['urgency_language', 0.2000, 'dalam 12 jam', $pattern],
-                    ['suspicious_link', 0.1300, 'maybank2u-verify.xyz', $model],
+                    ['suspicious_tld', 0.1300, '.xyz', $model],
                 ],
             ],
             [
@@ -167,9 +166,9 @@ class SampleSubmissionSeeder extends Seeder
                 'risk' => RiskLevel::High,
                 'confidence' => 0.9400,
                 'indicators' => [
-                    ['brand_impersonation', 0.3300, 'Pos Laju', $model],
+                    ['brand_lookalike', 0.3300, 'poslaju-cukai.top', $model],
                     ['payment_demand', 0.2800, 'Cukai RM3.50 belum dijelaskan', $pattern],
-                    ['suspicious_link', 0.2400, 'poslaju-cukai.top', $model],
+                    ['suspicious_tld', 0.2400, '.top', $model],
                 ],
             ],
             [
@@ -180,9 +179,9 @@ class SampleSubmissionSeeder extends Seeder
                 'risk' => RiskLevel::High,
                 'confidence' => 0.9500,
                 'indicators' => [
-                    ['authority_impersonation', 0.3500, 'LHDN', $model],
+                    ['brand_lookalike', 0.3500, 'lhdn-pulangan.site', $model],
                     ['credential_request', 0.3000, 'maklumat perbankan anda', $pattern],
-                    ['suspicious_link', 0.2200, 'lhdn-pulangan.site', $model],
+                    ['suspicious_tld', 0.2200, '.site', $model],
                 ],
             ],
             [
@@ -193,8 +192,8 @@ class SampleSubmissionSeeder extends Seeder
                 'risk' => RiskLevel::High,
                 'confidence' => 0.9700,
                 'indicators' => [
-                    ['authority_impersonation', 0.3800, 'PDRM Bukit Aman', $model],
-                    ['isolation_pressure', 0.2700, 'jangan beritahu sesiapa', $pattern],
+                    ['credential_request', 0.3800, 'Akaun anda terlibat', $pattern],
+                    ['payment_demand', 0.2700, 'kes pengubahan wang haram', $pattern],
                     ['urgency_language', 0.2000, 'segera', $pattern],
                 ],
             ],
@@ -206,9 +205,8 @@ class SampleSubmissionSeeder extends Seeder
                 'risk' => RiskLevel::Medium,
                 'confidence' => 0.7300,
                 'indicators' => [
-                    ['unrealistic_offer', 0.3200, 'RM300-RM500 sehari', $pattern],
-                    ['scarcity_pressure', 0.2300, 'Terhad 10 kekosongan sahaja', $pattern],
-                    ['contact_off_platform', 0.1800, 'WhatsApp', $pattern],
+                    ['prize_claim', 0.3200, 'Income RM300-RM500 sehari', $pattern],
+                    ['urgency_language', 0.2300, 'Terhad 10 kekosongan sahaja', $pattern],
                 ],
             ],
 
@@ -221,8 +219,6 @@ class SampleSubmissionSeeder extends Seeder
                 'risk' => RiskLevel::Low,
                 'confidence' => 0.9100,
                 'indicators' => [
-                    ['no_link_present', 0.4000, null, $model],
-                    ['security_advice_present', 0.3100, 'Jangan kongsi dengan sesiapa', $pattern],
                 ],
             ],
             [
@@ -233,8 +229,6 @@ class SampleSubmissionSeeder extends Seeder
                 'risk' => RiskLevel::Low,
                 'confidence' => 0.9300,
                 'indicators' => [
-                    ['no_link_present', 0.4200, null, $model],
-                    ['no_financial_request', 0.3400, null, $model],
                 ],
             ],
             [
@@ -244,8 +238,6 @@ class SampleSubmissionSeeder extends Seeder
                 'risk' => RiskLevel::Low,
                 'confidence' => 0.8900,
                 'indicators' => [
-                    ['no_link_present', 0.4100, null, $model],
-                    ['transactional_confirmation', 0.3300, 'telah berjaya', $pattern],
                 ],
             ],
 
@@ -282,7 +274,6 @@ class SampleSubmissionSeeder extends Seeder
                 'confidence' => 0.6400,
                 'indicators' => [
                     ['url_shortener', 0.4800, 'bit.ly', $model],
-                    ['destination_unknown', 0.2600, null, $model],
                 ],
             ],
             [
@@ -318,8 +309,7 @@ class SampleSubmissionSeeder extends Seeder
                 'risk' => RiskLevel::Low,
                 'confidence' => 0.9600,
                 'indicators' => [
-                    ['uses_https', 0.3000, null, $model],
-                    ['known_domain', 0.4200, 'maybank2u.com.my', $model],
+                    ['verified_institutional_domain', 0.4200, 'maybank2u.com.my', $model],
                 ],
             ],
             [
@@ -329,8 +319,7 @@ class SampleSubmissionSeeder extends Seeder
                 'risk' => RiskLevel::Low,
                 'confidence' => 0.9500,
                 'indicators' => [
-                    ['government_domain', 0.4500, '.gov.my', $model],
-                    ['uses_https', 0.3000, null, $model],
+                    ['verified_institutional_domain', 0.4500, 'hasil.gov.my', $model],
                 ],
             ],
             [
@@ -340,8 +329,7 @@ class SampleSubmissionSeeder extends Seeder
                 'risk' => RiskLevel::Low,
                 'confidence' => 0.9400,
                 'indicators' => [
-                    ['known_domain', 0.4300, 'poslaju.com.my', $model],
-                    ['uses_https', 0.2900, null, $model],
+                    ['verified_institutional_domain', 0.4300, 'poslaju.com.my', $model],
                 ],
             ],
         ];

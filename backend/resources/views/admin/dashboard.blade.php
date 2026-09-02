@@ -1,33 +1,51 @@
 <x-app-layout>
     <x-slot name="header">
-        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
-            <h1 class="h4 mb-0">{{ __('Dashboard') }}</h1>
-            <div class="btn-group btn-group-sm" role="group">
-                @foreach ([7, 30, 90] as $option)
-                    <a href="{{ route('admin.dashboard', ['days' => $option]) }}"
-                       class="btn {{ $days === $option ? 'btn-secondary' : 'btn-outline-secondary' }}">
-                        {{ $option }}d
-                    </a>
-                @endforeach
-            </div>
-        </div>
+        <h1 class="h4 mb-0">{{ __('Dashboard') }}</h1>
     </x-slot>
 
-    {{-- ── Headline counters ──────────────────────────────────────────── --}}
+    {{-- ── Headline counters ──────────────────────────────────────────────
+         Three, not four, and none of them restates a panel below.
+
+         "In retraining set" and "Partial verdicts" used to sit here as well,
+         but both were the same figures the Retraining set and Degraded verdicts
+         panels already break down — and "Pending review" appears a third time
+         on the moderation page itself. A number repeated across a screen is not
+         emphasis; it just costs the reader a moment working out whether the two
+         are the same thing.
+
+         The degraded rate is promoted here because it is the one figure worth
+         checking daily: a rising rate means a dependency is failing quietly
+         while users still get answers, so nothing looks broken from outside.
+         The panel below now carries only the breakdown by reason. --}}
     <div class="row g-3 mb-4">
-        @foreach ([
-            ['Submissions', $data['totals']['submissions'], 'primary', null],
-            ['Pending review', $data['moderation']['pending'], 'warning', route('admin.moderation.index')],
-            ['In retraining set', $data['training']['community'] + $data['training']['corpus'], 'success', null],
-            ['Partial verdicts', $data['partial']['partial'], 'secondary', null],
-        ] as [$label, $value, $colour, $link])
-            <div class="col-6 col-lg-3">
+        @php
+            $counters = [
+                ['Submissions', number_format($data['totals']['submissions']), 'body-emphasis', null, null],
+                [
+                    'Pending review',
+                    number_format($data['moderation']['pending']),
+                    $data['moderation']['pending'] > 0 ? 'warning' : 'body-emphasis',
+                    route('admin.moderation.index'),
+                    __('Review'),
+                ],
+                [
+                    'Degraded verdicts',
+                    number_format($data['partial']['rate'] * 100, 1).'%',
+                    $data['partial']['rate'] > 0 ? 'danger' : 'success',
+                    '#degraded',
+                    __('Why'),
+                ],
+            ];
+        @endphp
+
+        @foreach ($counters as [$label, $value, $colour, $link, $linkText])
+            <div class="col-12 col-md-4">
                 <div class="card h-100">
                     <div class="card-body">
                         <p class="text-body-secondary small mb-1">{{ __($label) }}</p>
-                        <p class="h3 mb-0 text-{{ $colour }}">{{ number_format($value) }}</p>
+                        <p class="h3 mb-0 text-{{ $colour }}">{{ $value }}</p>
                         @if ($link)
-                            <a href="{{ $link }}" class="small">{{ __('Review') }}</a>
+                            <a href="{{ $link }}" class="small">{{ $linkText }}</a>
                         @endif
                     </div>
                 </div>
@@ -41,12 +59,32 @@
         <div class="col-12 col-xl-7">
             <div class="card h-100">
                 <div class="card-body">
-                    <h2 class="h6 fw-semibold">{{ __('Submissions over time') }}</h2>
-                    <p class="small text-body-secondary">
+                    {{-- The range control lives here rather than in the page
+                         header because this is the only thing it changes.
+                         `DashboardService::summary()` passes `$days` to
+                         `submissionVolume()` and to nothing else, so every other
+                         figure on this page is all-time. In the header the
+                         control read as a page-wide filter and quietly implied
+                         that the counters beside it followed the same window. --}}
+                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+                        <h2 class="h6 fw-semibold mb-0">{{ __('Submissions over time') }}</h2>
+                        <div class="btn-group btn-group-sm" role="group"
+                             aria-label="{{ __('Change the range of this chart') }}">
+                            @foreach ([7, 30, 90] as $option)
+                                <a href="{{ route('admin.dashboard', ['days' => $option]) }}"
+                                   class="btn {{ $days === $option ? 'btn-secondary' : 'btn-outline-secondary' }}"
+                                   @if ($days === $option) aria-current="true" @endif>
+                                    {{ $option }}d
+                                </a>
+                            @endforeach
+                        </div>
+                    </div>
+                    <p class="small text-body-secondary mt-2">
                         {{ __(':total submissions across :days days. Days with no traffic are shown as zero.', [
                             'total' => number_format($data['volume']['total']),
                             'days' => $data['volume']['days'],
                         ]) }}
+                        {{ __('This range applies to this chart only; every other figure on this page is all time.') }}
                     </p>
 
                     @if ($data['volume']['peak'] > 0)
@@ -114,7 +152,22 @@
             </div>
         </div>
 
-        {{-- ── Model performance, read from metrics.json ──────────────── --}}
+        {{-- ── Model performance, read from metrics.json ───────────────────
+             Only the serving models are shown. Every superseded artefact is
+             behind the disclosure below.
+
+             `ModelMetricsReader` returns every directory holding a
+             metrics.json, which today is ten — two serving and eight retired
+             (the random-split runs, the pre-ablation runs, the url_length
+             removal test). Rendering all ten made this panel more than half the
+             page, and the count grows with every retrain. The retired runs are
+             real evidence and worth keeping reachable; they are simply not what
+             anyone opens this page to see. --}}
+        @php
+            $servingModels = array_values(array_filter($data['models'], fn (array $m): bool => $m['is_shipped']));
+            $otherModels = array_values(array_filter($data['models'], fn (array $m): bool => ! $m['is_shipped']));
+        @endphp
+
         <div class="col-12">
             <div class="card">
                 <div class="card-body">
@@ -123,56 +176,27 @@
                         {{ __('Read from the committed metrics.json files, so these cannot drift from the figures in the report.') }}
                     </p>
 
-                    @forelse ($data['models'] as $model)
-                        <div class="border rounded p-3 mb-2 {{ $model['is_shipped'] ? 'border-success border-2' : '' }}">
-                            <div class="d-flex flex-wrap justify-content-between gap-2 mb-2">
-                                <span class="font-monospace small">{{ $model['name'] }}</span>
-                                <span>
-                                    @if ($model['is_shipped'])
-                                        <span class="badge text-bg-success">{{ __('serving') }}</span>
-                                    @elseif ($model['status'])
-                                        <span class="badge text-bg-warning">{{ __('experiment') }}</span>
-                                    @else
-                                        <span class="badge text-bg-secondary">{{ __('superseded') }}</span>
-                                    @endif
-                                </span>
-                            </div>
-
-                            @if ($model['f1'] !== null)
-                                <div class="row g-2 small">
-                                    @foreach ([
-                                        'F1' => $model['f1'],
-                                        __('Precision') => $model['precision'],
-                                        __('Recall') => $model['recall'],
-                                        'ROC AUC' => $model['roc_auc'],
-                                    ] as $metric => $value)
-                                        <div class="col-6 col-md-3">
-                                            <span class="text-body-secondary">{{ $metric }}</span>
-                                            <span class="fw-semibold">
-                                                {{ $value === null ? '—' : number_format((float) $value, 4) }}
-                                            </span>
-                                        </div>
-                                    @endforeach
-                                </div>
-                            @endif
-
-                            {{-- The caveat travels with the figure. A metric shown
-                                 without it is how "F1 on a 528-message corpus"
-                                 becomes "97% accurate" in someone's slides. --}}
-                            @if ($model['qualifier'])
-                                <p class="small text-body-secondary fst-italic mt-2 mb-0">
-                                    {{ $model['qualifier'] }}
-                                </p>
-                            @endif
-                            @if ($model['status'])
-                                <p class="small text-warning-emphasis mt-2 mb-0">{{ $model['status'] }}</p>
-                            @endif
-                        </div>
+                    @forelse ($servingModels as $model)
+                        <x-admin.model-metrics :model="$model" />
                     @empty
-                        <p class="text-body-secondary mb-0">
-                            {{ __('No metrics.json found. Check scamsense.models_path.') }}
+                        <p class="text-warning-emphasis mb-0">
+                            {{ __('No serving model found. Check scamsense.shipped_models and scamsense.models_path.') }}
                         </p>
                     @endforelse
+
+                    @if ($otherModels)
+                        <details class="mt-3">
+                            <summary class="small fw-semibold py-1" style="cursor: pointer;">
+                                {{ __('Show superseded and experimental runs (:n)', ['n' => count($otherModels)]) }}
+                            </summary>
+                            <p class="small text-body-secondary mt-2 mb-2">
+                                {{ __('Kept for traceability. None of these is serving traffic.') }}
+                            </p>
+                            @foreach ($otherModels as $model)
+                                <x-admin.model-metrics :model="$model" />
+                            @endforeach
+                        </details>
+                    @endif
                 </div>
             </div>
         </div>
@@ -241,16 +265,21 @@
         </div>
 
         {{-- ── Degradation and traceability ───────────────────────────── --}}
-        <div class="col-12 col-lg-6">
+        {{-- The rate itself is a headline counter now; this panel carries only
+             the breakdown, which is what turns "something is wrong" into
+             "the ML service is unreachable". --}}
+        <div class="col-12 col-lg-6" id="degraded">
             <div class="card h-100">
                 <div class="card-body">
-                    <h2 class="h6 fw-semibold">{{ __('Degraded verdicts') }}</h2>
+                    <h2 class="h6 fw-semibold">{{ __('Why verdicts were incomplete') }}</h2>
                     <p class="small text-body-secondary">
-                        {{ __('A rising rate means a dependency is failing quietly.') }}
+                        {{ __(':n of :total verdicts could not be completed. A rising rate means a dependency is failing quietly.', [
+                            'n' => number_format($data['partial']['partial']),
+                            'total' => number_format($data['partial']['total']),
+                        ]) }}
                     </p>
-                    <p class="h4">{{ number_format($data['partial']['rate'] * 100, 1) }}%</p>
                     @if ($data['partial']['reasons'])
-                        <table class="table table-sm small mb-0">
+                        <table class="table table-sm small mb-2">
                             <tbody>
                                 @foreach ($data['partial']['reasons'] as $reason => $count)
                                     <tr>
@@ -260,6 +289,11 @@
                                 @endforeach
                             </tbody>
                         </table>
+                        <p class="small text-body-secondary mb-0">
+                            {{ __('Run php artisan scamsense:doctor to find out which dependency is failing.') }}
+                        </p>
+                    @else
+                        <p class="text-body-secondary mb-0">{{ __('Every verdict completed.') }}</p>
                     @endif
                 </div>
             </div>
