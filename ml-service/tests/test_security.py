@@ -13,6 +13,7 @@ import time
 import pytest
 from flask.testing import FlaskClient
 
+from app import _clean_secret, create_app
 from app.security import compute_signature, verify_request
 from tests.conftest import TEST_SECRET, signed_headers
 
@@ -257,3 +258,43 @@ def test_expired_nonces_are_dropped_so_the_cache_does_not_grow_forever() -> None
     )
 
     assert len(_seen_nonces) == 1
+
+
+# ── Whitespace on the shared secret ─────────────────────────────────────────
+
+
+def test_a_padded_secret_is_treated_as_the_clean_one() -> None:
+    """start.bat launched the service with `set VAR=%SECRET% && ...`, which in
+    batch assigns the value including the space before the `&&`. The process
+    then held a secret one character longer than Laravel's, so every signed
+    request failed with a 401 while /health kept reporting healthy — being
+    unauthenticated, it never exercises the signature. Laravel degraded
+    correctly, so the only symptom was that every verdict on the site read "we
+    could not check this properly", which looks like a broken model rather than
+    a mismatched secret.
+
+    The launcher is fixed; this makes the whole class of quoting bug harmless.
+    """
+    assert _clean_secret(f"{TEST_SECRET} ") == TEST_SECRET
+    assert _clean_secret("  " + TEST_SECRET + chr(13) + chr(10)) == TEST_SECRET
+
+
+def test_a_whitespace_only_secret_counts_as_absent() -> None:
+    """Refusing to serve is the only safe response to a missing secret, so " "
+    must not be mistaken for one that was configured."""
+    assert _clean_secret("   ") is None
+    assert _clean_secret("") is None
+    assert _clean_secret(None) is None
+
+
+def test_a_padded_secret_verifies_what_laravel_signed() -> None:
+    """The end-to-end shape of the bug: Laravel signs with the clean value."""
+    app = create_app({"LOAD_MODELS": False, "ML_SERVICE_SECRET": f"{TEST_SECRET} "})
+
+    timestamp = str(time.time())
+    body = b'{"url":"https://padded.example.test","request_id":"pad-1"}'
+    signature = compute_signature(TEST_SECRET, timestamp, body)
+
+    result = verify_request(app.config["ML_SERVICE_SECRET"], signature, timestamp, body)
+
+    assert result.ok

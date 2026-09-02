@@ -79,7 +79,18 @@ echo   [ok] Port 8000 is free
 
 REM --- ML service (Flask, loopback only) -------------------------------
 echo   [..] Starting ML service on http://127.0.0.1:5001
-start "ScamSense ML service" cmd /k "cd /d %~dp0ml-service && set ML_SERVICE_SECRET=%ML_SECRET% && .venv\Scripts\python.exe wsgi.py"
+REM  The quotes around the assignment are load-bearing. Written as
+REM      set ML_SERVICE_SECRET=%ML_SECRET% && ...
+REM  batch assigns everything up to the "&&" INCLUDING the space before it, so
+REM  the service came up holding the secret with a trailing space. Laravel signs
+REM  with the clean value, every signed request fails the HMAC check with a 401,
+REM  and Laravel degrades to a partial verdict — so /health keeps reporting
+REM  "ok, models_loaded true" while every single verdict on the site reads
+REM  "We could not check this properly". It cost three debugging sessions.
+REM
+REM  set "VAR=value" && ...  delimits the value with the quotes, so the space
+REM  before the "&&" falls outside it.
+start "ScamSense ML service" cmd /k "cd /d %~dp0ml-service && set "ML_SERVICE_SECRET=%ML_SECRET%" && .venv\Scripts\python.exe wsgi.py"
 
 REM --- Laravel ---------------------------------------------------------
 echo   [..] Starting Laravel on http://127.0.0.1:8000
