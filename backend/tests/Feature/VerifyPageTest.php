@@ -319,7 +319,7 @@ it('renders the verdict in Bahasa Malaysia when selected', function (): void {
 
     submit('https://unlisted-example-site.test/billing')
         ->assertOk()
-        ->assertSee('Kami tidak pasti tentang pautan ini')
+        ->assertSee('Kami tidak pasti tentang perkara ini')
         ->assertSee('kelihatan pelik');
 });
 
@@ -347,4 +347,173 @@ it('has a translation for every indicator code in both languages', function (): 
         expect($value)->not->toBe('')
             ->and($ms[$key])->not->toBe('');
     }
+});
+
+it('translates every public-facing string into Malay', function (): void {
+    /*
+     | The regression this exists for: lang/ms/*.php covered the result page, so
+     | the Malay verdict read fluently, but there was no lang/ms.json at all.
+     | Every __('An English sentence') call fell through untranslated, which
+     | meant a Malay-preferring user met an entirely English submission form and
+     | an English footer — the footer being the line that tells them to call
+     | their bank.
+     */
+    $json = json_decode(file_get_contents(lang_path('ms.json')), true, flags: JSON_THROW_ON_ERROR);
+
+    $views = [
+        resource_path('views/verify/index.blade.php'),
+        resource_path('views/verify/result.blade.php'),
+        resource_path('views/layouts/public.blade.php'),
+    ];
+
+    $missing = [];
+
+    foreach ($views as $view) {
+        // String-key calls only. Dotted keys resolve against lang/ms/*.php.
+        preg_match_all("/__\('([A-Z][^']*)'/", file_get_contents($view), $matches);
+
+        foreach ($matches[1] as $string) {
+            if (! str_contains($string, ' ') && str_contains($string, '.')) {
+                continue;
+            }
+            if (! array_key_exists($string, $json)) {
+                $missing[] = $string;
+            }
+        }
+    }
+
+    expect(array_unique($missing))->toBe([]);
+});
+
+it('renders the submission form in Malay', function (): void {
+    $this->withSession(['locale' => 'ms']);
+
+    $this->get('/')
+        ->assertOk()
+        ->assertSee('Adakah ini penipuan?')
+        ->assertSee('Semak sekarang')
+        ->assertDontSee('Is this a scam?');
+});
+
+it('translates the footer safety line, which is the most consequential on the site', function (): void {
+    $this->withSession(['locale' => 'ms']);
+
+    $this->get('/')
+        ->assertSee('segera hubungi bank anda dan buat laporan polis')
+        ->assertDontSee('contact your bank immediately');
+});
+
+/*
+|--------------------------------------------------------------------------
+| Copy matches what was actually submitted
+|--------------------------------------------------------------------------
+*/
+
+it('says message rather than link when a message was submitted', function (): void {
+    // Telling someone who pasted an SMS that "this link has several features we
+    // see in scam links" announces that the system did not read what they sent.
+    fakeMl(0.93);
+
+    $html = submit('Tahniah! Anda memenangi RM5,000. Klik sekarang.', 'message')->getContent();
+
+    expect($html)->toContain('This message has several features')
+        ->and($html)->not->toContain('This link has several features');
+});
+
+it('has both submission types for every verdict band in both languages', function (): void {
+    // A band with only a `url` variant renders the raw key when a message
+    // lands in it, so this must fail loudly rather than at a demo.
+    foreach (['en', 'ms'] as $locale) {
+        $verdict = require lang_path("{$locale}/verdict.php");
+
+        foreach (['high', 'medium', 'low', 'unknown'] as $band) {
+            foreach (['body', 'action'] as $key) {
+                expect($verdict[$band][$key])->toHaveKeys(['url', 'message'], "{$locale}.{$band}.{$key}");
+            }
+        }
+
+        expect($verdict['indicators_none'])->toHaveKeys(['url', 'message'], $locale);
+    }
+});
+
+/*
+|--------------------------------------------------------------------------
+| Result page structure
+|--------------------------------------------------------------------------
+*/
+
+it('puts the verified panel above the verdict card', function (): void {
+    /*
+     | The verified panel is the strongest reassurance the platform produces and
+     | the answer the user came for. Rendered second it sat behind a generic
+     | "this does not guarantee the page is safe" hedge, and at 375px with
+     | enlarged text its heading fell below the fold.
+     */
+    fakeMl(0.05, 'legitimate');
+
+    $html = submit('https://www.maybank2u.com.my/home/m2u/common/login.do')->getContent();
+
+    $verified = strpos($html, 'This is the real');
+    $verdict = strpos($html, 'We did not find warning signs');
+
+    expect($verified)->not->toBeFalse()
+        ->and($verdict)->not->toBeFalse()
+        ->and($verified)->toBeLessThan($verdict);
+});
+
+it('keeps exactly one h1 when the verified panel is shown', function (): void {
+    // Two h1s on one page leaves a screen-reader user with no single answer to
+    // "what does this page say".
+    fakeMl(0.05, 'legitimate');
+
+    $html = submit('https://www.maybank2u.com.my/home/m2u/common/login.do')->getContent();
+
+    expect(substr_count($html, '<h1'))->toBe(1);
+});
+
+it('keeps the verified scope paragraph visible rather than inside the toggle', function (): void {
+    // Collapsing it would let the panel be read as "this page is safe", which
+    // is the one claim ScamSense must never make.
+    fakeMl(0.05, 'legitimate');
+
+    $html = submit('https://www.maybank2u.com.my/home/m2u/common/login.do')->getContent();
+
+    $scope = strpos($html, 'We checked the address, not the page');
+    $details = strpos($html, '<details');
+
+    expect($scope)->toBeLessThan($details);
+});
+
+it('explains that the defanging was ours, not part of the address', function (): void {
+    // Without this a reader can conclude the address itself is malformed and
+    // take the brackets as the suspicious finding.
+    fakeMl(0.45);
+
+    submit('https://unlisted-example-site.test/billing')
+        ->assertSee('That was us — the real address does not have them.', escape: false);
+});
+
+it('says so plainly when no indicator fired', function (): void {
+    /*
+     | The indicators card used to be hidden entirely when the list was empty,
+     | which is common in the medium band — the model reaches "not certain" on
+     | continuous features that are deliberately never surfaced to a reader
+     | (see ml-service/app/indicators.py). That left "parts of this look odd"
+     | with nothing named, reading as a list that failed to load.
+     */
+    Http::fake([
+        '*/predict/*' => Http::response([
+            'request_id' => 'test',
+            'label' => 'scam',
+            'confidence' => 0.45,
+            'indicators' => [],
+            'model_version' => 'rf-url-v2.0.0-pathnorm',
+            'inference_ms' => 9,
+        ]),
+    ]);
+
+    submit('https://unlisted-example-site.test/billing')
+        ->assertOk()
+        ->assertSee('What we noticed')
+        ->assertSee('Nothing specific stood out');
 });

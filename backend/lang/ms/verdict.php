@@ -17,6 +17,10 @@ declare(strict_types=1);
 |   - `alamat` throughout, never `domain`. The audience includes older adults
 |     and `domain` is a technical English term.
 |
+| `body` and `action` are nested by submission type. Telling someone who pasted
+| an SMS that "pautan ini mempunyai beberapa ciri penipuan" announces that the
+| system did not read what they sent.
+|
 */
 
 return [
@@ -24,37 +28,65 @@ return [
     'high' => [
         'label' => 'Berkemungkinan penipuan',
         'heading' => 'Ini kelihatan seperti penipuan',
-        'body' => 'Pautan ini mempunyai beberapa ciri yang sering kami lihat pada pautan penipuan. Kami sangat menasihatkan anda supaya tidak membukanya.',
+        'body' => [
+            'url' => 'Pautan ini mempunyai beberapa ciri yang sering kami lihat pada pautan penipuan. Kami sangat menasihatkan anda supaya tidak membukanya.',
+            'message' => 'Mesej ini mempunyai beberapa ciri yang sering kami lihat pada mesej penipuan. Kami sangat menasihatkan anda supaya jangan balas dan jangan ikut apa-apa arahan di dalamnya.',
+        ],
         'action_heading' => 'Apa yang perlu anda buat',
-        'action' => 'Jangan masukkan sebarang kata laluan, maklumat bank atau maklumat peribadi. Jika ada orang menghantar pautan ini kepada anda, jangan balas mesej mereka.',
+        'action' => [
+            'url' => 'Jangan masukkan sebarang kata laluan, maklumat bank atau maklumat peribadi. Jika ada orang menghantar pautan ini kepada anda, jangan balas mesej mereka.',
+            'message' => 'Jangan hantar wang, kata laluan atau maklumat peribadi. Jangan buka apa-apa pautan di dalamnya. Jika anda kenal orang yang kononnya menghantar mesej ini, hubungi dia dengan cara lain untuk pastikan.',
+        ],
     ],
 
     /*
      | Keadaan yang paling kerap dilihat pengguna pada pautan yang sah.
+     |
+     | `action_heading` sengaja tidak menganggap pengguna sedang log masuk.
+     | Kebanyakan orang menampal sesuatu kerana mereka ragu-ragu, bukan semasa
+     | sedang memasukkan kata laluan.
      */
     'medium' => [
         'label' => 'Tidak pasti',
-        'heading' => 'Kami tidak pasti tentang pautan ini',
-        'body' => 'Ada bahagian pautan ini yang kelihatan pelik — tetapi banyak laman web yang sah juga begitu. Kami tidak dapat memastikannya.',
-        'action_heading' => 'Sebelum anda masukkan kata laluan atau maklumat bank',
-        'action' => 'Hubungi pihak syarikat secara terus, guna nombor telefon atau aplikasi yang anda memang sudah ada. Jangan guna nombor atau pautan daripada mesej yang menghantar ini.',
+        'heading' => 'Kami tidak pasti tentang perkara ini',
+        'body' => [
+            'url' => 'Ada bahagian pautan ini yang kelihatan pelik — tetapi banyak laman web yang sah juga begitu. Kami tidak dapat memastikannya.',
+            'message' => 'Ada bahagian mesej ini yang kelihatan pelik — tetapi banyak mesej yang sah juga begitu. Kami tidak dapat memastikannya.',
+        ],
+        'action_heading' => 'Cara yang paling selamat',
+        'action' => [
+            'url' => 'Hubungi pihak syarikat secara terus, guna nombor telefon atau aplikasi yang anda memang sudah ada. Jangan guna nombor atau pautan daripada mesej yang menghantar ini.',
+            'message' => 'Hubungi pihak syarikat atau orang itu secara terus, guna nombor telefon atau aplikasi yang anda memang sudah ada. Jangan guna nombor atau pautan daripada mesej itu sendiri.',
+        ],
         'closing' => 'Jika anda tidak menjangkakan mesej ini, itulah tanda amaran yang paling kuat.',
     ],
 
     'low' => [
         'label' => 'Tiada tanda amaran',
         'heading' => 'Kami tidak menemui tanda amaran',
-        'body' => 'Pautan ini tidak mempunyai ciri yang biasa kami lihat pada pautan penipuan.',
+        'body' => [
+            'url' => 'Pautan ini tidak mempunyai ciri yang biasa kami lihat pada pautan penipuan.',
+            'message' => 'Mesej ini tidak mempunyai ciri yang biasa kami lihat pada mesej penipuan.',
+        ],
         'action_heading' => 'Tetap perlu diingat',
-        'action' => 'Ini tidak menjamin halaman tersebut selamat. Jika mesej itu datang secara tiba-tiba, tetap berhati-hati.',
+        'action' => [
+            'url' => 'Ini tidak menjamin halaman tersebut selamat. Jika mesej itu datang secara tiba-tiba, tetap berhati-hati.',
+            'message' => 'Ini tidak menjamin mesej itu betul-betul daripada orang yang disebut. Jika ia datang secara tiba-tiba, tetap berhati-hati.',
+        ],
     ],
 
     'unknown' => [
         'label' => 'Tidak dapat disemak',
         'heading' => 'Kami tidak dapat menyemaknya sepenuhnya',
-        'body' => 'Sebahagian daripada sistem semakan kami tidak dapat digunakan sekarang, jadi keputusan ini tidak lengkap.',
+        'body' => [
+            'url' => 'Sebahagian daripada sistem semakan kami tidak dapat digunakan sekarang, jadi keputusan ini tidak lengkap.',
+            'message' => 'Sebahagian daripada sistem semakan kami tidak dapat digunakan sekarang, jadi keputusan ini tidak lengkap.',
+        ],
         'action_heading' => 'Apa yang perlu anda buat',
-        'action' => 'Sila cuba lagi dalam beberapa minit. Buat masa ini, anggap pautan ini belum disahkan dan jangan masukkan sebarang maklumat peribadi.',
+        'action' => [
+            'url' => 'Sila cuba lagi dalam beberapa minit. Buat masa ini, anggap pautan ini belum disemak dan jangan masukkan sebarang maklumat peribadi.',
+            'message' => 'Sila cuba lagi dalam beberapa minit. Buat masa ini, anggap mesej ini belum disemak. Jangan hantar wang atau maklumat peribadi, dan jangan buka apa-apa pautan di dalamnya.',
+        ],
     ],
 
     'verified' => [
@@ -86,12 +118,29 @@ return [
         'notice' => 'Sebahagian semakan tidak dapat dilengkapkan, jadi keputusan ini tidak lengkap.',
     ],
 
+    /*
+     | Nota ini mesti menerangkan apa yang kami ubah, bukan sekadar tujuannya.
+     | Pembaca yang tidak diberitahu bahawa tanda kurung dan "xx" itu kami yang
+     | tambah boleh menyangka alamat itu sendiri yang rosak.
+     */
     'submitted' => [
         'heading' => 'Apa yang anda semak',
-        'note' => 'Kami paparkannya dengan cara yang tidak boleh dibuka secara tidak sengaja.',
+        'note' => 'Kami tukar https kepada hxxps dan letak tanda kurung pada titik, supaya ia tidak boleh dibuka secara tidak sengaja. Itu kami yang buat — alamat sebenar tidak begitu.',
+        'note_message' => 'Jika ada pautan dalam mesej anda, kami tukar https kepada hxxps dan letak tanda kurung pada titik supaya ia tidak boleh dibuka secara tidak sengaja. Itu kami yang buat — alamat sebenar tidak begitu.',
     ],
 
     'confidence' => 'Keyakinan',
     'indicators_heading' => 'Apa yang kami perasan',
+
+    /*
+     | Dipaparkan apabila tiada penunjuk yang cukup kuat untuk ditunjukkan.
+     | Pembaca perlu tahu bahawa "kami tidak pasti" itulah keputusannya, bukan
+     | senarai yang gagal dimuatkan.
+     */
+    'indicators_none' => [
+        'url' => 'Tiada apa-apa yang jelas menonjol. Semakan kami melihat cara alamat itu ditulis, dan alamat ini tidak jelas menyerupai penipuan mahupun laman web terkenal yang sah.',
+        'message' => 'Tiada apa-apa yang jelas menonjol. Semakan kami melihat cara ayat itu ditulis, dan mesej ini tidak jelas menyerupai penipuan mahupun mesej biasa.',
+    ],
+
     'check_another' => 'Semak perkara lain',
 ];

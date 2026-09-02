@@ -1,0 +1,22 @@
+{
+    "Skip to content": "Terus ke kandungan",
+    "Language": "Bahasa",
+
+    "ScamSense gives guidance, not a guarantee. If you have lost money, contact your bank immediately and report it to the police.": "ScamSense memberi panduan, bukan jaminan. Jika anda sudah kehilangan wang, segera hubungi bank anda dan buat laporan polis.",
+
+    "Check a message or link": "Semak mesej atau pautan",
+    "Is this a scam?": "Adakah ini penipuan?",
+    "Paste a message or a link and we will check it for you.": "Tampal mesej atau pautan di sini, kami akan semak untuk anda.",
+
+    "What are you checking?": "Apa yang anda mahu semak?",
+    "A message": "Mesej",
+    "A link": "Pautan",
+    "Paste it here": "Tampal di sini",
+    "For example: Tahniah! Anda memenangi RM5,000...": "Contoh: Tahniah! Anda memenangi RM5,000...",
+    "Check it": "Semak sekarang",
+
+    "What happens to what you paste": "Apa kami buat dengan apa yang anda tampal",
+    "We remove phone numbers, IC numbers, emails and account numbers before saving anything.": "Kami buang nombor telefon, nombor kad pengenalan, alamat emel dan nombor akaun sebelum menyimpan apa-apa.",
+    "We keep the message for :days days so we can improve our scam detection, then delete it automatically.": "Kami simpan mesej itu selama :days hari supaya kami boleh menambah baik semakan penipuan kami, kemudian ia dipadam sendiri.",
+    "We never open the link you paste, and we never ask who you are.": "Kami tidak pernah membuka pautan yang anda tampal, dan kami tidak pernah bertanya siapa anda."
+}

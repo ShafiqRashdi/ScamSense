@@ -20,6 +20,8 @@ return [
     'sensitive_keyword_path' => 'Alamat ini menyebut tentang log masuk atau pengesahan akaun.',
     'long_random_path' => 'Alamat ini mengandungi deretan aksara rawak yang panjang.',
     'high_entropy_host' => 'Alamat ini kelihatan dijana secara rawak, bukan seperti nama sebenar.',
+    'long_hostname' => 'Alamat ini jauh lebih panjang daripada alamat syarikat sebenar.',
+    'many_hyphens' => 'Alamat ini dicantum dengan beberapa tanda sengkang, yang jarang digunakan syarikat sebenar.',
     'no_https' => 'Sambungan ini tidak disulitkan.',
     'threat_intel_hit' => 'Pautan ini telah dilaporkan berbahaya oleh perkhidmatan keselamatan.',
     'verified_institutional_domain' => 'Alamat ini milik institusi yang telah disahkan.',

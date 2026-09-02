@@ -27,6 +27,8 @@ return [
     'sensitive_keyword_path' => 'The address mentions logging in or verifying an account.',
     'long_random_path' => 'The address contains a long string of random characters.',
     'high_entropy_host' => 'The address looks randomly generated rather than like a real name.',
+    'long_hostname' => 'The address is much longer than a real company address usually is.',
+    'many_hyphens' => 'The address is joined together with several dashes, which real companies rarely do.',
     'no_https' => 'The connection is not encrypted.',
     'threat_intel_hit' => 'This link has been reported as dangerous by a security service.',
     'verified_institutional_domain' => 'This address belongs to a verified institution.',

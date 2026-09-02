@@ -8,10 +8,86 @@
         $band = $risk->value;
         $defang = app(\App\Services\DefangService::class);
         $institution = $verdict->institution;
+
+        /* Copy differs by what the user actually submitted. Telling someone who
+           pasted an SMS that "this link has features we see in scam links"
+           announces that the system did not read what they sent. */
+        $type = $submission->type instanceof \App\Enums\SubmissionType
+            ? $submission->type->value
+            : (string) $submission->type;
     @endphp
 
     <div class="row justify-content-center">
         <div class="col-12 col-md-9 col-lg-7">
+
+            {{-- ── Verified address ───────────────────────────────────────
+                 FIRST, deliberately. This is the answer the user came for, and
+                 the strongest reassurance the platform can produce. Rendered
+                 after the verdict card it sat behind "we did not find warning
+                 signs / this does not guarantee the page is safe" — a generic
+                 hedge read first is a hedge read instead, and at 375px with
+                 enlarged text the heading fell below the fold.
+
+                 The scoping paragraph is NOT collapsible and must stay visible
+                 in every layout. Only the teaching section is disclosed
+                 progressively, because four paragraphs is heavy at 375px. --}}
+            @if ($verdict->gatedByVerifiedDomain && $institution)
+                @php
+                    $name = $institution->displayName();
+                    $authority = __('verdict.authority.'.$institution->authority);
+                @endphp
+
+                <div class="card shadow-sm border-success border-2 mb-4">
+                    <div class="card-body p-4">
+
+                        <p class="d-flex align-items-center gap-2 mb-3">
+                            <span class="badge text-bg-success fs-6 px-3 py-2 d-inline-flex align-items-center gap-2">
+                                <span aria-hidden="true">&#10004;</span>
+                                {{ __('verdict.verified.label') }}
+                            </span>
+                        </p>
+
+                        <h1 class="h4 mb-3">
+                            {{ __('verdict.verified.heading', ['institution' => $name]) }}
+                        </h1>
+
+                        <p class="fs-5">
+                            @if ($institution->bySuffix)
+                                {{ __('verdict.verified.body_suffix', [
+                                    'authority' => $authority,
+                                    'domain_suffix' => '.'.\Illuminate\Support\Str::after($institution->domain, '.'),
+                                ]) }}
+                            @else
+                                {{ __('verdict.verified.body_institution', [
+                                    'domain' => $institution->domain,
+                                    'institution' => $name,
+                                    'authority' => $authority,
+                                ]) }}
+                            @endif
+                        </p>
+
+                        {{-- Always visible. This is what stops the panel above
+                             being read as a safety guarantee. --}}
+                        <div class="p-3 rounded bg-body-tertiary mb-3">
+                            <h2 class="h6 fw-semibold">{{ __('verdict.verified.scope_heading') }}</h2>
+                            <p class="mb-0">{{ __('verdict.verified.scope') }}</p>
+                        </div>
+
+                        {{-- Progressive disclosure: teaching only. --}}
+                        <details>
+                            <summary class="fw-semibold py-2" style="cursor: pointer;">
+                                {{ __('verdict.verified.teach_heading') }}
+                            </summary>
+                            <p class="mt-2 mb-0 text-body-secondary">
+                                {{ __('verdict.verified.teach', [
+                                    'example' => $institution->domain.'.secure-verify.xyz',
+                                    'institution' => $name,
+                                ]) }}
+                            </p>
+                        </details>
+                    </div>
+                </div>
+            @endif
 
             {{-- ── Verdict ────────────────────────────────────────────────
                  Risk is never conveyed by colour alone: the icon and the text
@@ -34,12 +110,16 @@
                         </span>
                     </p>
 
-                    <h1 class="h4 mb-3">{{ __('verdict.'.$band.'.heading') }}</h1>
-                    <p class="fs-5 mb-4">{{ __('verdict.'.$band.'.body') }}</p>
+                    {{-- When the verified panel is shown it owns the h1, so this
+                         steps down to h2. The document keeps exactly one h1 and
+                         it is always the strongest claim on the page. --}}
+                    @php $verdictTag = ($verdict->gatedByVerifiedDomain && $institution) ? 'h2' : 'h1'; @endphp
+                    <{{ $verdictTag }} class="h4 mb-3">{{ __('verdict.'.$band.'.heading') }}</{{ $verdictTag }}>
+                    <p class="fs-5 mb-4">{{ __('verdict.'.$band.'.body.'.$type) }}</p>
 
                     <div class="p-3 rounded bg-body-tertiary">
-                        <h2 class="h6 fw-semibold">{{ __('verdict.'.$band.'.action_heading') }}</h2>
-                        <p class="mb-0">{{ __('verdict.'.$band.'.action') }}</p>
+                        <h3 class="h6 fw-semibold">{{ __('verdict.'.$band.'.action_heading') }}</h3>
+                        <p class="mb-0">{{ __('verdict.'.$band.'.action.'.$type) }}</p>
                     </div>
 
                     @if (__('verdict.'.$band.'.closing') !== 'verdict.'.$band.'.closing')
@@ -55,78 +135,21 @@
                 </div>
             </div>
 
-            {{-- ── Verified address ───────────────────────────────────────
-                 The most reassuring output the platform produces, and the one
-                 most at risk of being read as "this page is safe".
-
-                 The scoping paragraph is NOT collapsible and must stay visible
-                 in every layout. Only the teaching section is disclosed
-                 progressively, because four paragraphs is heavy at 375px. --}}
-            @if ($verdict->gatedByVerifiedDomain && $institution)
-                @php
-                    $name = $institution->displayName();
-                    $authority = __('verdict.authority.'.$institution->authority);
-                @endphp
-
-                <div class="card shadow-sm border-success border-2 mb-4">
-                    <div class="card-body p-4">
-
-                        <p class="d-flex align-items-center gap-2 mb-3">
-                            <span class="badge text-bg-success fs-6 px-3 py-2 d-inline-flex align-items-center gap-2">
-                                <span aria-hidden="true">&#10004;</span>
-                                {{ __('verdict.verified.label') }}
-                            </span>
-                        </p>
-
-                        <h2 class="h5 mb-3">
-                            {{ __('verdict.verified.heading', ['institution' => $name]) }}
-                        </h2>
-
-                        <p class="fs-6">
-                            @if ($institution->bySuffix)
-                                {{ __('verdict.verified.body_suffix', [
-                                    'authority' => $authority,
-                                    'domain_suffix' => '.'.\Illuminate\Support\Str::after($institution->domain, '.'),
-                                ]) }}
-                            @else
-                                {{ __('verdict.verified.body_institution', [
-                                    'domain' => $institution->domain,
-                                    'institution' => $name,
-                                    'authority' => $authority,
-                                ]) }}
-                            @endif
-                        </p>
-
-                        {{-- Progressive disclosure: teaching only. --}}
-                        <details class="mb-3">
-                            <summary class="fw-semibold py-2" style="cursor: pointer;">
-                                {{ __('verdict.verified.teach_heading') }}
-                            </summary>
-                            <p class="mt-2 mb-0 text-body-secondary">
-                                {{ __('verdict.verified.teach', [
-                                    'example' => $institution->domain.'.secure-verify.xyz',
-                                    'institution' => $name,
-                                ]) }}
-                            </p>
-                        </details>
-
-                        {{-- Always visible. This is what stops the panel above
-                             being read as a safety guarantee. --}}
-                        <div class="p-3 rounded bg-body-tertiary">
-                            <h3 class="h6 fw-semibold">{{ __('verdict.verified.scope_heading') }}</h3>
-                            <p class="mb-0">{{ __('verdict.verified.scope') }}</p>
-                        </div>
-                    </div>
-                </div>
-            @endif
-
             {{-- ── Indicators ─────────────────────────────────────────────
                  Codes are mapped to prose here; the ML service never sends
-                 user-facing text. --}}
-            @if (count($verdict->indicators) > 0)
-                <div class="card shadow-sm mb-4">
-                    <div class="card-body p-4">
-                        <h2 class="h6 fw-semibold mb-3">{{ __('verdict.indicators_heading') }}</h2>
+                 user-facing text.
+
+                 The card renders even with nothing to list. An empty list is a
+                 real finding — most often in the medium band, where the model
+                 reached "not certain" on continuous features that are
+                 deliberately never surfaced (see app/indicators.py). Hiding the
+                 section entirely left the reader with "parts of this look odd"
+                 and nothing named, which reads as a list that failed to load. --}}
+            <div class="card shadow-sm mb-4">
+                <div class="card-body p-4">
+                    <h2 class="h6 fw-semibold mb-3">{{ __('verdict.indicators_heading') }}</h2>
+
+                    @if (count($verdict->indicators) > 0)
                         <ul class="list-unstyled mb-0">
                             @foreach ($verdict->indicators as $indicator)
                                 <li class="d-flex gap-2 mb-3">
@@ -142,9 +165,11 @@
                                 </li>
                             @endforeach
                         </ul>
-                    </div>
+                    @else
+                        <p class="mb-0">{{ __('verdict.indicators_none.'.$type) }}</p>
+                    @endif
                 </div>
-            @endif
+            </div>
 
             {{-- ── What was submitted ─────────────────────────────────────
                  Defanged and inside a <pre>. Never an href, never {!! !!}. --}}
@@ -152,7 +177,9 @@
                 <div class="card-body p-4">
                     <h2 class="h6 fw-semibold">{{ __('verdict.submitted.heading') }}</h2>
                     <pre class="bg-body-tertiary p-3 rounded small text-wrap text-break mb-2"><code>{{ $defang->defangUrlsIn($submission->content_redacted) }}</code></pre>
-                    <p class="small text-body-secondary mb-0">{{ __('verdict.submitted.note') }}</p>
+                    <p class="small text-body-secondary mb-0">
+                        {{ $type === 'message' ? __('verdict.submitted.note_message') : __('verdict.submitted.note') }}
+                    </p>
                 </div>
             </div>
 
