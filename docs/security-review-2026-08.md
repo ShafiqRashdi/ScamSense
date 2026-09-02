@@ -271,6 +271,23 @@ anyone with project access.
 **Fix.** The deployment guide should set `ADMIN_PASSWORD` from a platform secret rather than
 relying on the printed value, and should rotate it after first login.
 
+**Follow-up, 2026-08-19.** The instruction to rotate could not be carried out. `AdminUserSeeder`
+refuses to modify an account that already exists — correct behaviour, since a seeder that reset a
+live password silently would be worse — and there was no password-change screen, no reset flow and
+no command. Changing `ADMIN_PASSWORD` after first deploy therefore had no effect at all, which was
+confirmed locally: the configured value and the stored hash had diverged and the account could not
+be signed into with either.
+
+Closed by `scamsense:admin-password` (`app/Console/Commands/SetAdminPassword.php`), which sets the
+password from the environment, from a no-echo prompt, or from a generated value. A supplied
+password is never written to output or to a log line — only a generated one is printed, and the
+command warns that a platform runner will have captured it. Ten tests cover it, including one
+asserting the supplied password never reaches stdout.
+
+The general lesson is worth recording alongside findings 1 and 2: **a documented control that
+nothing implements is not a control.** The guide had said "rotate after first login" since it was
+written, and the sentence read as though it described a capability.
+
 ---
 
 ## Not findings, but worth stating

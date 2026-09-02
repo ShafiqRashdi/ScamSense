@@ -207,9 +207,30 @@ railway run php artisan db:seed --class=AdminUserSeeder
 The seeder never ships a fixed password. With `ADMIN_PASSWORD` set it uses that;
 without it, it generates a random one and prints it **once**.
 
-**Rotate after first login.** Platform build logs capture stdout, so a printed
-password may persist in the deploy history (finding 10). Setting
-`ADMIN_PASSWORD` from the platform's secret store avoids the print entirely.
+**The seeder only ever creates.** If the account already exists it prints
+`already exists — left unchanged` and returns, which is deliberate: a seeder
+that silently reset a live password would be worse than the problem it solves.
+Re-running it after changing `ADMIN_PASSWORD` therefore does nothing, and the
+account keeps its old password.
+
+**Rotate with the dedicated command.** Platform build logs capture stdout, so a
+printed password may persist in the deploy history (finding 10).
+
+```bash
+# Preferred: set ADMIN_PASSWORD in the platform's secret store, then
+railway run php artisan scamsense:admin-password --from-env
+
+# Or interactively — reads without echo, nothing enters the log
+railway run php artisan scamsense:admin-password
+```
+
+A password you supply is never printed. `--generate` is available and prints
+once, but avoid it on a platform runner for exactly the reason above; the
+command says so when you use it.
+
+This is also the answer when someone is locked out: there is no self-service
+reset and no password-change screen, by design — the admin area has two routes
+and neither is a profile page.
 
 Do **not** run `db:seed` without a class in production — that would also load
 the sample submissions and the demo moderation queue.
@@ -322,6 +343,23 @@ curl -s -o /dev/null -w "warm:  %{http_code} in %{time_total}s\n" https://<your-
 
 Then submit one URL and one message through the interface. Expect the first
 submission to be slow and every one after it to be fast.
+
+**Before that, confirm the chain actually answers:**
+
+```bash
+railway run php artisan scamsense:doctor
+```
+
+It sends a real signed request for both a link and a message. A pass means a
+submission will produce a genuine verdict; anything else names the broken link
+and what to do about it.
+
+This is not the same check as `/health`, and the difference matters. `/health`
+is unauthenticated, so it never exercises the HMAC. A service started with the
+wrong `ML_SERVICE_SECRET` reports `status: ok` and `models_loaded: true` while
+rejecting every real request with a 401 — and Laravel correctly degrades, so
+every verdict on the site reads "We could not check this properly" with nothing
+anywhere saying why. Run the doctor, not the health check.
 
 **Do this again if you are idle for more than about twenty minutes** — during a
 long Q&A, for instance. Keeping the tab open does not keep the container awake.

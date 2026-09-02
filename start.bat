@@ -46,6 +46,37 @@ if "%ML_SECRET%"=="" (
 )
 echo   [ok] Shared secret loaded from backend\.env
 
+REM --- Ports must be free before binding --------------------------------
+REM  A leftover python.exe from an earlier session keeps port 5001 and the
+REM  new process silently loses the race. The old one is still holding the
+REM  OLD secret, so every request fails the HMAC check and every verdict
+REM  comes back "could not check" - which looks like a broken model rather
+REM  than a stale process. Check for it instead of discovering it later.
+netstat -ano | findstr /r /c:"LISTENING" | findstr ":5001 " >nul
+if not errorlevel 1 (
+    echo   [!] Port 5001 is already in use.
+    echo.
+    echo       Most likely an ML service from an earlier session. Stop it:
+    echo           Get-CimInstance Win32_Process ^| Where-Object { $_.CommandLine -match 'wsgi.py' } ^| Stop-Process -Force
+    echo.
+    echo       Then run this script again.
+    echo.
+    pause
+    exit /b 1
+)
+echo   [ok] Port 5001 is free
+
+netstat -ano | findstr /r /c:"LISTENING" | findstr ":8000 " >nul
+if not errorlevel 1 (
+    echo   [!] Port 8000 is already in use.
+    echo       A Laravel server from an earlier session is probably still running.
+    echo       Close its window, or stop the php.exe holding the port, then retry.
+    echo.
+    pause
+    exit /b 1
+)
+echo   [ok] Port 8000 is free
+
 REM --- ML service (Flask, loopback only) -------------------------------
 echo   [..] Starting ML service on http://127.0.0.1:5001
 start "ScamSense ML service" cmd /k "cd /d %~dp0ml-service && set ML_SERVICE_SECRET=%ML_SECRET% && .venv\Scripts\python.exe wsgi.py"

@@ -130,9 +130,19 @@ first hours.
 
 ## Signing in
 
-Go to `/login`. There is no public registration and no password reset — accounts
-are created by the seeder. If you are locked out, an administrator with server
-access must reset it.
+Go to `/login`. There is no public registration and no password reset screen —
+accounts are created by the seeder.
+
+If you are locked out, someone with server access runs:
+
+```bash
+php artisan scamsense:admin-password
+```
+
+It asks for the new password twice and does not echo what you type. Changing
+`ADMIN_PASSWORD` in the environment on its own does **not** work — the seeder
+only ever creates an account, it never modifies one — so after changing that
+value, run the command with `--from-env` to apply it.
 
 Signing in lands you on the dashboard.
 
@@ -205,8 +215,30 @@ it is not.
 
 ## When something looks wrong
 
-**Every verdict says "could not check".** The ML service is down. Users still
-get answers marked incomplete, so nothing is broken — but check it is running.
+**Every verdict says "could not check".** Run this first:
+
+```bash
+php artisan scamsense:doctor
+```
+
+It sends a real signed request for both a link and a message and tells you which
+link in the chain is broken. There are three causes and they look identical from
+the outside:
+
+- **The ML service is not running.** Start it — `start.bat` does both services.
+- **It is running with the wrong shared secret.** This is the one that wastes
+  time, because the service is genuinely healthy: it is listening, both models
+  are loaded, and `/health` reports `models_loaded: true`. Only the signed
+  request fails, with a 401. Restart the ML service with `ML_SERVICE_SECRET`
+  taken from `backend/.env`. **Do not trust `/health` here** — it is
+  unauthenticated by design, so it never exercises the signature at all.
+- **An artefact failed to load.** Usually a scikit-learn version difference
+  between the machine that trained the model and the one serving it. The ML
+  service prints the reason at startup.
+
+Users still get answers marked incomplete throughout, so nothing looks broken
+from the outside — which is exactly why this is worth checking before a demo
+rather than during one.
 
 **A genuine site is flagged as a scam.** Known behaviour with known limits, set
 out in `docs/adr/0006`. If it is a Malaysian institution, adding it to the
