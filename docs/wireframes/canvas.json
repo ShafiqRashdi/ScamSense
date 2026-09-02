@@ -1,0 +1,48 @@
+{
+  "pages": [
+    { "id": "directions", "name": "Visual directions" },
+    { "id": "interfaces", "name": "Wireframes (4.1–4.4)" },
+    { "id": "system", "name": "System diagrams (4.5, 4.6, 4.8)" }
+  ],
+  "artboards": [
+    { "file": "DirectionA.dc.html", "title": "A · Quiet institutional", "page": "directions", "x": 0, "y": 0, "w": 880, "h": 900 },
+    { "file": "DirectionB.dc.html", "title": "B · Warm reassurance", "page": "directions", "x": 940, "y": 0, "w": 880, "h": 900 },
+    { "file": "DirectionC.dc.html", "title": "C · Plain and legible", "page": "directions", "x": 1880, "y": 0, "w": 880, "h": 940 },
+
+    { "file": "Main.dc.html", "title": "4.1 Submission", "page": "interfaces", "x": 0, "y": 0, "w": 450, "h": 620 },
+    { "file": "VerifiedInstitution.dc.html", "title": "4.3 Verified institution", "page": "interfaces", "x": 510, "y": 0, "w": 450, "h": 720 },
+    { "file": "ModerationQueue.dc.html", "title": "4.4 Moderation queue", "page": "interfaces", "x": 1020, "y": 0, "w": 840, "h": 700 },
+    { "file": "VerdictBands.dc.html", "title": "4.2 Three risk bands", "page": "interfaces", "x": 0, "y": 800, "w": 1240, "h": 760 },
+
+    { "file": "ContextDiagram.dc.html", "title": "4.5 Context diagram", "page": "system", "x": 0, "y": 0, "w": 1120, "h": 900 },
+    { "file": "SecurityFramework.dc.html", "title": "4.8 Security framework", "page": "system", "x": 1180, "y": 0, "w": 1500, "h": 1080 },
+    { "file": "DataFlowLevel1.dc.html", "title": "4.6 Data flow level 1", "page": "system", "x": 0, "y": 980, "w": 1300, "h": 1200 }
+  ],
+  "annotations": [
+    {
+      "id": "pickone",
+      "x": 0,
+      "y": 960,
+      "w": 460,
+      "page": "directions",
+      "text": "Pick a direction, then I build it in Blade + Sass.\n\nAll three keep the accessibility work intact: risk is never colour alone (icon + text label), targets stay above 44px, and everything is sized for 375px.\n\nWebfonts can't load inside this preview, so each artboard names the typeface it would actually ship with and shows the nearest system fallback.\n\nMixing is fine — e.g. C's type scale with A's palette."
+    },
+    {
+      "id": "brief",
+      "x": 1300,
+      "y": 800,
+      "w": 300,
+      "page": "interfaces",
+      "text": "Low-fi wireframes.\n\nGrey bars stand in for content text; real text appears only on controls, tabs and labels — the things a reader needs in order to understand the structure.\n\nThe prose in section 4.2 carries the reasoning, so nothing is annotated here."
+    },
+    {
+      "id": "sysnote",
+      "x": 1180,
+      "y": 1140,
+      "w": 320,
+      "page": "system",
+      "text": "System diagrams.\n\n4.5 and 4.6 use Yourdon & DeMarco notation: circles for processes, rectangles for external entities, open-ended rectangles for data stores.\n\n4.7 (ERD) is not here — you already have it.\n\n4.8 places each of the nine security elements (a)–(i) at the boundary it defends, and the legend below matches the lettering in section 4.4.1."
+    }
+  ],
+  "launch": { "view": "canvas", "page": "directions" }
+}

@@ -52,3 +52,13 @@ ml-service/training/data/
 Thumbs.db
 /.idea
 /.vscode
+
+# ── Local notes and report drafts ──────────────────────────────────────────
+# Credentials kept locally while developing. Never commit: a secret in git
+# history stays there after the file is deleted.
+/ID Pass.txt
+
+# The report itself. A binary .docx merges badly and would bloat the repo;
+# it lives with the author, not in version control.
+/ScamSense_Chapter_4.docx
+/example wireframe.png

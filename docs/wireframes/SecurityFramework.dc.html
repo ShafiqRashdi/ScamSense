@@ -1,0 +1,132 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin: 0; background: #ffffff;
+      font-family: system-ui, "Segoe UI", Helvetica, sans-serif;
+      color: #333333; -webkit-font-smoothing: antialiased; }
+    a { color: #555555; } a:hover { color: #222222; }
+    .zone { fill: none; stroke: #aaaaaa; stroke-width: 1.2; stroke-dasharray: 6 4; }
+    .zl { font-family: ui-monospace, Consolas, monospace; font-size: 10px; fill: #999999; letter-spacing: 0.08em; }
+    .box { fill: #ffffff; stroke: #555555; stroke-width: 1.2; }
+    .sub { fill: #f7f7f7; stroke: #999999; stroke-width: 1; }
+    .flow { stroke: #888888; stroke-width: 1.2; fill: none; }
+    .t { font-family: system-ui, "Segoe UI", Helvetica, sans-serif; font-size: 12px; fill: #222222; }
+    .l { font-family: system-ui, "Segoe UI", Helvetica, sans-serif; font-size: 10.5px; fill: #777777; }
+    .k { font-family: ui-monospace, Consolas, monospace; font-size: 11px; fill: #ffffff; }
+  </style>
+</helmet>
+
+<div style="padding: 30px 34px 34px">
+  <svg viewBox="0 0 1180 560" style="width: 1180px; height: 560px; display: block">
+    <defs>
+      <marker id="s8" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M 0 0 L 10 5 L 0 10 z" fill="#888888"></path>
+      </marker>
+    </defs>
+
+    <!-- public zone -->
+    <rect class="zone" x="20" y="48" width="180" height="440"></rect>
+    <text class="zl" x="24" y="40">PUBLIC</text>
+    <rect class="box" x="42" y="96" width="136" height="52"></rect>
+    <text class="t" x="110" y="127" text-anchor="middle">Public user</text>
+    <rect class="box" x="42" y="380" width="136" height="52"></rect>
+    <text class="t" x="110" y="411" text-anchor="middle">Administrator</text>
+
+    <!-- application zone -->
+    <rect class="zone" x="256" y="48" width="510" height="440" style="stroke: #555555; stroke-dasharray: none"></rect>
+    <text class="zl" x="260" y="40" style="fill: #555555">APPLICATION TIER &mdash; Laravel</text>
+
+    <rect class="sub" x="284" y="80" width="212" height="50"></rect>
+    <text class="t" x="390" y="103" text-anchor="middle">Validation, rate limit,</text>
+    <text class="t" x="390" y="120" text-anchor="middle">output encoding</text>
+
+    <rect class="sub" x="284" y="166" width="212" height="44"></rect>
+    <text class="t" x="390" y="193" text-anchor="middle">Redaction layer</text>
+
+    <rect class="sub" x="284" y="248" width="212" height="44"></rect>
+    <text class="t" x="390" y="275" text-anchor="middle">Verdict fusion</text>
+
+    <rect class="sub" x="284" y="376" width="212" height="44"></rect>
+    <text class="t" x="390" y="403" text-anchor="middle">Moderation gate</text>
+
+    <rect class="sub" x="570" y="166" width="176" height="44"></rect>
+    <text class="t" x="658" y="193" text-anchor="middle">Log sanitiser</text>
+
+    <rect class="sub" x="570" y="376" width="176" height="44"></rect>
+    <text class="t" x="658" y="403" text-anchor="middle">Training corpus</text>
+
+    <!-- private zone -->
+    <rect class="zone" x="822" y="48" width="270" height="270"></rect>
+    <text class="zl" x="826" y="40">PRIVATE NETWORK</text>
+    <rect class="box" x="846" y="88" width="222" height="60"></rect>
+    <text class="t" x="957" y="113" text-anchor="middle">Flask inference</text>
+    <text class="l" x="957" y="131" text-anchor="middle">loopback bind</text>
+    <rect class="box" x="846" y="212" width="222" height="60"></rect>
+    <text class="t" x="957" y="237" text-anchor="middle">MySQL</text>
+    <text class="l" x="957" y="255" text-anchor="middle">scoped account</text>
+
+    <rect class="box" x="846" y="380" width="222" height="60"></rect>
+    <text class="t" x="957" y="405" text-anchor="middle">Threat intelligence</text>
+    <text class="l" x="957" y="423" text-anchor="middle">may raise, never lower</text>
+
+    <!-- flows -->
+    <path class="flow" d="M 178 116 L 276 106" marker-end="url(#s8)"></path>
+    <path class="flow" d="M 390 130 L 390 160" marker-end="url(#s8)"></path>
+    <path class="flow" d="M 390 210 L 390 242" marker-end="url(#s8)"></path>
+    <path class="flow" d="M 496 188 L 562 188" marker-end="url(#s8)"></path>
+    <path class="flow" d="M 496 262 L 838 122" marker-end="url(#s8)"></path>
+    <path class="flow" d="M 496 278 L 838 240" marker-end="url(#s8)"></path>
+    <path class="flow" d="M 496 288 L 838 396" marker-end="url(#s8)"></path>
+    <path class="flow" d="M 178 406 L 276 398" marker-end="url(#s8)"></path>
+    <path class="flow" d="M 496 398 L 562 398" marker-end="url(#s8)"></path>
+
+    <!-- lettered markers -->
+    <circle cx="272" cy="106" r="13" fill="#555555"></circle>
+    <text class="k" x="272" y="111" text-anchor="middle">g</text>
+
+    <circle cx="228" cy="78" r="13" fill="#555555"></circle>
+    <text class="k" x="228" y="83" text-anchor="middle">h</text>
+
+    <circle cx="390" cy="152" r="13" fill="#555555"></circle>
+    <text class="k" x="390" y="157" text-anchor="middle">a</text>
+
+    <circle cx="532" cy="188" r="13" fill="#555555"></circle>
+    <text class="k" x="532" y="193" text-anchor="middle">b</text>
+
+    <circle cx="800" cy="118" r="13" fill="#555555"></circle>
+    <text class="k" x="800" y="123" text-anchor="middle">c</text>
+
+    <circle cx="390" cy="316" r="13" fill="#555555"></circle>
+    <text class="k" x="390" y="321" text-anchor="middle">d</text>
+
+    <circle cx="792" cy="374" r="13" fill="#555555"></circle>
+    <text class="k" x="792" y="379" text-anchor="middle">e</text>
+
+    <circle cx="532" cy="398" r="13" fill="#555555"></circle>
+    <text class="k" x="532" y="403" text-anchor="middle">f</text>
+
+    <circle cx="1084" cy="242" r="13" fill="#555555"></circle>
+    <text class="k" x="1084" y="247" text-anchor="middle">i</text>
+
+    <text class="l" x="228" y="60" text-anchor="middle">HTTPS</text>
+    <text class="l" x="700" y="330" text-anchor="middle">HMAC</text>
+  </svg>
+</div>
+</x-dc>
+
+<script data-dc-script data-props='{"$preview":{"width":1250,"height":630}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

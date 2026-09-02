@@ -1,0 +1,144 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin: 0; background: #ffffff;
+      font-family: system-ui, "Segoe UI", Helvetica, sans-serif;
+      color: #333333; -webkit-font-smoothing: antialiased; }
+    a { color: #555555; } a:hover { color: #222222; }
+    .ent { fill: #ffffff; stroke: #555555; stroke-width: 1.2; }
+    .proc { fill: #ffffff; stroke: #555555; stroke-width: 1.5; }
+    .store { stroke: #555555; stroke-width: 1.2; fill: none; }
+    .flow { stroke: #888888; stroke-width: 1.2; fill: none; }
+    .t { font-family: system-ui, "Segoe UI", Helvetica, sans-serif; font-size: 12px; fill: #222222; }
+    .l { font-family: system-ui, "Segoe UI", Helvetica, sans-serif; font-size: 11px; fill: #777777; }
+    .n { font-family: ui-monospace, Consolas, monospace; font-size: 11px; fill: #999999; }
+    .sn { font-family: ui-monospace, Consolas, monospace; font-size: 11px; fill: #555555; }
+  </style>
+</helmet>
+
+<div style="padding: 30px 34px 34px">
+  <svg viewBox="0 0 1080 940" style="width: 1080px; height: 940px; display: block">
+    <defs>
+      <marker id="d6" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M 0 0 L 10 5 L 0 10 z" fill="#888888"></path>
+      </marker>
+    </defs>
+
+    <!-- entities -->
+    <rect class="ent" x="30" y="62" width="140" height="56"></rect>
+    <text class="t" x="100" y="95" text-anchor="middle">Public user</text>
+
+    <rect class="ent" x="30" y="812" width="140" height="56"></rect>
+    <text class="t" x="100" y="845" text-anchor="middle">Administrator</text>
+
+    <rect class="ent" x="856" y="498" width="176" height="56"></rect>
+    <text class="t" x="944" y="531" text-anchor="middle">Threat intelligence</text>
+
+    <!-- 1.0 -->
+    <circle class="proc" cx="380" cy="90" r="54"></circle>
+    <text class="n" x="380" y="79" text-anchor="middle">1.0</text>
+    <text class="t" x="380" y="97" text-anchor="middle">Redact</text>
+    <text class="t" x="380" y="113" text-anchor="middle">personal data</text>
+    <path class="flow" d="M 170 90 L 322 90" marker-end="url(#d6)"></path>
+    <text class="l" x="246" y="81" text-anchor="middle">raw input</text>
+
+    <!-- 2.0 -->
+    <circle class="proc" cx="380" cy="248" r="54"></circle>
+    <text class="n" x="380" y="237" text-anchor="middle">2.0</text>
+    <text class="t" x="380" y="255" text-anchor="middle">Store</text>
+    <text class="t" x="380" y="271" text-anchor="middle">submission</text>
+    <path class="flow" d="M 380 144 L 380 190" marker-end="url(#d6)"></path>
+    <text class="l" x="390" y="172">redacted</text>
+
+    <path class="flow" d="M 434 248 L 676 248" marker-end="url(#d6)"></path>
+    <path class="store" d="M 684 228 H 900 M 684 268 H 900 M 716 228 V 268"></path>
+    <text class="sn" x="700" y="252" text-anchor="middle">D1</text>
+    <text class="t" x="730" y="252">submissions</text>
+
+    <!-- 3.0 -->
+    <circle class="proc" cx="380" cy="406" r="54"></circle>
+    <text class="n" x="380" y="395" text-anchor="middle">3.0</text>
+    <text class="t" x="380" y="413" text-anchor="middle">Classify</text>
+    <text class="t" x="380" y="429" text-anchor="middle">content</text>
+    <path class="flow" d="M 380 302 L 380 348" marker-end="url(#d6)"></path>
+
+    <!-- 4.0 -->
+    <circle class="proc" cx="632" cy="406" r="54"></circle>
+    <text class="n" x="632" y="395" text-anchor="middle">4.0</text>
+    <text class="t" x="632" y="413" text-anchor="middle">Check threat</text>
+    <text class="t" x="632" y="429" text-anchor="middle">intelligence</text>
+    <path class="flow" d="M 434 392 L 578 392" marker-end="url(#d6)"></path>
+    <text class="l" x="506" y="383" text-anchor="middle">URL only</text>
+
+    <path class="store" d="M 812 368 H 1040 M 812 408 H 1040 M 844 368 V 408"></path>
+    <text class="sn" x="828" y="392" text-anchor="middle">D3</text>
+    <text class="t" x="858" y="392">threat_intel_lookups</text>
+    <path class="flow" d="M 686 394 L 804 390" marker-end="url(#d6)"></path>
+
+    <path class="flow" d="M 660 456 L 900 498" marker-end="url(#d6)"></path>
+    <text class="l" x="778" y="491" text-anchor="middle">on cache miss</text>
+
+    <!-- 5.0 -->
+    <circle class="proc" cx="380" cy="566" r="54"></circle>
+    <text class="n" x="380" y="555" text-anchor="middle">5.0</text>
+    <text class="t" x="380" y="573" text-anchor="middle">Combine into</text>
+    <text class="t" x="380" y="589" text-anchor="middle">verdict</text>
+    <path class="flow" d="M 380 460 L 380 508" marker-end="url(#d6)"></path>
+    <text class="l" x="390" y="488">score</text>
+    <path class="flow" d="M 596 452 L 426 528" marker-end="url(#d6)"></path>
+
+    <path class="flow" d="M 434 566 L 676 566" marker-end="url(#d6)"></path>
+    <path class="store" d="M 684 546 H 928 M 684 586 H 928 M 716 546 V 586"></path>
+    <text class="sn" x="700" y="570" text-anchor="middle">D2</text>
+    <text class="t" x="730" y="570">verdicts + indicators</text>
+
+    <path class="flow" d="M 334 518 C 226 440, 190 260, 138 122" marker-end="url(#d6)"></path>
+    <text class="l" x="208" y="340" text-anchor="middle">verdict</text>
+
+    <!-- 6.0 -->
+    <circle class="proc" cx="380" cy="724" r="54"></circle>
+    <text class="n" x="380" y="713" text-anchor="middle">6.0</text>
+    <text class="t" x="380" y="731" text-anchor="middle">Record</text>
+    <text class="t" x="380" y="747" text-anchor="middle">feedback</text>
+    <path class="flow" d="M 380 620 L 380 666" marker-end="url(#d6)"></path>
+    <path class="flow" d="M 170 110 C 262 300, 218 606, 328 706" marker-end="url(#d6)"></path>
+
+    <path class="flow" d="M 434 724 L 676 724" marker-end="url(#d6)"></path>
+    <path class="store" d="M 684 704 H 900 M 684 744 H 900 M 716 704 V 744"></path>
+    <text class="sn" x="700" y="728" text-anchor="middle">D4</text>
+    <text class="t" x="730" y="728">feedback</text>
+
+    <!-- 7.0 -->
+    <circle class="proc" cx="380" cy="858" r="54"></circle>
+    <text class="n" x="380" y="847" text-anchor="middle">7.0</text>
+    <text class="t" x="380" y="865" text-anchor="middle">Moderate</text>
+    <text class="t" x="380" y="881" text-anchor="middle">feedback</text>
+    <path class="flow" d="M 380 778 L 380 800" marker-end="url(#d6)"></path>
+    <path class="flow" d="M 170 846 L 322 858" marker-end="url(#d6)"></path>
+    <text class="l" x="246" y="838" text-anchor="middle">approval</text>
+
+    <path class="flow" d="M 434 858 L 676 858" marker-end="url(#d6)"></path>
+    <path class="store" d="M 684 838 H 910 M 684 878 H 910 M 716 838 V 878"></path>
+    <text class="sn" x="700" y="862" text-anchor="middle">D5</text>
+    <text class="t" x="730" y="862">training_samples</text>
+    <text class="l" x="554" y="849" text-anchor="middle">on approval only</text>
+  </svg>
+</div>
+</x-dc>
+
+<script data-dc-script data-props='{"$preview":{"width":1150,"height":1010}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,115 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin: 0; background: #ffffff;
+      font-family: system-ui, "Segoe UI", Helvetica, sans-serif;
+      color: #333333; -webkit-font-smoothing: antialiased; }
+    a { color: #555555; } a:hover { color: #222222; }
+    .b  { background: #d6d6d6; height: 10px; }
+    .bh { background: #c4c4c4; height: 15px; }
+    .bs { background: #e3e3e3; height: 8px; }
+    .cap { font-family: ui-monospace, Consolas, monospace; font-size: 10.5px;
+           letter-spacing: 0.08em; color: #999999; }
+    .lb { font-size: 11px; color: #333333; }
+    .btn { font-size: 11.5px; text-align: center; border: 1px solid #999999;
+           background: #f2f2f2; padding: 8px 0; }
+    .btnp { font-size: 11.5px; text-align: center; border: 1px solid #555555;
+            background: #555555; color: #ffffff; padding: 10px 0; }
+    .card { border: 1px solid #b5b5b5; }
+  </style>
+</helmet>
+
+<div style="padding: 30px 34px 34px; display: flex; flex-direction: column; gap: 12px">
+
+  <div style="width: 375px; border: 1px solid #8a8a8a; background: #ffffff">
+
+    <!-- top bar -->
+    <div style="display: flex; align-items: center; justify-content: space-between; padding: 9px 12px; border-bottom: 1px solid #b5b5b5">
+      <div class="b" style="width: 84px"></div>
+      <div style="display: flex; gap: 0">
+        <div style="font-size: 10.5px; padding: 4px 10px; border: 1px solid #555555; background: #555555; color: #ffffff">EN</div>
+        <div style="font-size: 10.5px; padding: 4px 10px; border: 1px solid #999999; border-left: 0; color: #555555">BM</div>
+      </div>
+    </div>
+
+    <div style="padding: 16px 14px; display: flex; flex-direction: column; gap: 14px">
+
+      <!-- page heading -->
+      <div style="display: flex; flex-direction: column; gap: 7px">
+        <div class="bh" style="width: 62%"></div>
+        <div class="bs" style="width: 88%"></div>
+        <div class="bs" style="width: 54%"></div>
+      </div>
+
+      <!-- form -->
+      <div class="card" style="padding: 13px; display: flex; flex-direction: column; gap: 12px">
+
+        <div style="display: flex; flex-direction: column; gap: 7px">
+          <div class="b" style="width: 48%"></div>
+          <div style="display: flex; gap: 0">
+            <div style="flex: 1; font-size: 11.5px; text-align: center; padding: 10px 0; border: 1px solid #555555; background: #555555; color: #ffffff">A message</div>
+            <div style="flex: 1; font-size: 11.5px; text-align: center; padding: 10px 0; border: 1px solid #999999; border-left: 0; color: #555555">A link</div>
+          </div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 7px">
+          <div class="b" style="width: 34%"></div>
+          <div style="border: 1px solid #999999; background: #fafafa; height: 92px"></div>
+        </div>
+
+        <div class="btnp">Check it</div>
+      </div>
+
+      <!-- privacy notice -->
+      <div class="card" style="background: #f7f7f7; padding: 12px; display: flex; flex-direction: column; gap: 9px">
+        <div class="b" style="width: 58%"></div>
+        <div style="display: flex; flex-direction: column; gap: 7px">
+          <div style="display: flex; gap: 7px; align-items: flex-start">
+            <div style="font-size: 10px; color: #999999; line-height: 1">&bull;</div>
+            <div style="flex: 1; display: flex; flex-direction: column; gap: 4px">
+              <div class="bs" style="width: 100%"></div>
+              <div class="bs" style="width: 72%"></div>
+            </div>
+          </div>
+          <div style="display: flex; gap: 7px; align-items: flex-start">
+            <div style="font-size: 10px; color: #999999; line-height: 1">&bull;</div>
+            <div style="flex: 1; display: flex; flex-direction: column; gap: 4px">
+              <div class="bs" style="width: 100%"></div>
+              <div class="bs" style="width: 64%"></div>
+            </div>
+          </div>
+          <div style="display: flex; gap: 7px; align-items: flex-start">
+            <div style="font-size: 10px; color: #999999; line-height: 1">&bull;</div>
+            <div style="flex: 1; display: flex; flex-direction: column; gap: 4px">
+              <div class="bs" style="width: 92%"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- footer -->
+    <div style="border-top: 1px solid #b5b5b5; padding: 10px 14px; display: flex; flex-direction: column; gap: 5px">
+      <div class="bs" style="width: 100%"></div>
+      <div class="bs" style="width: 46%"></div>
+    </div>
+  </div>
+</div>
+</x-dc>
+
+<script data-dc-script data-props='{"$preview":{"width":450,"height":620}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>
