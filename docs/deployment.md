@@ -266,6 +266,19 @@ deleted; without this cron, that is a promise the system does not keep
 
 Work through all of these before calling it done.
 
+> **A long-running PHP process caches the Vite manifest.** After any
+> `npm run build`, a server that was already running keeps emitting the previous
+> hashed asset filenames — files the build has just deleted — so the site
+> renders with stale or missing CSS while the manifest on disk is correct.
+> `php artisan optimize:clear` does **not** fix it, which makes the obvious
+> remedy look broken. Restart the process.
+>
+> Locally that means restarting `php artisan serve`; on Railway it means
+> redeploying rather than rebuilding assets in place. It cost an afternoon in
+> development, and it is invisible to the test suite because feature tests build
+> a fresh application per test and re-read the manifest each time. See
+> `docs/deployment-boundary-defects.md` §3.
+
 ```bash
 # 1. The site is up and served over HTTPS
 curl -sI https://<your-app>.up.railway.app | head -1
