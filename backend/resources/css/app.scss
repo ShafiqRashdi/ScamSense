@@ -1,15 +1,202 @@
 // ScamSense — application stylesheet
 //
-// Bootstrap is imported from source rather than as a prebuilt CSS file so that
-// Phase 6 can override Sass variables directly. That matters for this project:
-// the target user is a non-technical Malaysian adult, often older, on a
-// mid-range Android phone, so the type scale and touch-target sizes need to be
-// raised above Bootstrap's defaults rather than patched with utility overrides.
+// Bootstrap is imported from source rather than as a prebuilt CSS file so the
+// Sass variables can be overridden directly. That matters for this project: the
+// target user is a non-technical Malaysian adult, often older, on a mid-range
+// Android phone, so the type scale and touch-target sizes are raised above
+// Bootstrap's defaults rather than patched with utility overrides.
 //
 // Override variables ABOVE the import — Bootstrap's `!default` values only take
 // effect if they have not already been set.
 
-// $font-size-base: 1.125rem;   // Phase 6
-// $min-contrast-ratio: 4.5;    // WCAG 2.1 AA, see AGENTS.md O2
+// ─────────────────────────────────────────────────────────────────────────────
+// Typeface
+//
+// Instrument Sans, self-hosted. Self-hosting is not a preference here: the
+// content security policy sets `font-src 'self'`, and the security write-up
+// argues the policy can be strict precisely because the interface loads nothing
+// third-party. Linking Google Fonts would have required loosening the policy and
+// would have contradicted that claim — as well as disclosing every visitor's IP
+// to a third party on a site whose entire premise is caution.
+//
+// One variable file per subset covers 400–700, which is why there is no weight
+// axis in the URLs: 41 KB for the pair.
+//
+// Licensed under the SIL Open Font License 1.1 — see public/fonts/README.md.
+// ─────────────────────────────────────────────────────────────────────────────
+
+@font-face {
+    font-family: "Instrument Sans";
+    font-style: normal;
+    font-weight: 400 700;
+    font-display: swap;
+    src: url("/fonts/instrument-sans-latin.woff2") format("woff2");
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6,
+        U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+2074, U+20AC,
+        U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+    font-family: "Instrument Sans";
+    font-style: normal;
+    font-weight: 400 700;
+    font-display: swap;
+    src: url("/fonts/instrument-sans-latin-ext.woff2") format("woff2");
+    unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7,
+        U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F,
+        U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F,
+        U+A720-A7FF;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Palette — "warm reassurance"
+//
+// Warm neutrals rather than the blue-grey Bootstrap ships with. The brand
+// accent is a calm green, deliberately NOT in the red-amber family, so that
+// nothing in the ordinary furniture of the page can be mistaken for a risk
+// signal. A brand colour adjacent to the danger colour is how a user learns to
+// stop noticing the danger colour.
+// ─────────────────────────────────────────────────────────────────────────────
+
+$sc-paper: #f3ede4; // the page behind the content
+$sc-paper-tint: #f7f2ea; // inset panels within a card
+$sc-surface: #fffdfa; // cards, navbar, footer
+$sc-line: #e7ddd0; // hairlines
+$sc-line-strong: #d8cbb9; // input borders, which must be findable
+
+$sc-ink: #241f1a;
+$sc-ink-muted: #6b6157;
+
+$sc-brand: #2a6152;
+$sc-brand-dark: #1f4a3e;
+
+// Risk colours. Each is dark enough to carry white text at AA, because they
+// are used as solid badge backgrounds as well as borders.
+$sc-danger: #9b2c2c;
+$sc-warning: #8a5a00;
+$sc-success: #2a6152;
+
+$primary: $sc-brand;
+$secondary: #6b6157;
+$danger: $sc-danger;
+$warning: $sc-warning;
+$success: $sc-success;
+
+$body-bg: $sc-surface;
+$body-color: $sc-ink;
+$body-secondary-bg: $sc-paper;
+$body-secondary-color: $sc-ink-muted;
+$body-tertiary-bg: $sc-paper-tint;
+$body-tertiary-color: $sc-ink-muted;
+
+$border-color: $sc-line;
+
+// WCAG 2.1 AA. Bootstrap uses this when choosing a foreground for a filled
+// background, so lowering it would silently produce unreadable badges.
+$min-contrast-ratio: 4.5;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Type and spacing
+//
+// 17px base rather than Bootstrap's 16px. Small on its own, but this interface
+// is read by people with presbyopia on a phone held at arm's length, and it
+// compounds through every derived size.
+// ─────────────────────────────────────────────────────────────────────────────
+
+$font-family-sans-serif: "Instrument Sans", system-ui, -apple-system,
+    "Segoe UI", Roboto, sans-serif;
+$font-size-base: 1.0625rem;
+$line-height-base: 1.6;
+
+$headings-font-weight: 650;
+$headings-line-height: 1.25;
+
+// The scale is set against the classes the views actually use, not against the
+// tags. `verify/index` renders its h1 as `.h3` and `verify/result` renders its
+// h1 as `.h4`, so those two steps are the page titles in practice and have to
+// be unmistakably larger than the lead paragraph beneath them. A first pass set
+// them at 1.2x and 1.1x base, which left the title and the lead almost the same
+// size and the page with no visible hierarchy.
+$h1-font-size: $font-size-base * 2.1;
+$h2-font-size: $font-size-base * 1.75;
+$h3-font-size: $font-size-base * 1.5;
+$h4-font-size: $font-size-base * 1.3;
+$h5-font-size: $font-size-base * 1.15;
+$h6-font-size: $font-size-base;
+
+$border-radius: 0.75rem;
+$border-radius-sm: 0.5rem;
+$border-radius-lg: 1rem;
+
+$card-border-color: $sc-line;
+$card-cap-bg: transparent;
+
+$input-border-color: $sc-line-strong;
+$input-focus-border-color: $sc-brand;
+$input-btn-focus-color: rgba($sc-brand, 0.25);
+
+$btn-font-weight: 600;
 
 @import "bootstrap/scss/bootstrap";
+
+// ─────────────────────────────────────────────────────────────────────────────
+// The verdict card is deliberately firmer than the rest of the page
+//
+// Soft corners and warm paper are right for the form: the person arriving is
+// often anxious, and the page should not add to it. They are wrong for the
+// moment of judgement. Rounded, gentle, pastel treatment is also the visual
+// language scam sites themselves use, so the verdict has to look like it is
+// being asserted rather than suggested.
+//
+// This targets the risk-bordered cards specifically, which is what
+// `result.blade.php` renders for a verdict and for the verified panel.
+// ─────────────────────────────────────────────────────────────────────────────
+
+.card.border-2 {
+    border-radius: $border-radius-sm;
+
+    // A heavier rule in the risk colour along the top edge. Done with the
+    // border rather than a pseudo-element painted in `currentColor`: Bootstrap's
+    // `.border-danger` sets `border-color` and leaves `color` alone, so
+    // `currentColor` resolves to the inherited ink and silently paints the bar
+    // the wrong colour on every band.
+    //
+    // Redundant with the badge and the heading, and deliberately so — colour
+    // must never be the only carrier of the verdict (WCAG 1.4.1).
+    border-top-width: 6px;
+}
+
+// Headings on the verdict read tighter and heavier than body copy, so the
+// answer is legible at a glance rather than as a paragraph to be parsed.
+h1,
+h2 {
+    letter-spacing: -0.02em;
+}
+
+// The action box inside a verdict. Bootstrap's `bg-body-tertiary` gives it the
+// warm tint; the leading rule is what separates advice from explanation for a
+// reader who is skimming.
+.card .rounded.bg-body-tertiary {
+    border-left: 3px solid rgba($sc-ink, 0.14);
+}
+
+// Inputs are large and clearly bounded. A faint 1px hairline is a fashionable
+// choice that fails badly for a user who cannot see where to tap.
+.form-control {
+    border-width: 2px;
+}
+
+// Bootstrap's focus ring is a shadow, which some Android browsers render
+// faintly. An explicit outline survives that and is a requirement, not a
+// nicety, for keyboard and switch-access users.
+:focus-visible {
+    outline: 3px solid $sc-brand;
+    outline-offset: 2px;
+}
+
+// The defanged submission. Monospace so the reader can see the address
+// character by character, which is the habit the interface is trying to teach.
+pre code {
+    font-size: 0.9em;
+    line-height: 1.55;
+}
