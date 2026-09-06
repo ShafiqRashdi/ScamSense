@@ -79,6 +79,7 @@ would have produced a flattering meaningless one. Together they are the corpus a
 | Verified-domain gate is a safety mitigation, never model accuracy | ADR 0007; stated on the dashboard beside the count |
 | Threat intel may raise a verdict, never lower one | ADR 0007 |
 | Message indicators are a pattern layer, not interpretability | **ADR 0010**; asserted by a test |
+| UAT scenarios from the brief, both halves | `ml-service/tests/test_real_world_messages.py` (real model); `backend/tests/Feature/VerifyPageTest.php` (presentation, tests named `UAT:`) |
 
 ---
 
@@ -101,7 +102,6 @@ Honest gaps. Each is either work not done or a claim that should be softened.
 | Claim the report may want to make | Status |
 |---|---|
 | UAT results with real participants | **No participants recruited.** Nothing to cite |
-| "Legitimate bank message → low risk" as a passing test | **Not covered on the real model.** `test_real_world_urls.py` is URLs only; the Laravel band tests fake the ML response |
 | Adversarial robustness | Not tested. Say so in limitations |
 | Feedback loop validated at scale | Not validated. The gate is tested; throughput under real volume is not |
 | Latency against the 3-second objective in production | Only measured locally. `verdicts.inference_ms` will evidence it once deployed |

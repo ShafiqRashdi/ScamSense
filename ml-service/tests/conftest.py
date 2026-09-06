@@ -28,11 +28,21 @@ TEST_SECRET = "test-secret-not-a-real-key"  # noqa: S105
 REAL_MODELS_DIR = Path(__file__).resolve().parent.parent / "models"
 REAL_URL_MODEL = REAL_MODELS_DIR / predictors.URL_MODEL_DIRNAME
 
+REAL_MESSAGE_MODEL = REAL_MODELS_DIR / predictors.MESSAGE_MODEL_DIRNAME
+
 url_model_required = pytest.mark.skipif(
     not (REAL_URL_MODEL / "model.joblib").exists(),
     reason=(
         "Trained URL artefact absent. Model weights are gitignored, so a clean "
         "checkout must run training/train_url_model.py first."
+    ),
+)
+
+message_model_required = pytest.mark.skipif(
+    not (REAL_MESSAGE_MODEL / "model.joblib").exists(),
+    reason=(
+        "Trained message artefact absent. Model weights are gitignored, so a "
+        "clean checkout must run training/train_message_model.py first."
     ),
 )
 

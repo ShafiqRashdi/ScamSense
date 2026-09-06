@@ -517,3 +517,89 @@ it('says so plainly when no indicator fired', function (): void {
         ->assertSee('What we noticed')
         ->assertSee('Nothing specific stood out');
 });
+
+/*
+|--------------------------------------------------------------------------
+| UAT scenarios from the project brief
+|--------------------------------------------------------------------------
+|
+| Named for the acceptance criteria rather than for the mechanism, so a reader
+| of the test output can match them to the brief without translation.
+|
+| These cover the PRESENTATION half: given a model result, does the user see the
+| right band with a readable explanation. The model half — does the real
+| classifier actually return that result — is covered on the Python side in
+| tests/test_real_world_urls.py and tests/test_real_world_messages.py, against
+| the shipped artefacts rather than a fake.
+|
+| Both halves are needed and neither substitutes for the other. A faked response
+| here would pass even if the model were broken; a Python assertion alone would
+| pass even if the page rendered nothing.
+*/
+
+it('UAT: a known phishing URL is shown as high risk with reasons', function (): void {
+    fakeMl(0.93);
+
+    submit('http://maybank2u.secure-verify.xyz/login/update-account')
+        ->assertOk()
+        ->assertSee('Likely a scam')
+        ->assertSee('This looks like a scam')
+        // The reason, not just the verdict: a judgement with no stated basis is
+        // an oracle, and objective O2 requires readable indicators.
+        ->assertSee('What we noticed')
+        ->assertSee('The address ends in a type that scammers use often because it is cheap.');
+});
+
+it('UAT: a legitimate bank message is shown as low risk with an explanation', function (): void {
+    /*
+     | The scenario most at risk of being got wrong quietly. A one-time passcode
+     | is the commonest genuine bank message and the one a scam most wants to
+     | elicit, so flagging it would teach the user to ignore the platform on
+     | exactly the message that matters.
+     |
+     | The pattern layer correctly fires nothing on a clean message, which makes
+     | the explanation the absence itself — rendered explicitly rather than by
+     | hiding the section, because an empty list is a finding and a missing
+     | section reads as one that failed to load.
+     */
+    Http::fake([
+        '*/predict/*' => Http::response([
+            'request_id' => 'uat',
+            'label' => 'legitimate',
+            'confidence' => 0.91,
+            'indicators' => [],
+            'model_version' => 'tfidf-msg-v2.0.0-collected-my',
+            'inference_ms' => 8,
+        ]),
+    ]);
+
+    submit('Kod pengesahan anda ialah 483920. Jangan kongsi dengan sesiapa.', 'message')
+        ->assertOk()
+        ->assertSee('No warning signs')
+        ->assertSee('We did not find warning signs')
+        ->assertSee('Nothing specific stood out')
+        // Says "message", never "link" — the system must show it read what was
+        // actually submitted.
+        ->assertSee('This message does not have the features we usually see in scam messages.')
+        ->assertDontSee('This link does not have the features');
+});
+
+it('UAT: a legitimate bank message never claims the message is safe', function (): void {
+    // The reassuring band still refuses the claim it cannot support. ScamSense
+    // never contacts a sender or verifies an identity, so "no warning signs" is
+    // the strongest honest statement available.
+    Http::fake([
+        '*/predict/*' => Http::response([
+            'request_id' => 'uat',
+            'label' => 'legitimate',
+            'confidence' => 0.91,
+            'indicators' => [],
+            'model_version' => 'tfidf-msg-v2.0.0-collected-my',
+            'inference_ms' => 8,
+        ]),
+    ]);
+
+    submit('Bil elektrik TNB bulan Julai anda berjumlah RM128.40.', 'message')
+        ->assertSee('This does not guarantee the message is genuine.')
+        ->assertDontSee('This message is safe');
+});
