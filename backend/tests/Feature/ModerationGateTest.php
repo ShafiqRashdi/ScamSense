@@ -10,6 +10,9 @@ use App\Models\Feedback;
 use App\Models\TrainingSample;
 use App\Models\User;
 use App\Services\Feedback\FeedbackModerationService;
+use Database\Seeders\FeedbackQueueSeeder;
+use Database\Seeders\SampleSubmissionSeeder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
@@ -303,4 +306,85 @@ it('leaves no unmoderated community rows reachable in the database', function ()
         ->count();
 
     expect($unapproved)->toBe(0);
+});
+
+/*
+|--------------------------------------------------------------------------
+| The one path the model invariant does not cover
+|--------------------------------------------------------------------------
+|
+| The gate is enforced in `creating` and `updating` hooks on TrainingSample,
+| which binds every application write path including ones that do not yet
+| exist. It does NOT bind `Model::withoutEvents()`, and `DatabaseSeeder` uses
+| the `WithoutModelEvents` trait, which wraps the entire seeder run in exactly
+| that.
+|
+| No seeder creates a TrainingSample today — FeedbackQueueSeeder says so in its
+| docblock and deliberately seeds none, so the queue screenshot shows work
+| waiting for a human. The guarantee therefore rests on that convention holding,
+| not on the invariant, and the tests below make the convention checkable rather
+| than assumed.
+*/
+
+it('records that model events can be suppressed, so the limit is known not discovered', function (): void {
+    /*
+     | Deliberately asserts the CURRENT behaviour rather than the desired one.
+     | Writing it as an aspiration would leave the gap silent; writing it as a
+     | fact makes it reviewable, and this test turns into a failure the moment
+     | the constraint moves into the database — which is the fix, if the risk is
+     | ever judged worth a migration.
+     */
+    $created = false;
+
+    Model::withoutEvents(function () use (&$created): void {
+        TrainingSample::query()->create([
+            'origin' => 'community',
+            'type' => 'message',
+            'content' => 'unmoderated',
+            'content_hash' => str_repeat('a', 64),
+            'label' => 'scam',
+            // No feedback_id and no approved_by: the gate would refuse this.
+        ]);
+        $created = true;
+    });
+
+    expect($created)->toBeTrue(
+        'If this now fails, the constraint has moved below the model layer — '
+        .'update the note in ADR 0008 and docs/chapter-5-skeleton.md.'
+    );
+});
+
+it('has no seeder that creates a training sample', function (): void {
+    /*
+     | The actual guard, and it is a source-level one because the runtime
+     | invariant cannot reach inside withoutEvents. The brief was explicit that
+     | no path may promote feedback without review — "not a bulk action, not a
+     | seeder, not a convenience method" — so a seeder gaining the ability to
+     | write this table is the thing to catch, and it is caught here at the
+     | point it would be introduced.
+     */
+    $offenders = [];
+
+    foreach (glob(database_path('seeders/*.php')) as $file) {
+        $source = file_get_contents($file);
+
+        // Strip comments: FeedbackQueueSeeder discusses TrainingSample at
+        // length in its docblock precisely to explain why it creates none.
+        $stripped = preg_replace('#(/\*.*?\*/)|(//.*)#s', '', $source);
+
+        if (preg_match('/TrainingSample\s*::\s*(query|create|insert|forceCreate)/', (string) $stripped)) {
+            $offenders[] = basename($file);
+        }
+    }
+
+    expect($offenders)->toBe([]);
+});
+
+it('produces no community training rows when the real seeders run', function (): void {
+    // The end-to-end check on the path that actually ships: seeding a fresh
+    // database must leave the retraining set empty of unmoderated rows.
+    $this->seed(SampleSubmissionSeeder::class);
+    $this->seed(FeedbackQueueSeeder::class);
+
+    expect(TrainingSample::query()->where('origin', 'community')->count())->toBe(0);
 });

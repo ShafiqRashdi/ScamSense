@@ -392,13 +392,36 @@ Set-Service MYSQL80 -StartupType Automatic   # admin PowerShell, once
 
 cd C:\dev\scamsense
 git pull
-cd backend && composer install && npm ci && npm run build
-php artisan migrate:fresh --seed    # note the printed admin password
+cd backend; composer install; npm ci; npm run build
+
+# WARNING: migrate:fresh DROPS every table. Fine for a demo machine, never
+# against anything whose data you want.
+php artisan migrate:fresh --seed
+php artisan scamsense:admin-password --from-env
 ```
 
-**On the day:** double-click `start.bat`. It checks MySQL, reads the shared
-secret from `backend/.env`, and opens both services in labelled windows. Then
-visit `http://127.0.0.1:8000`.
+**On `--from-env`.** `migrate:fresh --seed` runs `AdminUserSeeder`, which uses
+`ADMIN_PASSWORD` when it is set and prints nothing — it only prints a password
+when it had to generate one. Running the command afterwards is harmless if the
+seeder already applied the value, and it is the difference between being able to
+sign in on the day and not.
+
+**On the day:** double-click `start.bat`. It checks that MySQL is running, that
+ports 5001 and 8000 are free, reads the shared secret from `backend/.env`, and
+opens both services in labelled windows.
+
+Then, before you show anyone anything:
+
+```powershell
+cd backend
+php artisan scamsense:doctor
+```
+
+Five passing lines means a submission will produce a real verdict. `/health`
+answering is not the same check and will report a healthy service that rejects
+every signed request — see `docs/deployment-boundary-defects.md`.
+
+Then visit `http://127.0.0.1:8000`.
 
 **If the ML service will not start**, the application still works. Verdicts come
 back marked *"We could not check this properly"* — the graceful-degradation path

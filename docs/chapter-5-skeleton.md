@@ -299,6 +299,14 @@ Two lessons generalise: graceful degradation hides its own trigger, converting a
 into a quiet one; and a documented control that nothing implements is not a control. **Cite:**
 `docs/deployment-boundary-defects.md`.
 
+**The moderation gate binds every application path, but not a suppressed one.** It is enforced
+in model hooks, which is what makes it cover write paths that do not yet exist — but
+`Model::withoutEvents()` is outside it, and `DatabaseSeeder` wraps every seeder in exactly that.
+No seeder creates a training sample and three tests now assert that, so there is no live bypass;
+the guarantee for that one path rests on a checked convention rather than on the invariant. A
+database `CHECK` constraint would close it below the ORM and is recorded as deferred, not
+rejected. **Cite:** ADR 0008; `tests/Feature/ModerationGateTest.php`.
+
 **Not tested at all.** Adversarial robustness. Feedback throughput at volume. Inter-annotator
 agreement on the collected corpus, which one person labelled — describe it as read end to end,
 never as verified.

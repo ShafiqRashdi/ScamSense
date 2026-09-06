@@ -119,6 +119,33 @@ kept out of the message field.
   states. Without a role that fails the check, the role check on the admin routes was untestable
   and effectively decorative.
 
+## The one path the invariant does not bind
+
+**Added 2026-09-06, after checking rather than assuming.**
+
+The gate lives in `creating` and `updating` hooks on `TrainingSample`, which is what makes it
+bind write paths that do not yet exist. It does **not** bind `Model::withoutEvents()`, and
+`DatabaseSeeder` uses Laravel's `WithoutModelEvents` trait, which wraps the entire seeder run in
+exactly that. Verified empirically: inside `withoutEvents`, a community row with no
+`feedback_id` and no `approved_by` is created without complaint.
+
+There is no live bypass. No seeder creates a `TrainingSample`, and `FeedbackQueueSeeder` says so
+in its docblock — it seeds pending feedback and no approvals, so the queue screenshot shows work
+waiting for a human, which is the honest picture. But the guarantee for that path rests on the
+convention holding rather than on the invariant, and the brief was explicit that no route may
+promote feedback without review — "not a bulk action, not a seeder, not a convenience method".
+
+Three tests now make the convention checkable: one asserting no seeder file writes to the table,
+one asserting a full seeder run leaves no community rows, and one pinning the `withoutEvents`
+behaviour as a recorded fact so the gap is reviewable rather than latent.
+
+**The stronger fix, not taken.** A database `CHECK` constraint — `origin <> 'community' OR
+(feedback_id IS NOT NULL AND approved_by IS NOT NULL)` — would enforce this below the ORM, where
+`withoutEvents` cannot reach, and MySQL 8 enforces those. It is deliberately deferred rather
+than rejected: it is a schema change close to a deployment deadline, and it would need the data
+dictionary and the ERD updated with it. The residual risk is a *future* seeder, which the source
+test catches at the point it would be introduced.
+
 ## Two defects this phase surfaced
 
 Recorded because both were silent, and both are the kind a review would not catch by reading.
