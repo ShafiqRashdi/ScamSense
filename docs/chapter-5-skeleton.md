@@ -75,23 +75,41 @@ generalisation and measuring corpus concentration. **Cite:** ADR 0004.
 
 ### 5.3.2 Message classifier
 
-**Cite:** `docs/RESULTS.md`; `models/tfidf-msg-v2.0.0-collected-my/metrics.json`.
+**Cite:** `docs/RESULTS.md`; `models/tfidf-msg-v3.0.0-collected-my/metrics.json`.
 
 | Metric | Full test split | Leak-free subset |
 |---|---:|---:|
-| F1 (scam class) | **0.9735** | 0.9684 |
-| Precision | 1.0000 | 1.0000 |
-| Recall | 0.9483 | 0.9388 |
-| Rows | 106 | 97 |
+| F1 (scam class) | **0.9836** | 0.9823 |
+| Precision | 0.9756 | 0.9737 |
+| Recall | 0.9917 | 0.9911 |
+| Rows | 223 | 214 |
 
 **Quote this figure only with its qualifier**, which ships inside the artefact as
-`REPORTING_QUALIFIER` precisely so the two cannot be separated: *F1 on a 528-message collected
-Malaysian corpus, 493 distinct templates, real collected SMS and WhatsApp redacted at source,
-class balance uneven with legitimate the smaller class at 238.*
+`REPORTING_QUALIFIER` precisely so the two cannot be separated: *F1 on a 1,113-message collected
+Malaysian corpus, 940 distinct templates, real collected SMS and WhatsApp redacted at source,
+class balance uneven with legitimate the smaller class at 504.*
 
-`[WRITE: why both figures are given.]` Five templates appear on both sides of the shipped split.
-Rather than reshuffle a partition the corpus author constructed deliberately, both figures are
-reported: the leak-free subset bounds the primary figure from below, and the gap is small.
+`[WRITE: why both figures are given.]` Five templates still appear on both sides of the split —
+6 test rows, 2.7%, down from 8.5% — so the leak-free subset bounds the primary figure from below.
+
+#### The comparison that is easy to report wrongly
+
+`[WRITE: this needs stating carefully, and a panel will probe it.]`
+
+The previous model scored 0.9735 and this one scores 0.9836, and **those are not comparable**:
+the test set grew from 106 rows to 223 when the corpus grew. The 106 kept their partition through
+the merge, so a like-for-like comparison exists.
+
+| On the identical 106 rows | F1 | Precision | Recall | Missed of 58 | False positives |
+|---|---:|---:|---:|---:|---:|
+| v2.0.0 | 0.9735 | 1.0000 | 0.9483 | 3 | 0 |
+| v3.0.0 | 0.9744 | 0.9661 | 0.9828 | 1 | 2 |
+
+**F1 moved +0.0009, and that near-zero figure hides the real change.** The model traded two
+missed scams for two false positives, which a harmonic mean treats as a wash. Under the
+asymmetry this project applies everywhere else — a missed scam costs money, a false positive
+costs ten seconds — that is a favourable trade, and it is invisible in the headline metric.
+Report the confusion matrix here, not the F1.
 
 ### 5.3.3 Was a transformer better? — a documented negative result
 
@@ -128,42 +146,45 @@ that size, that is itself the finding** — a single-semester collection effort 
 cannot settle this question, and reporting that honestly is worth more than reporting a result
 the data cannot carry.
 
-### 5.3.4 What the corpus figures do not tell you
+### 5.3.4 What the corpus figures do not tell you — and what fixed it
 
-`[WRITE: the most important subsection in this chapter.]`
+`[WRITE: the most important subsection in this chapter, and now the most positive.]`
 
-Both headline figures are measured on held-out data drawn from the same collection effort as
-the training rows. A hand-built probe of messages written independently asks the harder
-question. **Cite:** `training/message_probe.py`; `tests/test_real_world_messages.py`.
+A corpus figure is measured on messages drawn from the same collection effort as the training
+rows. A hand-built probe of 24 messages written independently asks the harder question.
+**Cite:** `training/message_probe.py`; `tests/test_real_world_messages.py`.
 
-| | Result |
-|---|---:|
-| Overall accuracy | **17/24 (70.8%)** |
-| Scams missed | **6/12** |
-| Legitimate messages flagged | 1/12 |
-
-**Recall tracks category support almost exactly.** Every miss falls in a category holding fewer
-than 21 training rows; every category above 39 rows was caught:
-
-| Category | Corpus rows | Probe |
+| | v2.0.0 (528 rows) | v3.0.0 (1,113 rows) |
 |---|---:|---:|
-| Parcel scam | 18 | 0/2 |
-| Macau scam / impersonation | 19 | 1/3 |
-| Lucky draw / prize | 20 | 1/2 |
-| Loan scam | 39 | 1/1 |
-| Job offer scam | 76 | 1/1 |
+| Overall accuracy | 17/24 (70.8%) | **22/24 (91.7%)** |
+| Scams missed | 6/12 | **2/12** |
+| Legitimate flagged | 1/12 | **0/12** |
 
-`[WRITE: state the consequence without softening it.]` The missed messages are textbook
-Malaysian scams — a JPJ summons demand, a customs-held parcel, an LHDN refund, a Touch 'n Go
-suspension. A user pasting any of those today is told there are no warning signs. The figure of
-0.9735 is honest about the corpus and silent about this, which is why both are reported.
+`[WRITE: this is the chapter's strongest passage — a prediction that was acted on and held.]`
 
-The equivalent probe on the URL side finds **1 of 19 genuine Malaysian sites** in the high band,
-and the count of genuine sites the model mislabels at any level fell from **8 to 5** across the v2
-retrain. Three moved from wrong to right — `jpj.gov.my`, `bnm.gov.my`, `cimb.com.my` — recorded
-as `xfail` cases turning `XPASS`. **Cite:** ADR 0006; `docs/RESULTS.md`.
+The v2 probe showed recall tracking category support: every miss sat in a category holding fewer
+than 21 rows, every category above 39 was caught. That was a testable claim about what collection
+would fix, and it was acted on directly rather than by collecting uniformly:
 
----
+| Category | v2 rows | v2 probe | v3 rows | v3 probe |
+|---|---:|---:|---:|---:|
+| Parcel scam | 18 | 0/2 | 111 | 1/2 |
+| Macau scam / impersonation | 19 | 1/3 | 102 | **3/3** |
+| Lucky draw / prize | 20 | 1/2 | 106 | 1/2 |
+| Phishing link | 40 | 2/3 | 77 | **3/3** |
+
+Four misses closed — a JPJ summons demand, an LHDN refund, a Touch 'n Go suspension and a Shopee
+delivery notice. Hypothesis, intervention, result.
+
+**Two misses remain, and they are a different problem.** A failed Shopee delivery and a Petronas
+prize draw both invoke a brand in routine-sounding language, without the urgency or credential
+vocabulary the model weighs. Their categories grew six-fold and five-fold and the misses did not
+close. `[WRITE: say plainly that this is the one place where more data is demonstrably not the
+answer — it distinguishes a scarcity problem from a representation problem, and being able to
+tell them apart is worth more than closing both.]`
+
+The URL probe finds **1 of 19 genuine Malaysian sites** in the high band, with the count of
+mislabelled genuine sites falling from 8 to 5 across the v2 retrain. **Cite:** ADR 0006.
 
 ## 5.4 System and security testing
 

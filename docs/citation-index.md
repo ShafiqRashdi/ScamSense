@@ -6,7 +6,7 @@ Written so that any figure or assertion in Chapters 4 and 5 can be traced to som
 committed. If a claim is not in this table, it is not yet evidenced — treat that as a gap
 rather than as licence to assert it.
 
-Verified against the artefacts on 2026-09-03. Every file path below is asserted to exist by
+Verified against the artefacts on 2026-09-07. Every file path below is asserted to exist by
 `backend/tests/Feature/CitationIndexTest.php`, so a reference cannot rot silently.
 
 ---
@@ -21,9 +21,9 @@ disagrees with it, it is wrong.
 | URL classifier, test F1 | **0.8979** | `RESULTS.md`; `models/rf-url-v2.0.0-pathnorm/metrics.json` |
 | URL precision / recall / ROC AUC | 0.8368 / 0.9687 / 0.9576 | same |
 | URL decision threshold | 0.3105 | same |
-| Message classifier, test F1 | **0.9735** | `RESULTS.md`; `models/tfidf-msg-v2.0.0-collected-my/metrics.json` |
-| Message precision / recall | 1.0000 / 0.9483 | same |
-| Message F1, leak-free subset | 0.9684 | same, `test_leak_free_subset` |
+| Message classifier, test F1 | **0.9836** | `RESULTS.md`; `models/tfidf-msg-v3.0.0-collected-my/metrics.json` |
+| Message precision / recall | 0.9756 / 0.9917 | same |
+| Message F1, leak-free subset | 0.9823 | same, `test_leak_free_subset` |
 | DistilBERT experiment F1 | 0.9913 | `models/distilbert-msg-v1.0.0-experiment/metrics.json`; ADR 0009 |
 
 **Every message figure must carry its qualifier.** It is stored in the artefact as
@@ -37,9 +37,9 @@ smaller class at 238… treat the confidence interval as wide."*
 
 | Claim | Cite |
 |---|---|
-| `messages_my.csv` — 528 rows, 493 distinct skeletons, 290 scam / 238 legitimate | `RESULTS.md`; `models/tfidf-msg-v2.0.0-collected-my/metrics.json` (`corpus.unique_templates`); `DATASETS.md` for provenance |
-| `legit_urls_my.csv` — 221 collected Malaysian URLs | `DATASETS.md`; `RESULTS.md` |
-| Collected URLs are 0.074% of the URL corpus and cannot have shifted the model | `RESULTS.md` — states this explicitly so the corpus is not over-claimed |
+| `messages_my.csv` — 1,113 rows, 940 distinct skeletons, 609 scam / 504 legitimate | `RESULTS.md`; `models/tfidf-msg-v3.0.0-collected-my/metrics.json` (`corpus.unique_templates`); `DATASETS.md` for provenance |
+| `legit_urls_my.csv` — 459 collected Malaysian URLs, 76% path-bearing | `DATASETS.md`; `RESULTS.md` |
+| Collected URLs are 0.15% of the URL corpus and cannot have shifted the model | `RESULTS.md` — states this explicitly so the corpus is not over-claimed |
 | **Rejection 1** — synthetic corpus, no valid metric obtainable by any split | **ADR 0005** |
 | **Rejection 2** — Malay email corpus, label contamination | **ADR 0011** |
 | Domain leakage in the public URL corpus (56.7% of rows on repeated domains) | ADR 0004; `RESULTS.md` |
@@ -54,11 +54,11 @@ would have produced a flattering meaningless one. Together they are the corpus a
 
 | Claim | Figure | Cite |
 |---|---|---|
-| Out-of-corpus generalisation probe | **70.8%, 6 of 12 scams missed** | `training/message_probe.py`; `RESULTS.md`; AGENTS.md |
-| Misses cluster in sparse categories | Parcel 18 rows → 0/2; Macau 19 → 1/3; Prize 20 → 1/2 | `RESULTS.md` table; `message_probe.py` output |
+| Out-of-corpus generalisation probe | **91.7%, 2 of 12 missed** (v2: 70.8%, 6 of 12) | `training/message_probe.py`; `tests/test_real_world_messages.py`; `RESULTS.md` |
+| Recall tracks category support, confirmed by acting on it | parcel 18→111, prize 20→106, impersonation 19→102; four of six misses closed | `RESULTS.md`, v2/v3 probe table |
 | DistilBERT scored higher but not measurably | +0.0179, 95% CI **[−0.0167, +0.0560]**, spans zero | ADR 0009; `RESULTS.md` |
 | Corpus needed to resolve it | **~800 test messages (~4,000 total)** for ~80% | `training/power_analysis.py`; `RESULTS.md` |
-| 1,200–1,500 will probably not resolve it, and that is the finding | `RESULTS.md` — recorded as a deliberate scope decision |
+| Corpus reached 1,113; whether that resolves DistilBERT is being re-measured | `RESULTS.md`; `training/power_analysis.py` |
 | URL model flags genuine institutional pages | 1 of 17 genuine sites in the high band | ADR 0006; `tests/test_real_world_urls.py` |
 | `url_length` is source-correlated yet load-bearing | label AUC 0.5896 vs source AUC 0.8978; dropping it costs 8.9 F1 | `RESULTS.md`; ADR 0010; `training/audit_url_artefacts.py` |
 | Several high-importance features are deliberately never surfaced | `url_length` fires at 52.3% precision against a 49.7% base rate | **ADR 0010**; `NOT_SURFACED` in `app/indicators.py` |

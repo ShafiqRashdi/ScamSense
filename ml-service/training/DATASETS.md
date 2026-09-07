@@ -91,32 +91,79 @@ on every run so this cannot be misjudged again.
 The corpus is retained as a smoke-test fixture proving the pipeline runs end to end. That is its
 only remaining use.
 
-### Real Malaysian messages — *collection in progress, and now the blocker for Phase 3*
+### Real Malaysian messages — `data/messages_my.csv` — **in use, model trained**
 
 The genuine corpus. Local-language coverage over authentic messages is what distinguishes
-ScamSense from ScamShield, and **the entire message-classifier objective now depends on it** —
-there is no interim figure, because the synthetic corpus cannot produce one.
-
-What it needs to contain, from ADR 0005:
-
-1. **300+ distinct scam messages and 300+ distinct legitimate messages** as a floor, ideally
-   1,000+ total. Distinct *messages*, not rows: the template count is what matters.
-2. **A legitimate class as varied as the scam class.** The synthetic corpus failed partly
-   because its negative class was effectively one template. Real legitimate messages — bank TAC
-   codes, delivery notifications, appointment reminders, telco top-ups, government announcements
-   — must come from as many distinct sources as the scam examples.
-3. **Real messages**, not generated ones, however authentic the vocabulary.
+ScamSense from ScamShield, and the message-classifier objective rests entirely on it.
 
 | Field | Value |
 |---|---|
-| Collection method | |
-| Date range | |
-| Rows | |
-| Consent basis | |
+| Rows | **1,113** — 609 scam, 504 legitimate |
+| Distinct templates | 940 (84%) |
+| Language | predominantly Malay, with code-switched and English rows |
+| Split | 726 train / 164 validation / 223 test, shipped with the corpus |
+| Source tag | `collected_my` throughout |
+| Collected in | two rounds: 528 rows to August 2026, a further 585 in September |
+| Serving artefact | `tfidf-msg-v3.0.0-collected-my`, test F1 0.9836 |
 
-Record for every message where it came from, the date, and the basis on which it was collected.
-Run each one through the redaction rules in `backend/app/Services/RedactorService.php` before it
-enters the dataset — a training corpus is a stored copy of personal data like any other.
+**Collected by one person** from their own phone, family members' phones, friends, classmates,
+WhatsApp groups and published scam alerts. Per-row provenance is recorded in
+`messages_my_with_metadata.csv` under `channel` and `received_from`, so any row can be traced
+back to how it was obtained. That is a stronger provenance record than most corpora of this size
+carry, and it is also the honest limit: **one annotator, no inter-annotator agreement**. Describe
+it as read end to end, never as verified.
+
+Every message is redacted before it enters the corpus. Phone numbers, identification numbers,
+account numbers and names are replaced with `[PHONE]`, `[IC]`, `[ACCOUNT]` and `[NAME]`.
+`training/validate_corpus.py` checks this and will not let unmasked personal data through; the
+masking costs nothing at training time because `normalise()` substitutes `[NUM]` for every number
+before the vectoriser sees it.
+
+#### The second round was targeted, not uniform
+
+The generalisation probe on the 528-row corpus showed recall tracking category support: every
+missed scam sat in a category holding fewer than 21 rows, every category above 39 was caught.
+Collection was weighted accordingly.
+
+| Category | Round 1 | Round 2 | Total |
+|---|---:|---:|---:|
+| Parcel scam | 18 | +93 | **111** |
+| Lucky draw / prize | 20 | +86 | **106** |
+| Macau scam / impersonation | 19 | +83 | **102** |
+| Investment scam | 78 | +10 | 88 |
+| Job offer scam | 76 | +8 | 84 |
+| Phishing link | 40 | +37 | 77 |
+| Loan scam | 39 | +6 | 45 |
+
+Out-of-corpus probe accuracy moved from 70.8% to 91.7% and missed scams from 6 of 12 to 2 of 12.
+See `docs/RESULTS.md`.
+
+#### Collection workflow
+
+`scamsense_corpus_collection.xlsx` is the collection sheet — **deliberately gitignored**, because
+it holds real messages sent to real people, which is the same reason `data/` is excluded.
+
+```bash
+python training/validate_corpus.py     # what is wrong, before anything is written
+python training/merge_corpus.py --dry-run
+python training/merge_corpus.py        # writes the three corpus files
+```
+
+The merge assigns splits **by template, never by row**, so a template group is indivisible and
+cannot straddle a partition. Existing rows keep their partition, which is what allows a figure
+measured after a merge to be compared with one measured before it.
+
+### Collected Malaysian URLs — `data/legit_urls_my.csv`
+
+459 rows, all legitimate, **76% carrying a real path** (up from 50%). Sectors: banking,
+e-wallet, telco, government, delivery, utility.
+
+**These are evidence, not training signal, and the report must not claim otherwise.** At 459 rows
+they are 0.15% of a 298,000-row corpus and cannot have moved the model's weights. Their value was
+diagnostic: they surfaced the trailing-slash defect where a single `/` moved `shopee.com.my` from
+0.0391 to 0.8814. Path-bearing URLs are collected specifically because ADR 0006 found the model's
+remaining false positives are deep paths on genuine institutional sites — a bare domain exercises
+none of that.
 
 ---
 

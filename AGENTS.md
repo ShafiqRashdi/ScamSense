@@ -284,19 +284,26 @@ ruff check . && black . && pytest
         scores 0.9606 but leaks 2,979 domains between train and test.
       ↳ The corpus is not Malaysian, and its legitimate half is Tranco-dominated.
         Read ADR 0004 "Limitations" before citing this number in the report.
-- [x] Phase 3 — Message classifier — see `docs/adr/0005`, `docs/adr/0009`
-      ↳ SERVING: `tfidf-msg-v2.0.0-collected-my`, test F1 0.9735 on 528 collected
-        Malaysian messages. ADR 0005 rejected the *synthetic* corpus (1,732 rows,
-        56 templates, no valid metric obtainable); ADR 0009 supersedes it.
-      ↳ DistilBERT evaluated once as a documented comparison: F1 0.9913 vs 0.9735,
-        difference +0.0179 with a 95% interval of [−0.0167, +0.0560] spanning zero.
-        Not shipped. `training/power_analysis.py` puts the corpus needed to resolve
-        it at ~800 test messages (~4,000 total); collection targets 1,200–1,500, so
-        an unresolved interval is an expected and reportable outcome.
-      ↳ **KNOWN LIMIT, `training/message_probe.py`:** 70.8% accuracy and 6 of 12
-        scams missed on hand-written out-of-corpus messages. Misses cluster in the
-        categories with under 21 training rows — parcel, impersonation, prize.
-        Weight the next collection round towards those rather than uniformly.
+- [x] Phase 3 — Message classifier — see `docs/adr/0005`, `docs/adr/0009`, `docs/adr/0011`
+      ↳ SERVING: `tfidf-msg-v3.0.0-collected-my`, test F1 0.9836 on 1,113 collected
+        Malaysian messages (223-row test split). Two corpora were rejected to get
+        here: ADR 0005 the synthetic one, ADR 0011 the label-contaminated one.
+      ↳ **Do NOT report 0.9735 → 0.9836 as an improvement.** Different test sets,
+        106 rows against 223. On the identical 106 rows v3 scores 0.9744 — a delta
+        of +0.0009 that hides the real change, which is two fewer missed scams for
+        two more false positives. Report the confusion matrix, not the F1.
+      ↳ **The collection worked, and it was predicted.** The v2 probe showed recall
+        tracking category support; collection was weighted to the three sparse
+        categories (parcel 18→111, prize 20→106, impersonation 19→102) and the
+        out-of-corpus probe moved 70.8% → 91.7%, missed scams 6/12 → 2/12.
+      ↳ **REMAINING LIMIT:** two probe misses persist — a Shopee delivery notice and
+        a Petronas prize draw. Both invoke a brand in routine-sounding language
+        without urgency or credential vocabulary. Their categories grew six and five
+        fold and the misses did not close, so this is phrasing rather than volume.
+        More rows in those categories is not the fix.
+      ↳ Corpus tooling: `training/validate_corpus.py` then `training/merge_corpus.py`.
+        The merge assigns splits BY TEMPLATE, never by row — a group is indivisible,
+        which is what keeps templates from straddling a partition (ADR 0005).
       ↳ When DistilBERT is revisited: also export ONNX + int8 quantised and benchmark
         memory/latency/F1 against the PyTorch checkpoint, to keep the 1 GB VPS option
         open (`docs/adr/0001`).
