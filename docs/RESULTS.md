@@ -142,72 +142,95 @@ That sentence is narrower than it looks, and the distinction matters twice over:
 
 ### Was DistilBERT tried? Yes — see `adr/0009`
 
-The proposal names DistilBERT, so the answer needs to be a number rather than an excuse.
+The proposal names DistilBERT, so the answer needs to be a number rather than an excuse. It has
+now been run **twice**: once against v2.0.0 on the 528-row corpus, and again against v3.0.0 on
+the 1,113-row corpus. The table below is the second, current run.
 
 | | TF-IDF + LogReg *(shipped)* | DistilBERT *(experiment)* |
 |---|---:|---:|
-| Test F1 (scam) | 0.9735 | **0.9913** |
-| Precision | 1.0000 | 1.0000 |
-| Recall | 0.9483 | 0.9828 |
+| Artefact | `tfidf-msg-v3.0.0-collected-my` | `distilbert-msg-v2.0.0-experiment` |
+| Test F1 (scam) | 0.9836 | **0.9959** |
+| Precision | 0.9756 | 1.0000 |
+| Recall | 0.9917 | 0.9917 |
+| Missed scams (of 121) | 1 | 1 |
+| False positives (of 102 legitimate) | 3 | 0 |
+
+**DistilBERT scored 0.0122 higher.** A paired bootstrap over the 223 test messages (5,000
+resamples) puts the 95% interval on that difference at **[−0.0043, +0.0317]** — it **still spans
+zero**, with 88.0% of resamples favouring DistilBERT.
+
+**More data narrowed the interval without resolving it.** Doubling the corpus halved the interval
+width, from 0.0727 to 0.0360, and moved the resample share from 77.2% to 88.0% — real movement,
+in the expected direction, and not enough. Report the interval, not the point estimate; the point
+estimate has moved twice and the conclusion has not.
+
+**What changed is which error the two models differ on, and it argues against DistilBERT rather
+than for it.** On the 528-row corpus they differed on *recall*: the baseline missed 3 scams of 58,
+DistilBERT 1. They now **miss the same single scam of 121**, and the entire remaining difference
+is false positives — 3 against 0. By this project's own stated asymmetry a missed scam costs a
+user money and a false positive costs them ten seconds of doubt, so the advantage that survives is
+in the **cheaper** error. Paying 250 MB of weights and 1–2 GB of runtime memory to remove three
+moments of unnecessary caution is a worse trade than the first run suggested.
+
+It is therefore **still not shipped**: the improvement is not demonstrated, the cost is certain,
+and it would discard the deployment headroom ADR 0001 and ADR 0004 were written to protect.
+
+The correct sentence for the report: *"DistilBERT was evaluated twice and scored F1 0.9959 against
+the baseline's 0.9836 on a 1,113-message corpus; the difference is within the 95% confidence
+interval, so the baseline was retained."* Not *"DistilBERT was no better"* — it may well be
+better, and the measurement still cannot say.
+
+<details>
+<summary>The first run, for comparison — v2.0.0 on 528 rows, 106 test messages</summary>
+
+| | TF-IDF v2.0.0 | DistilBERT v1.0.0 |
+|---|---:|---:|
+| Test F1 (scam) | 0.9735 | 0.9913 |
 | Missed scams (of 58) | 3 | 1 |
 | False positives (of 48) | 0 | 0 |
 
-> **This comparison was run against v2.0.0 on the 528-row corpus and has not been repeated.**
-> Both figures below are measured on that 106-row test set. On those same rows v3.0.0 scores
-> 0.9744, so the gap narrows to roughly +0.017 — but the bootstrap has not been re-run, and
-> until it is, the interval quoted here is the one that stands. Re-running it on the 1,113-row
-> corpus is a known outstanding task, not a settled result.
+Difference +0.0179, 95% CI **[−0.0167, +0.0560]**, 77.2% of resamples favouring DistilBERT.
+Kept because the movement between the two runs is itself a result: the measured effect **shrank**
+as the corpus grew.
 
-**DistilBERT scored 0.0179 higher.** But a paired bootstrap over the 106 test messages
-(5,000 resamples) puts the 95% interval on that difference at **[−0.0167, +0.0560]** — it
-**spans zero**, with 77.2% of resamples favouring DistilBERT.
-
-**The corpus cannot resolve a difference this size.** With 58 positives in test, the standard
-error on recall alone is around 0.03, so anything under roughly six points is inside the noise;
-the observed difference is 1.8 points, and in absolute terms the whole advantage is two messages.
-
-It is therefore **not shipped**: the improvement is not demonstrated, while the cost — roughly
-250 MB of weights plus 1–2 GB of runtime memory — is certain, and would discard the deployment
-headroom that ADR 0001 and ADR 0004 were written to protect. Revisit at a few thousand messages,
-where the evaluation could actually resolve it.
-
-The correct sentence for the report: *"DistilBERT was evaluated and scored F1 0.9913 against the
-baseline's 0.9735; the difference is within the 95% confidence interval on a 528-message corpus,
-so the baseline was retained."* Not *"DistilBERT was no better"* — it may well be better, and the
-measurement simply cannot say.
+</details>
 
 #### How much data would settle it? — `training/power_analysis.py`
 
 "Collect more data" is not a plan anyone can act on, so the requirement was measured rather than
-guessed. The script resamples from the error rates the two models actually produced (baseline
-missed 3 of 58 scams, DistilBERT 1 of 58, neither produced a false positive) and runs the same
-paired bootstrap at increasing corpus sizes.
+guessed. The script resamples from the error rates the two models actually produced — both miss
+the same 1 of 121 scams, the baseline adds 3 false positives in 102, DistilBERT none — and runs
+the same paired bootstrap at increasing corpus sizes.
 
 | Test messages | Total corpus at 70/15/15 | Trials where the interval excludes zero |
 |---:|---:|---:|
-| 106 *(current)* | 530 | 7% |
-| 200 | 1,000 | 35% |
-| 400 | 2,000 | 55% |
-| 800 | 4,000 | 83% |
-| 1,500 | 7,500 | 97% |
+| 223 *(current)* | 1,115 | 22% |
+| 400 | 2,000 | 40% |
+| 800 | 4,000 | 73% |
+| 1,500 | 7,500 | 90% |
 | 3,000 | 15,000 | 100% |
 
-**Around 800 test messages — roughly 4,000 collected in total — gives an ~80% chance of
-resolving a difference this size.** The 7% at the current size is a useful check on the method:
-it is consistent with what actually happened, and says the comparison was never going to resolve
-at 528 rows.
+**Around 1,500 test messages — roughly 7,500 collected in total — gives an ~80% chance of
+resolving a difference this size.**
 
-**The caveat is not optional.** This assumes the observed +0.0179 is the true difference, which
-is precisely what a zero-spanning interval says we do not know. If the real gap is smaller the
-requirement grows; if larger, it shrinks. It is a target to aim at, not a threshold that promises
-a result.
+**The requirement grew rather than shrank, and that is the interesting part.** The first run of
+this script, on the 528-row corpus, put the target at ~800 test messages and gave ~35% odds of
+resolving at 200. The corpus then reached 1,113 rows, giving 223 test messages, and the comparison
+did not resolve. **The prediction held** — which is a better reason to trust the table than the
+method's plausibility. The target moved to ~1,500 because the measured effect got *smaller*
+(+0.0122 against +0.0179), and a smaller true difference needs more data to distinguish from none.
 
-**Collection is targeted at 1,200–1,500 rows, not 4,000.** That is a deliberate scope decision:
-1,500 rows puts roughly 300 messages in test, which the table above places well below the point
-where this comparison resolves. If the DistilBERT interval still spans zero at that size, **that
-is the finding, not a failure** — a single-semester collection effort by one person cannot
-support a definitive answer to this question, and reporting that honestly is worth more than
-reporting a result the data cannot carry.
+**The caveat is not optional.** This assumes the observed +0.0122 is the true difference, which is
+precisely what a zero-spanning interval says we do not know. If the real gap is smaller the
+requirement grows again; if larger, it shrinks. It is a target to aim at, not a threshold that
+promises a result.
+
+**Collection was targeted at 1,200–1,500 rows, not 7,500.** That is a deliberate scope decision,
+and the corpus reached 1,113. The table above places that well below the point where this
+comparison resolves, and it did not resolve — **that is the finding, not a failure**. A
+single-semester collection effort by one person cannot support a definitive answer to this
+question, and reporting that honestly is worth more than reporting a result the data cannot carry.
+
 
 ### Message generalisation probe — `training/message_probe.py`
 

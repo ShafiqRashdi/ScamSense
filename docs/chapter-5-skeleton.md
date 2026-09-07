@@ -111,40 +111,70 @@ asymmetry this project applies everywhere else — a missed scam costs money, a 
 costs ten seconds — that is a favourable trade, and it is invisible in the headline metric.
 Report the confusion matrix here, not the F1.
 
-### 5.3.3 Was a transformer better? — a documented negative result
+### 5.3.3 Was a transformer better? — a documented negative result, measured twice
 
-**Cite:** ADR 0009; `docs/RESULTS.md`; `training/power_analysis.py`.
+**Cite:** ADR 0009 and its 2026-09-07 amendment; `docs/RESULTS.md`; `training/power_analysis.py`.
 
 | | TF-IDF + LogReg *(shipped)* | DistilBERT *(experiment)* |
 |---|---:|---:|
-| F1 (scam) | 0.9735 | **0.9913** |
-| Missed scams, of 58 | 3 | 1 |
-| False positives, of 48 | 0 | 0 |
+| F1 (scam) | 0.9836 | **0.9959** |
+| Precision / recall | 0.9756 / 0.9917 | 1.0000 / **0.9917** |
+| Missed scams, of 121 | 1 | 1 |
+| False positives, of 102 | 3 | **0** |
 
-DistilBERT scored **0.0179 higher**. A paired bootstrap over the 106 test messages puts the 95%
-interval on that difference at **[−0.0167, +0.0560]** — it **spans zero**, with 77.2% of
+DistilBERT scored **0.0122 higher**. A paired bootstrap over the 223 test messages puts the 95%
+interval on that difference at **[−0.0043, +0.0317]** — it **still spans zero**, with 88.0% of
 resamples favouring DistilBERT.
 
 `[WRITE: the correct sentence, and why the wrong one is tempting.]` The defensible claim is
-*"DistilBERT was evaluated and scored 0.9913 against the baseline's 0.9735; the difference lies
-within the confidence interval this corpus can resolve, so the baseline was retained."* Not
-*"DistilBERT was no better"* — it may well be better, and the measurement cannot say. The whole
-advantage is two messages.
+*"DistilBERT was evaluated twice and scored 0.9959 against the baseline's 0.9836 on a
+1,113-message corpus; the difference lies within the confidence interval this corpus can resolve,
+so the baseline was retained."* Not *"DistilBERT was no better"* — it may well be better, and the
+measurement cannot say. **Report the interval, not the point estimate:** the point estimate has
+moved twice and the conclusion has not.
+
+**What doubling the corpus actually bought.**
+
+| | 528 rows, 106 test | 1,113 rows, 223 test |
+|---|---:|---:|
+| Point estimate | +0.0179 | +0.0122 |
+| 95% CI | [−0.0167, +0.0560] | [−0.0043, +0.0317] |
+| Interval width | 0.0727 | **0.0360** |
+| Resamples favouring DistilBERT | 77.2% | **88.0%** |
+| Spans zero | yes | **yes** |
+
+`[WRITE: this is the paragraph a panel will remember.]` The interval halved and the answer did
+not change. That is what a small corpus looks like from the inside: visible progress towards a
+conclusion it cannot reach.
+
+**The kind of error changed, and it argues against DistilBERT.** On 528 rows the two models
+differed on *recall* — the baseline missed 3 scams of 58, DistilBERT 1. They now **miss the same
+single scam of 121**, and the entire remaining difference is false positives, 3 against 0. Under
+the asymmetry stated in 5.3.2, the surviving advantage is in the **cheaper** error. Paying 250 MB
+of weights to remove three moments of unnecessary caution is a worse trade than the first
+measurement suggested, not a better one.
 
 **How much data would settle it.** Resampling from the observed error rates:
 
 | Test messages | Total corpus | Trials resolving |
 |---:|---:|---:|
-| 106 *(current)* | 530 | 7% |
-| 400 | 2,000 | 55% |
-| 800 | 4,000 | **83%** |
-| 1,500 | 7,500 | 97% |
+| 223 *(current)* | 1,115 | 22% |
+| 400 | 2,000 | 40% |
+| 800 | 4,000 | 73% |
+| 1,500 | 7,500 | **90%** |
+| 3,000 | 15,000 | 100% |
 
-`[WRITE: and why the target is nevertheless lower.]` Collection is aimed at 1,200–1,500 total,
-which the table places below the point of resolution. **If the interval still spans zero at
-that size, that is itself the finding** — a single-semester collection effort by one person
-cannot settle this question, and reporting that honestly is worth more than reporting a result
-the data cannot carry.
+`[WRITE: the methodological point — the estimate was tested against reality.]` The first run of
+this analysis, on the 528-row corpus, predicted ~35% odds of resolving at 200 test messages. The
+corpus reached 223 test messages and the comparison did not resolve. **The prediction held**,
+which is a better reason to trust the table than the method's plausibility.
+
+The target has since **grown**, from ~800 test messages to ~1,500, because the measured effect got
+smaller. Collecting more data narrowed the interval and moved the finish line further away at the
+same time. Collection was aimed at 1,200–1,500 rows in total and reached 1,113 — well below the
+point of resolution, and **the interval still spanning zero at that size is itself the finding**.
+A single-semester collection effort by one person cannot settle this question, and reporting that
+honestly is worth more than reporting a result the data cannot carry.
 
 ### 5.3.4 What the corpus figures do not tell you — and what fixed it
 

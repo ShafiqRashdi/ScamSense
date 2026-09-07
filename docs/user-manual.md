@@ -165,7 +165,7 @@ provider is unreachable. Users still get answers, so nothing looks broken from
 the outside.
 
 Under **Model performance**, each figure carries the sentence it must be quoted
-with. Quote the whole sentence. *"F1 on a 528-message collected Malaysian
+with. Quote the whole sentence. *"F1 on a 1113-message collected Malaysian
 corpus"* means something different from *"97% accurate"*, and only the first is
 true.
 

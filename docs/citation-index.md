@@ -24,12 +24,15 @@ disagrees with it, it is wrong.
 | Message classifier, test F1 | **0.9836** | `RESULTS.md`; `models/tfidf-msg-v3.0.0-collected-my/metrics.json` |
 | Message precision / recall | 0.9756 / 0.9917 | same |
 | Message F1, leak-free subset | 0.9823 | same, `test_leak_free_subset` |
-| DistilBERT experiment F1 | 0.9913 | `models/distilbert-msg-v1.0.0-experiment/metrics.json`; ADR 0009 |
+| DistilBERT experiment F1 | **0.9959** | `models/distilbert-msg-v2.0.0-experiment/metrics.json`; ADR 0009 amendment |
+| DistilBERT precision / recall | 1.0000 / 0.9917 | same — **recall is identical to the baseline's**; the whole difference is 3 false positives against 0 |
 
 **Every message figure must carry its qualifier.** It is stored in the artefact as
 `REPORTING_QUALIFIER` and rendered on the dashboard beside the number, so the caveat and the
-figure cannot be separated: *"F1 on a 528-message collected Malaysian corpus… legitimate is the
-smaller class at 238… treat the confidence interval as wide."*
+figure cannot be separated: *"F1 on a 1113-message collected Malaysian corpus (940 distinct
+templates, 84% distinct)… legitimate is the smaller class at 504… treat the confidence interval
+as wide, and do not present this figure as equivalent to one measured on a large public
+dataset."*
 
 ---
 
@@ -56,9 +59,11 @@ would have produced a flattering meaningless one. Together they are the corpus a
 |---|---|---|
 | Out-of-corpus generalisation probe | **91.7%, 2 of 12 missed** (v2: 70.8%, 6 of 12) | `training/message_probe.py`; `tests/test_real_world_messages.py`; `RESULTS.md` |
 | Recall tracks category support, confirmed by acting on it | parcel 18→111, prize 20→106, impersonation 19→102; four of six misses closed | `RESULTS.md`, v2/v3 probe table |
-| DistilBERT scored higher but not measurably | +0.0179, 95% CI **[−0.0167, +0.0560]**, spans zero | ADR 0009; `RESULTS.md` |
-| Corpus needed to resolve it | **~800 test messages (~4,000 total)** for ~80% | `training/power_analysis.py`; `RESULTS.md` |
-| Corpus reached 1,113; whether that resolves DistilBERT is being re-measured | `RESULTS.md`; `training/power_analysis.py` |
+| DistilBERT scored higher but not measurably — **measured twice** | +0.0122, 95% CI **[−0.0043, +0.0317]**, spans zero (528-row run: +0.0179, [−0.0167, +0.0560]) | ADR 0009 amendment; `RESULTS.md` |
+| Doubling the corpus halved the interval without resolving it | width 0.0727 → **0.0360**; resamples favouring DistilBERT 77.2% → **88.0%** | ADR 0009 amendment; `models/distilbert-msg-v2.0.0-experiment/metrics.json` (`comparison_vs_baseline`) |
+| The remaining difference is precision, not recall — the cheaper error | both miss the same 1 of 121; baseline adds 3 false positives of 102 | ADR 0009 amendment; `RESULTS.md` |
+| Corpus needed to resolve it | **~1,500 test messages (~7,500 total)** for ~80% — the target **grew** from ~800 because the effect shrank | `training/power_analysis.py`; `RESULTS.md` |
+| The power analysis was tested against reality and held | predicted ~35% at 200 test rows; 223 rows did not resolve | `training/power_analysis.py` docstring; ADR 0009 amendment |
 | URL model flags genuine institutional pages | 1 of 17 genuine sites in the high band | ADR 0006; `tests/test_real_world_urls.py` |
 | `url_length` is source-correlated yet load-bearing | label AUC 0.5896 vs source AUC 0.8978; dropping it costs 8.9 F1 | `RESULTS.md`; ADR 0010; `training/audit_url_artefacts.py` |
 | Several high-importance features are deliberately never surfaced | `url_length` fires at 52.3% precision against a 49.7% base rate | **ADR 0010**; `NOT_SURFACED` in `app/indicators.py` |

@@ -304,13 +304,24 @@ ruff check . && black . && pytest
       ↳ Corpus tooling: `training/validate_corpus.py` then `training/merge_corpus.py`.
         The merge assigns splits BY TEMPLATE, never by row — a group is indivisible,
         which is what keeps templates from straddling a partition (ADR 0005).
+      ↳ **DistilBERT has now been measured TWICE and is still not shipped** (ADR 0009
+        + its 2026-09-07 amendment). On 1,113 rows: 0.9959 against 0.9836, difference
+        +0.0122, 95% CI [-0.0043, +0.0317] — still spans zero. Doubling the corpus
+        halved the interval width (0.0727 → 0.0360) without changing the answer.
+        Always quote the interval, never the point estimate alone.
+      ↳ The two models now MISS THE SAME SINGLE SCAM of 121; the whole difference is
+        false positives, 3 against 0. The surviving advantage is in the cheaper error
+        under this project's own asymmetry, which weakens the case for adopting it.
+      ↳ `training/power_analysis.py` predicted this (~35% odds at 200 test rows) and
+        was right. Its 80% target has GROWN to ~1,500 test messages (~7,500 collected)
+        because the measured effect shrank. Do not cite the old ~800/~4,000 figures.
       ↳ When DistilBERT is revisited: also export ONNX + int8 quantised and benchmark
         memory/latency/F1 against the PyTorch checkpoint, to keep the 1 GB VPS option
         open (`docs/adr/0001`).
 - [x] Phase 4 — Flask prediction API with HMAC — see `docs/api-contract.md`
-      ↳ POST /api/v1/predict/url serves rf-url-v1.2.0-no-https. Median 30ms, p95 76ms
-        over HTTP including HMAC. 183 tests pass.
-      ↳ POST /api/v1/predict/message serves tfidf-msg-v2.0.0-collected-my. It returns
+      ↳ POST /api/v1/predict/url serves rf-url-v2.0.0-pathnorm. Median 30ms, p95 76ms
+        over HTTP including HMAC.
+      ↳ POST /api/v1/predict/message serves tfidf-msg-v3.0.0-collected-my. It returns
         503 model_unavailable only when an artefact is missing or fails to load, and
         Laravel renders a labelled partial verdict, never a 500.
       ↳ **OPEN DEFECT, `docs/adr/0006`:** the model flags real banking and government

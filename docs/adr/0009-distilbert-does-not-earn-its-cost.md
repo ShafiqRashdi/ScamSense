@@ -1,10 +1,15 @@
 # ADR 0009 — DistilBERT scores higher, but not measurably, and is not shipped
 
-- **Status:** Accepted
-- **Date:** 2026-08-12
+- **Status:** Accepted — **re-measured 2026-09-07 on a corpus twice the size; decision unchanged**
+- **Date:** 2026-08-12 *(amended 2026-09-07)*
 - **Phase:** 3 (message classifier)
-- **Shipped model:** `tfidf-msg-v2.0.0-collected-my`
-- **Experiment artefact:** `distilbert-msg-v1.0.0-experiment` (metrics only, weights not saved)
+- **Shipped model:** `tfidf-msg-v3.0.0-collected-my` *(was v2.0.0 when this was written)*
+- **Experiment artefacts:** `distilbert-msg-v1.0.0-experiment` (528-row corpus),
+  `distilbert-msg-v2.0.0-experiment` (1,113-row corpus). Metrics only; weights not saved.
+
+> **Read the 2026-09-07 amendment at the bottom first if you want the current numbers.** The body
+> of this ADR records the original measurement on the 528-row corpus and is left intact, because
+> the movement between the two runs is itself the result.
 
 ---
 
@@ -104,3 +109,69 @@ Recorded so the reasoning is falsifiable rather than a preference:
 - Chapter 4 can state that DistilBERT was evaluated, scored 0.9913 against 0.9735, and was not
   adopted because the difference is inside the confidence interval and the deployment cost is
   not. That is a stronger methodological result than a bare adoption would have been.
+
+---
+
+## Amendment, 2026-09-07 — re-measured on 1,113 rows
+
+The body above rests on 106 test messages. The corpus has since roughly doubled, to 1,113
+messages, and the experiment was re-run end to end: `tfidf-msg-v3.0.0-collected-my` against
+`distilbert-msg-v2.0.0-experiment`, same splits, same threshold procedure, same paired bootstrap.
+
+| | TF-IDF v3.0.0 | DistilBERT v2.0.0 | Difference |
+|---|---:|---:|---:|
+| Test F1 (scam) | 0.9836 | **0.9959** | +0.0122 |
+| Precision (scam) | 0.9756 | 1.0000 | +0.0244 |
+| Recall (scam) | 0.9917 | 0.9917 | **0** |
+| Missed scams (of 121) | 1 | 1 | 0 |
+| False positives (of 102) | 3 | **0** | −3 |
+
+| | 528-row run | 1,113-row run |
+|---|---|---|
+| Point estimate | +0.0179 | +0.0122 |
+| 95% CI | [−0.0167, +0.0560] | **[−0.0043, +0.0317]** |
+| Interval width | 0.0727 | **0.0360** |
+| Resamples favouring DistilBERT | 77.2% | **88.0%** |
+| Interval spans zero | yes | **yes** |
+
+### The decision does not change, and one of the reasons for it got stronger
+
+**The interval still spans zero.** Doubling the corpus halved the interval width and moved the
+resample share from 77.2% to 88.0%. That is real movement in the expected direction, and it is
+not a result. The honest statement remains that DistilBERT may be better and this corpus cannot
+show it.
+
+**The nature of the difference changed, and the change argues against adoption.** On 528 rows the
+two models differed on **recall** — the baseline missed 3 scams of 58, DistilBERT 1 — which is
+the error type this project explicitly treats as costly. They now **miss the same single scam of
+121**, and the whole remaining difference is **false positives**, 3 against 0. A missed scam costs
+a user money; a false positive costs them ten seconds of unnecessary caution. The advantage that
+survived the larger corpus is in the cheaper error, so the second of the three reasons above —
+large certain cost against a small uncertain benefit — is now a worse trade than when it was
+written, not a better one.
+
+This also settles the second bullet under *What would have changed the decision*: "a materially
+better recall at equal precision" was the condition, and the re-measurement shows **identical
+recall**. The condition was tested and not met.
+
+### The power analysis predicted this, which is why it should be trusted
+
+`training/power_analysis.py`, run against the 528-row rates, put the odds of resolving at 200 test
+messages at ~35% and the 80% target at ~800. The corpus reached 223 test messages and the
+comparison did not resolve. The prediction held.
+
+Re-run against the current rates, the 80% target has moved to **~1,500 test messages, roughly
+7,500 collected** — it grew rather than shrank, because the measured effect got smaller. A smaller
+true difference needs more data to distinguish from none. Collecting more data narrowed the
+interval and moved the target further away at the same time; both of those are worth reporting.
+
+### Consequences of the amendment
+
+- `tfidf-msg-v3.0.0-collected-my` is the serving message model. DistilBERT remains unshipped, and
+  torch/transformers remain in `requirements-experiments.txt`.
+- Chapter 4 should cite the **1,113-row** figures — 0.9959 against 0.9836, CI [−0.0043, +0.0317] —
+  and should report the interval alongside the point estimate. The point estimate has moved twice;
+  the conclusion has not.
+- Revisit at a few thousand messages, as before, but with the target now at ~7,500 collected.
+  Reaching that inside a single semester by one collector is not realistic, and saying so is a
+  legitimate finding rather than an unfinished task.

@@ -1,18 +1,26 @@
 """The TF-IDF message classifier, loaded once at startup.
 
-Serves `tfidf-msg-v2.0.0-collected-my`: character n-grams (char_wb 2–5) into a
-Logistic Regression, trained on 528 collected Malaysian SMS/WhatsApp messages.
-Test F1 0.9735 on the split as shipped, 0.9684 on the leak-free subset — see
+Serves `tfidf-msg-v3.0.0-collected-my`: character n-grams (char_wb 2–5) into a
+Logistic Regression, trained on 1,113 collected Malaysian SMS/WhatsApp messages.
+Test F1 0.9836 on the split as shipped, 0.9823 on the leak-free subset — see
 docs/RESULTS.md for which figure is canonical and the qualifier each must be
 quoted with.
 
 ## Why this and not DistilBERT
 
-DistilBERT was trained and measured as a documented comparison (ADR 0009). It
-scored F1 0.9913 against this model's 0.9735, a difference of +0.0179 whose 95%
-paired bootstrap interval was [-0.0167, +0.0560] — spanning zero, so the corpus
-could not resolve it. TF-IDF ships because a 250 MB transformer that has not
-been shown to be better is not worth the cold start.
+DistilBERT was trained and measured as a documented comparison (ADR 0009), on
+both the 528-row and the 1,113-row corpus. On the current one it scored F1
+0.9959 against this model's 0.9836, a difference of +0.0122 whose 95% paired
+bootstrap interval is [-0.0043, +0.0317] — still spanning zero, so the corpus
+still cannot resolve it. Doubling the corpus halved the interval width and did
+not change the answer.
+
+Note where the remaining difference sits: both models miss the same single scam
+of 121, and DistilBERT's whole advantage is three fewer false positives. Under
+this project's stated asymmetry a missed scam costs a user money and a false
+positive costs ten seconds, so the surviving advantage is in the cheaper error.
+TF-IDF ships because a 250 MB transformer that has not been shown to be better
+is not worth the cold start.
 
 ## The preprocessor travels inside the artefact
 
