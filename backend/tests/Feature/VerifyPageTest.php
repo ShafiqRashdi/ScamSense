@@ -43,6 +43,26 @@ it('renders the verification form', function (): void {
     $this->get('/')->assertOk()->assertSee('Is this a scam?');
 });
 
+it('carries the hooks the submit feedback needs, in both locales', function (): void {
+    // The button does nothing visible for up to three seconds while a verdict
+    // is fetched, and a button that does nothing gets pressed again. app.js
+    // swaps in a spinner, but only for a form marked `data-busy-form` whose
+    // button carries a translated `data-busy-label`.
+    //
+    // Both attributes are easy to drop in a refactor, and losing them fails
+    // silently: the form still works, the feedback just disappears. Pinned in
+    // both locales because the label is translated and an untranslated one
+    // would put English in front of a Malay reader at the least reassuring
+    // moment on the page.
+    $this->get('/')
+        ->assertSee('data-busy-form', escape: false)
+        ->assertSee('data-busy-label="Checking..."', escape: false);
+
+    $this->withSession(['locale' => 'ms'])
+        ->get('/', ['Accept-Language' => 'ms'])
+        ->assertSee('data-busy-label="Sedang menyemak..."', escape: false);
+});
+
 it('shows the privacy notice on the form itself', function (): void {
     // Required by the Phase 6 brief: the user must know what is stored
     // before they paste, not afterwards.

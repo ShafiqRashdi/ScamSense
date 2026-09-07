@@ -21,7 +21,10 @@
                 </div>
             @endif
 
-            <form method="POST" action="{{ route('verify.store') }}" class="card shadow-sm">
+            {{-- `data-busy-form` opts this form into the submit feedback in
+                 app.js. The verdict can take up to three seconds, and a button
+                 that does nothing for three seconds gets pressed again. --}}
+            <form method="POST" action="{{ route('verify.store') }}" class="card shadow-sm" data-busy-form>
                 @csrf
                 <div class="card-body p-4">
 
@@ -64,7 +67,11 @@
                         @enderror
                     </div>
 
-                    <button type="submit" class="btn btn-primary btn-lg w-100 py-3">
+                    {{-- The busy label travels in a data attribute because the
+                         CSP is `script-src 'self'` and it must be translated.
+                         Without JS the button is an ordinary submit button. --}}
+                    <button type="submit" class="btn btn-primary btn-lg w-100 py-3"
+                            data-busy-label="{{ __('Checking...') }}">
                         {{ __('Check it') }}
                     </button>
                 </div>

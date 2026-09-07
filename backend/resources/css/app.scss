@@ -200,3 +200,109 @@ pre code {
     font-size: 0.9em;
     line-height: 1.55;
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Interaction states
+//
+// These are micro-interactions, not decoration. ADR 0012 rules out the register
+// a scam site uses — glow, gradient, pulse, bouncy easing — so every rule below
+// has to answer a question the user is actually asking, and answer it in under
+// a fifth of a second.
+//
+// Three constraints shape all of them:
+//
+//   1. NOTHING MOVES LAYOUT. Transforms and shadows only. A control that
+//      changes size on hover shifts what is under a shaky finger.
+//   2. Hover is gated behind `hover: hover`. On a touchscreen a :hover rule
+//      sticks after the tap, so the last button pressed stays lit and reads as
+//      still selected.
+//   3. Every effect is switched off under `prefers-reduced-motion`. That
+//      setting is common among users with vestibular disorders, and this
+//      audience skews older.
+// ─────────────────────────────────────────────────────────────────────────────
+
+.btn {
+    // Bootstrap already transitions colour, border and box-shadow. Transform is
+    // the one it leaves out, and it is the one doing the work here.
+    transition: $btn-transition, transform 0.12s ease-out;
+}
+
+// The press. This is the only effect with a hard usability argument behind it:
+// a verdict takes up to three seconds (objective O2), and on a mid-range
+// Android the gap between tap and page change is long enough that a user with
+// no feedback concludes the tap missed and taps again. The button visibly
+// giving way is the cheapest possible acknowledgement, and it costs no network.
+.btn:active {
+    transform: translateY(1px);
+}
+
+@media (hover: hover) {
+    // Desktop only, and deliberately slight — a 1px lift and a shadow, which
+    // reads as "this is pressable" without announcing itself.
+    .btn-primary:hover,
+    .btn-success:hover,
+    .btn-outline-primary:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 2px 8px rgba($sc-ink, 0.16);
+    }
+
+    .btn-primary:active,
+    .btn-success:active,
+    .btn-outline-primary:active {
+        // Cancel the lift on press so the two rules do not fight.
+        transform: translateY(1px);
+        box-shadow: none;
+    }
+}
+
+// The message/link chooser. Bootstrap fills the selected segment, which on a
+// warm background at arm's length is a weaker signal than it looks in a
+// design tool. The weight change is the part that survives a cheap screen —
+// and, like the verdict, it means the selection is not carried by colour alone.
+.btn-check:checked + .btn {
+    font-weight: 700;
+    box-shadow: inset 0 2px 5px rgba($sc-ink, 0.22);
+}
+
+// The submit button while the verdict is being fetched. Set by app.js; the
+// rules live here so a JS failure leaves the button entirely normal.
+.btn[aria-busy="true"] {
+    // `disabled` would grey it out, which reads as "this is broken" rather than
+    // "this is working". It stays fully coloured and simply stops responding.
+    pointer-events: none;
+    transform: none;
+}
+
+// The answer arriving. A short rise and fade so the verdict lands rather than
+// appearing to have always been there — which supports rule 1 of ADR 0012, the
+// answer being found in one glance.
+//
+// Declared ONLY inside the keyframes, never as a base opacity. If the animation
+// never runs — old browser, CSS partly failed, reduced motion — the card
+// renders fully visible. A verdict that depends on an animation to be readable
+// is a verdict that can silently disappear.
+@keyframes sc-verdict-in {
+    from {
+        opacity: 0;
+        transform: translateY(6px);
+    }
+}
+
+.card.border-2 {
+    animation: sc-verdict-in 0.26s ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .btn,
+    .btn:active,
+    .btn-primary:hover,
+    .btn-success:hover,
+    .btn-outline-primary:hover {
+        transition: none;
+        transform: none;
+    }
+
+    .card.border-2 {
+        animation: none;
+    }
+}
