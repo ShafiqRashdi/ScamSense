@@ -71,6 +71,25 @@ would have produced a flattering meaningless one. Together they are the corpus a
 
 ---
 
+## Interface design — Chapter 4
+
+Design choices that are reasoning rather than taste, and that a panel is likely to probe.
+
+| Claim | Figure | Cite |
+|---|---|---|
+| The design follows from one fact — the user is already anxious | three stated rules | **ADR 0012** |
+| The brand green is deliberately far from the risk hues | — | ADR 0012 §1; `backend/resources/css/app.scss` palette block |
+| The verdict card is deliberately *less* rounded than the rest of the page | radius 0.75rem → 0.5rem, 6px top rule | ADR 0012 §2 — rounded pastel is scam-site visual language |
+| Colour is never the only carrier of a verdict | border + badge + icon + text label, three times over | ADR 0012 §3; WCAG 1.4.1; `resources/views/verify/result.blade.php` |
+| Base type raised above Bootstrap's default | 17px, and the scale set against `.h3`/`.h4` as used | ADR 0012 §4 |
+| The verified panel renders first and owns the `h1` | it previously fell below the fold at 375px | ADR 0012 §5 |
+| The indicator card renders even when empty | an empty list is a real finding, not a failed load | ADR 0012 §6; ADR 0010 |
+| Self-hosting the webfont is what lets `font-src 'self'` stand | 41 KB, two variable files | ADR 0012 §7 |
+| **Palette contrast measured, not asserted** | 11 pairs computed; every text pair clears AA | **ADR 0012** contrast table |
+| **Open defect: input border fails SC 1.4.11** | **1.57:1 against a required 3.0:1** | **ADR 0012** — report as a limitation if unfixed at demonstration |
+
+---
+
 ## Security and process — Chapters 4 and 5
 
 | Claim | Cite |
@@ -108,6 +127,7 @@ Honest gaps. Each is either work not done or a claim that should be softened.
 |---|---|
 | UAT results with real participants | **No participants recruited.** Nothing to cite |
 | Adversarial robustness | Not tested. Say so in limitations |
+| WCAG conformance as a whole | **Only the palette was measured** (ADR 0012). No audit of focus order, labels or screen-reader flow. Claim contrast, not conformance |
 | Feedback loop validated at scale | Not validated. The gate is tested; throughput under real volume is not |
 | Latency against the 3-second objective in production | Only measured locally. `verdicts.inference_ms` will evidence it once deployed |
 | Inter-annotator agreement on the collected corpus | Labelled by one person. Describe as "read end to end", never as "verified" |

@@ -337,8 +337,18 @@ ruff check . && black . && pytest
         accuracy: every figure in docs/RESULTS.md is measured with it disabled.
       ↳ ML service unreachable, 503, or malformed → partial verdict, never a 500.
 - [x] Phase 6 — Public UI (submit, verdict, indicators) — bilingual, three risk bands
+      — visual design rationale in `docs/adr/0012`
       ↳ Verified-address panel names the institution; the "we checked the address,
         not the page" scoping stays visible and is asserted outside <details>.
+      ↳ **The brand green is load-bearing, not decorative.** It is deliberately far
+        from the red-amber risk hues so nothing in ordinary page furniture competes
+        with a risk signal. Do not introduce a warm accent (ADR 0012).
+      ↳ **OPEN A11Y DEFECT, ADR 0012:** `$sc-line-strong #d8cbb9` is the input border
+        and reaches only 1.57:1 against the input background, against WCAG 2.1
+        SC 1.4.11's required 3.0:1. Candidate `#b9a68d` measures 3.07:1, unevaluated
+        in situ. Do NOT close this by lowering `$min-contrast-ratio`.
+      ↳ Any palette change must re-run the contrast table in ADR 0012. Those figures
+        were computed, not estimated; breaking one is a regression, not a restyle.
       ↳ Malay reviewed by Shafiq: `pelik`, `tidak pasti`, `alamat` throughout.
       ↳ Risk carried by icon + text + colour; icons are inline SVG so a failed
         webfont cannot reduce the verdict to colour alone.
