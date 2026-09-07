@@ -35,11 +35,11 @@ URL_MODEL_DIRNAME = "rf-url-v2.0.0-pathnorm"
 
 #: The message artefact ScamSense ships. ADR 0005 rejected the *synthetic*
 #: corpus and no artefact was produced from it; ADR 0009 supersedes that with a
-#: model trained on 528 collected Malaysian messages. Naming the served artefact
-#: here — rather than globbing for the newest directory — means the models
-#: directory can hold superseded versions without one of them silently becoming
-#: what production serves.
-MESSAGE_MODEL_DIRNAME = "tfidf-msg-v2.0.0-collected-my"
+#: model trained on collected Malaysian messages, now 1,113 of them. Naming the
+#: served artefact here — rather than globbing for the newest directory — means
+#: the models directory can hold superseded versions without one of them
+#: silently becoming what production serves.
+MESSAGE_MODEL_DIRNAME = "tfidf-msg-v3.0.0-collected-my"
 
 MESSAGE_MODEL: MessageClassifier | None = None
 URL_MODEL: UrlClassifier | None = None

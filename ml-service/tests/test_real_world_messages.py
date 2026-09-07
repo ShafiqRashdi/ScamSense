@@ -1,9 +1,10 @@
 """Behaviour of the shipped message model on messages people actually receive.
 
 The counterpart to `test_real_world_urls.py`, and it exists for the same reason:
-the corpus test set reports F1 0.9735 while the model misses textbook Malaysian
-scams. A metric measured on messages drawn from one collection effort does not
-tell you what happens to a scam phrased a way the collector never saw.
+a corpus test set does not tell you what happens to a scam phrased a way the
+collector never saw. Against v2.0.0 this probe scored 70.8% while the corpus
+figure stood at 0.9735; after the corpus grew from 528 rows to 1,113 it scores
+91.7%, and four of these messages moved from xfail to passing.
 
 These are not corpus metrics. Every message here was written by hand, none
 appears in the corpus, and they follow patterns documented by the National Scam
@@ -17,10 +18,14 @@ The failing cases are marked `xfail` rather than deleted. They document a known
 limit precisely, keep the suite green, and will report XPASS the moment a larger
 corpus fixes them — which is what makes the fix measurable rather than assumed.
 
-Diagnosis, measured in `training/message_probe.py`:
-  recall on out-of-corpus scams tracks how many rows the corpus holds for that
-  category. Every miss below sits in a category with fewer than 21 training
-  rows; every category above 39 rows is caught. Only corpus work closes these.
+Diagnosis, measured in `training/message_probe.py` and then confirmed by
+acting on it: recall on out-of-corpus scams tracks how many rows the corpus
+holds for that category. Against v2.0.0 every miss sat in a category with fewer
+than 21 rows and every category above 39 was caught. Collection was weighted to
+the three sparse ones — parcel 18 to 111, prize 20 to 106, impersonation 19 to
+102 — and four of the six misses closed. That is the hypothesis, the
+intervention and the result, which is worth more in the write-up than the
+headline F1.
 """
 
 from __future__ import annotations
@@ -49,8 +54,7 @@ CORRECTLY_LEGITIMATE = [
     "Cuti tahunan anda telah diluluskan. Sila rujuk sistem HR untuk butiran.",
 ]
 
-#: Scams the model catches. Every one belongs to a category holding 39 or more
-#: training rows — investment, job offer, loan, phishing link.
+#: Scams the model catches.
 CAUGHT_SCAMS = [
     "Bank Negara Malaysia: Akaun anda terlibat dalam kes pengubahan wang haram. "
     "Sila hubungi pegawai kami segera di talian ini.",
@@ -64,32 +68,47 @@ CAUGHT_SCAMS = [
     "within 12 hours to restore access.",
     "Congratulations! Your number was selected in our lucky draw. Claim your "
     "RM5,000 prize before it expires today.",
-]
-
-#: Scams the model still misses. Every one is a scam a Malaysian adult could
-#: plausibly receive this week, and every one sits in a sparse category:
-#: parcel (18 rows), Macau/impersonation (19), lucky draw (20).
-KNOWN_MISSED_SCAMS = [
+    # Caught for the first time by v3.0.0, after the corpus grew from 528 to
+    # 1,113 rows with collection weighted to parcel, impersonation and prize.
+    # Each of these was an xfail against v2.0.0; each is a textbook Malaysian
+    # scam that the platform previously told a user showed no warning signs.
     "Makluman JPJ: Anda mempunyai saman tertunggak RM300. Sila jelaskan dalam "
     "tempoh 24 jam untuk mengelakkan tindakan mahkamah.",
-    "Parcel anda tertahan di kastam. Bayar caj pemprosesan RM3.50 untuk melepaskan "
-    "bungkusan anda.",
     "LHDN: Anda layak menerima bayaran balik cukai RM1,280. Sahkan maklumat akaun "
     "bank anda untuk proses pemulangan.",
     "TnG eWallet: Akaun anda akan digantung. Sahkan identiti anda sekarang atau "
     "baki anda akan hilang.",
+    "Parcel anda tertahan di kastam. Bayar caj pemprosesan RM3.50 untuk melepaskan "
+    "bungkusan anda.",
+]
+
+#: The two scams v3.0.0 still misses, down from six. Both invoke a brand in a
+#: routine-sounding way — a failed Shopee delivery, a Petronas prize draw —
+#: rather than carrying the urgency and credential vocabulary the model has
+#: learned. More rows in those categories did not close them, which suggests the
+#: remaining gap is shape rather than volume.
+KNOWN_MISSED_SCAMS = [
     "Shopee: Pesanan anda gagal dihantar. Kemas kini alamat dan maklumat pembayaran "
     "anda di sini untuk penghantaran semula.",
     "Anda telah memenangi cabutan bertuah Petronas. Sila berikan nombor akaun untuk "
     "pemindahan hadiah RM8,888.",
 ]
 
-#: A genuine message the model wrongly flags. One is not a rate, but it is the
-#: shape worth watching: terse, English, mostly a reference number, which leaves
-#: the character n-grams very little ordinary language to go on.
-KNOWN_FALSE_POSITIVES = [
+#: Was wrongly flagged by v2.0.0 and is correct under v3.0.0. Kept in the suite
+#: as an ordinary expectation rather than deleted: terse English notifications
+#: that are mostly a reference number remain the thinnest input the model gets,
+#: and the corpus is still overwhelmingly Malay.
+PREVIOUSLY_FLAGGED = [
     "Your Grab driver is arriving in 2 minutes. Plate number WXY 1234.",
 ]
+
+
+def predictors_dirname() -> str:
+    """The artefact actually being served, rather than a version string frozen
+    into a test — which would fail on the next retrain for no useful reason."""
+    from app import predictors
+
+    return predictors.MESSAGE_MODEL_DIRNAME
 
 
 def predict(text: str):  # type: ignore[no-untyped-def]
@@ -140,7 +159,7 @@ def test_uat_a_legitimate_bank_message_carries_an_explanation(loaded_app: Flask)
 
     assert prediction.label == "legitimate"
     assert isinstance(prediction.indicators, list)
-    assert prediction.model_version == "tfidf-msg-v2.0.0-collected-my"
+    assert prediction.model_version == predictors_dirname()
 
 
 def test_uat_a_known_scam_message_is_caught_and_explained(loaded_app: Flask) -> None:
@@ -179,31 +198,30 @@ def test_scams_in_well_represented_categories_are_caught(loaded_app: Flask, text
 
 @pytest.mark.xfail(
     reason=(
-        "KNOWN LIMIT (docs/RESULTS.md, training/message_probe.py): the model "
-        "misses 6 of 12 hand-written out-of-corpus scams. Every miss sits in a "
-        "category holding fewer than 21 training rows — parcel 18, Macau "
-        "impersonation 19, lucky draw 20 — while every category above 39 rows "
-        "is caught. This is corpus scarcity, not a threshold that can be "
-        "retuned; collection is targeted at these three categories."
+        "KNOWN LIMIT (docs/RESULTS.md, training/message_probe.py): v3.0.0 misses "
+        "2 of 12 hand-written out-of-corpus scams, down from 6 under v2.0.0. "
+        "Both invoke a brand in a routine-sounding way — a failed Shopee "
+        "delivery, a Petronas prize draw — rather than carrying the urgency and "
+        "credential vocabulary the model has learned. Tripling the rows in those "
+        "categories did not close them, so unlike the four that did close, the "
+        "remaining gap looks like shape rather than volume."
     ),
     strict=False,
 )
 @pytest.mark.parametrize("text", KNOWN_MISSED_SCAMS)
-def test_scams_in_sparse_categories_are_caught(loaded_app: Flask, text: str) -> None:
+def test_scams_that_read_as_routine_are_caught(loaded_app: Flask, text: str) -> None:
     assert predict(text).label == "scam", text
 
 
-@pytest.mark.xfail(
-    reason=(
-        "KNOWN LIMIT: a terse English message that is mostly a reference number "
-        "gives character n-grams very little ordinary language to weigh. The "
-        "corpus is 416 Malay to 1 English, so English legitimate traffic is "
-        "barely represented."
-    ),
-    strict=False,
-)
-@pytest.mark.parametrize("text", KNOWN_FALSE_POSITIVES)
+@pytest.mark.parametrize("text", PREVIOUSLY_FLAGGED)
 def test_terse_english_messages_are_not_flagged(loaded_app: Flask, text: str) -> None:
+    """An xfail against v2.0.0, an ordinary expectation under v3.0.0.
+
+    Kept rather than deleted because the underlying thinness has not gone away:
+    the corpus is still overwhelmingly Malay, and a terse English notification
+    that is mostly a reference number is the least language the model ever gets.
+    If it regresses, that should fail here rather than be discovered by a user.
+    """
     assert predict(text).label == "legitimate", text
 
 
@@ -211,9 +229,9 @@ def test_the_miss_rate_on_this_probe_is_recorded(loaded_app: Flask) -> None:
     """Pins the current rate so a change is visible rather than assumed.
 
     Asserts a bound rather than an exact figure: the point is to catch a
-    regression, not to enshrine six missed scams as acceptable. Retraining on a
-    larger corpus should make this fail in the good direction, at which point
-    the bound comes down.
+    regression, not to enshrine the current miss count as acceptable. The bound
+    came down from six to two when the corpus grew from 528 rows to 1,113, which
+    is what a bound is for — it ratchets.
     """
     scams = CAUGHT_SCAMS + KNOWN_MISSED_SCAMS
     missed = sum(1 for text in scams if predict(text).label != "scam")

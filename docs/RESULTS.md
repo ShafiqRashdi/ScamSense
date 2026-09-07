@@ -7,7 +7,7 @@ this file, this file wins.
 Every figure here is traceable to a `metrics.json` in `ml-service/models/`, which is committed.
 Nothing here is estimated or remembered.
 
-Last verified against the artefacts: 2026-08-11.
+Last verified against the artefacts: 2026-09-07.
 
 ---
 
@@ -26,25 +26,68 @@ Last verified against the artefacts: 2026-08-11.
 
 ### Message classifier — **complete**
 
-> ## Test F1 = 0.9735
+> ## Test F1 = 0.9836
 >
-> Scam class, `tfidf-msg-v2.0.0-collected-my`, on the corpus's own held-out test split
-> (106 messages, 105 distinct templates).
+> Scam class, `tfidf-msg-v3.0.0-collected-my`, on the corpus's own held-out test split
+> (223 messages, 191 distinct templates).
 >
-> **Quote it as:** *"F1 on a 528-message collected Malaysian corpus."* Real collected
-> SMS/WhatsApp, redacted at source, 493 distinct templates (93% distinct). Class balance is
-> uneven — **legitimate is the smaller class at 238** against 290 scam.
+> **Quote it as:** *"F1 on a 1,113-message collected Malaysian corpus."* Real collected
+> SMS/WhatsApp, redacted at source, 940 distinct templates (84% distinct). Class balance is
+> uneven — **legitimate is the smaller class at 504** against 609 scam.
 >
-> Precision 1.0000, recall 0.9483, ROC AUC 0.9896. Zero false positives on the 48 legitimate
-> test messages; 3 scams missed out of 58.
+> Precision 0.9756, recall 0.9917, ROC AUC 0.9961. One scam missed of 121; three false positives
+> of 102 legitimate messages.
 >
-> **Secondary figure: F1 = 0.9684** on the 97 test rows whose template never appeared in train or
-> validation. The shipped split has 5 templates shared across partitions (9 test rows, 8.5%), so
-> the leak-free subset bounds the primary figure from below. Both are reported because both are
-> informative; the gap is small.
+> **Secondary figure: F1 = 0.9823** on the 214 test rows whose template never appeared in train
+> or validation. The shipped split still carries 5 shared templates (6 test rows, 2.7%, down from
+> 8.5%), so the leak-free subset bounds the primary figure from below. Both are reported because
+> both are informative; the gap is small.
 >
-> **This is a small corpus.** With 58 positives in test, the 95% interval on recall is roughly
-> ±6 points. Do not present this figure as equivalent to one measured on a large public dataset.
+> **This is still a small corpus.** With 121 positives in test the interval is narrower than
+> v2's, but do not present this figure as equivalent to one measured on a large public dataset.
+
+#### v3 against v2 — what actually improved
+
+**Do not report 0.9735 → 0.9836 as an improvement.** They are measured on different test sets:
+v2's was 106 rows, v3's is 223. The 106 are a subset — they kept their partition through the
+merge — so a like-for-like comparison exists and is the only one that answers the question.
+
+| On the identical 106 rows | F1 | Precision | Recall | Missed of 58 | False positives |
+|---|---:|---:|---:|---:|---:|
+| `tfidf-msg-v2.0.0` | 0.9735 | 1.0000 | 0.9483 | 3 | 0 |
+| `tfidf-msg-v3.0.0` | **0.9744** | 0.9661 | 0.9828 | **1** | 2 |
+
+**F1 moved +0.0009 — essentially nothing — and that conceals the real change.** The model traded
+two missed scams for two false positives, which a harmonic mean treats as a wash. By the
+asymmetry this project states everywhere else — a missed scam costs a user money, a false
+positive costs them ten seconds — that is a clearly favourable trade, and it is invisible in the
+headline number. Report the confusion matrix, not the F1, when comparing these two.
+
+#### The figure that actually justifies the collection
+
+The corpus metric barely moved. The out-of-corpus probe moved a great deal, and that is what the
+extra 585 rows were collected for.
+
+| `training/message_probe.py`, 24 hand-written messages | v2.0.0 | v3.0.0 |
+|---|---:|---:|
+| Overall | 17/24 (70.8%) | **22/24 (91.7%)** |
+| Scams missed | 6/12 | **2/12** |
+| Legitimate flagged | 1/12 | **0/12** |
+
+Four of the six misses closed: the JPJ summons demand, the LHDN refund, the Touch 'n Go
+suspension and the Shopee delivery notice. The Grab false positive closed too.
+
+**This is the strongest result in the project, because it was predicted before it was produced.**
+The v2 probe showed recall tracking category support — every miss in a category under 21 rows,
+every category above 39 caught. Collection was weighted to the three sparse categories on that
+basis: parcel 18 → 111, prize 20 → 106, impersonation 19 → 102. Recall then moved as predicted.
+Hypothesis, intervention, confirmation — which is worth more in Chapter 5 than any single F1.
+
+**Two misses remain**, and they are a different shape rather than more of the same. A failed
+Shopee delivery and a Petronas prize draw both invoke a brand in routine-sounding language,
+without the urgency and credential vocabulary the model has learned. Tripling the rows in those
+categories did not close them, so the remaining gap looks like phrasing rather than volume — a
+distinction worth stating, because "collect more" is not the answer to everything.
 
 #### URL classifier, in full — `rf-url-v2.0.0-pathnorm`
 
@@ -63,20 +106,23 @@ applied), Random Forest with 200 trees at `max_depth=18`, `class_weight="balance
 domain-grouped stratified split. Trained on 298,490 URLs across 136,258 registrable domains —
 PhiUSIIL, two Kaggle sets, Tranco, and 221 collected Malaysian URLs.
 
-#### Message classifier, in full — `tfidf-msg-v2.0.0-collected-my`
+#### Message classifier, in full — `tfidf-msg-v3.0.0-collected-my`
 
 | Metric | Full test split | Leak-free subset |
 |---|---:|---:|
-| **F1 (scam)** | **0.9735** | 0.9684 |
-| Precision (scam) | 1.0000 | 1.0000 |
-| Recall (scam) | 0.9483 | 0.9388 |
-| ROC AUC | 0.9896 | 0.9877 |
-| Rows | 106 | 97 |
-| Distinct templates | 105 | 97 |
+| **F1 (scam)** | **0.9836** | 0.9823 |
+| Precision (scam) | 0.9756 | 0.9737 |
+| Recall (scam) | 0.9917 | 0.9911 |
+| ROC AUC | 0.9961 | 0.9958 |
+| Rows | 223 | 214 |
+| Distinct templates | 191 | 183 |
 
 Configuration: TF-IDF over character n-grams (`char_wb`, 2–5), Logistic Regression with
-`class_weight="balanced"`, seed 42, using the split shipped with the corpus rather than a
-recomputed one.
+`class_weight="balanced"`, seed 42, decision threshold 0.4717 chosen on validation, using the
+split shipped with the corpus rather than a recomputed one.
+
+Superseded: `tfidf-msg-v2.0.0-collected-my`, F1 0.9735 on a 106-row test set drawn from the
+528-row corpus. Retained in `models/` and reachable from the dashboard's superseded list.
 
 **Both models meet the 0.85 threshold objective O1 sets for the metric.**
 
@@ -88,10 +134,11 @@ That sentence is narrower than it looks, and the distinction matters twice over:
   in the running product came back *"We could not check this properly."* The metric was honest;
   the claim that the product met O1 on both tasks was not. Fixed and covered by a regression
   test that asserts `/health` reports both models loaded.
-- **The message model does not generalise as well as 0.9735 suggests.** On 24 hand-written
-  messages outside the corpus it reaches **70.8% accuracy and misses 6 of 12 scams** — see
-  *Message generalisation probe* below. The frozen-test-set figure remains the honest headline
-  for O1; the probe is what it means in a user's hands.
+- **The message model still generalises less well than its corpus figure suggests, though much
+  less so than it did.** On 24 hand-written messages outside the corpus, v3 reaches **91.7% and
+  misses 2 of 12 scams** — against 70.8% and 6 of 12 for v2. The frozen-test-set figure remains
+  the honest headline for O1; the probe is what it means in a user's hands, and the gap between
+  0.9836 and 91.7% is the honest measure of how far a corpus this size can be trusted.
 
 ### Was DistilBERT tried? Yes — see `adr/0009`
 
@@ -104,6 +151,12 @@ The proposal names DistilBERT, so the answer needs to be a number rather than an
 | Recall | 0.9483 | 0.9828 |
 | Missed scams (of 58) | 3 | 1 |
 | False positives (of 48) | 0 | 0 |
+
+> **This comparison was run against v2.0.0 on the 528-row corpus and has not been repeated.**
+> Both figures below are measured on that 106-row test set. On those same rows v3.0.0 scores
+> 0.9744, so the gap narrows to roughly +0.017 — but the bootstrap has not been re-run, and
+> until it is, the interval quoted here is the one that stands. Re-running it on the 1,113-row
+> corpus is a known outstanding task, not a settled result.
 
 **DistilBERT scored 0.0179 higher.** But a paired bootstrap over the 106 test messages
 (5,000 resamples) puts the 95% interval on that difference at **[−0.0167, +0.0560]** — it
@@ -158,39 +211,43 @@ reporting a result the data cannot carry.
 
 ### Message generalisation probe — `training/message_probe.py`
 
-The 0.9735 above is measured on messages drawn from the same collection effort as the training
-rows: same 11 legitimate and 7 scam categories, same collector, same weeks. The probe asks the
-harder question — does it work on a scam it has never seen phrased this way? — using 24 messages
-written by hand, independently of the corpus, following patterns documented by the NSRC and Bank
-Negara Malaysia.
+A corpus figure is measured on messages drawn from the same collection effort as the training
+rows: same categories, same collector, same weeks. The probe asks the harder question — does it
+work on a scam it has never seen phrased this way? — using 24 messages written by hand,
+independently of the corpus, following patterns documented by the NSRC and Bank Negara Malaysia.
 
-| | Result |
-|---|---:|
-| Overall accuracy | **17/24 (70.8%)** |
-| Scams missed | **6/12** |
-| Legitimate flagged | 1/12 |
-
-**Recall tracks category support almost exactly.** Every miss falls in a category with fewer
-than 21 training rows:
-
-| Category | Corpus rows | Probe |
+| | v2.0.0 (528 rows) | v3.0.0 (1,113 rows) |
 |---|---:|---:|
-| Parcel scam | 18 | 0/2 |
-| Macau scam / impersonation | 19 | 1/3 |
-| Lucky draw / prize | 20 | 1/2 |
-| Phishing link | 40 | 2/3 |
-| Loan scam | 39 | 1/1 |
-| Job offer scam | 76 | 1/1 |
+| Overall accuracy | 17/24 (70.8%) | **22/24 (91.7%)** |
+| Scams missed | 6/12 | **2/12** |
+| Legitimate flagged | 1/12 | **0/12** |
 
-**This is the single most useful finding for the next collection round:** the sparse categories
-are the ones that fail, and they are sparse by roughly a factor of four against Job offer scam.
-Weighting collection towards parcel, impersonation and prize scams will do more than adding rows
-uniformly.
+**Recall tracked category support, and then moved when the support did.** Under v2 every miss
+fell in a category holding fewer than 21 rows while every category above 39 was caught. That was
+a prediction about what collection would fix, and it was acted on directly:
 
-The missed messages are textbook Malaysian scams — a JPJ summons demand, a customs-held parcel,
-an LHDN tax refund, a Touch 'n Go suspension. **A user pasting any of those into ScamSense today
-is told there are no warning signs.** Quote this as a generalisation probe, never as the model's
-F1; it is small and deliberately adversarial, and the two figures measure different things.
+| Category | v2 rows | v2 probe | v3 rows | v3 probe |
+|---|---:|---:|---:|---:|
+| Parcel scam | 18 | 0/2 | **111** | 1/2 |
+| Macau scam / impersonation | 19 | 1/3 | **102** | 3/3 |
+| Lucky draw / prize | 20 | 1/2 | **106** | 1/2 |
+| Phishing link | 40 | 2/3 | 77 | 3/3 |
+| Loan scam | 39 | 1/1 | 45 | 1/1 |
+| Job offer scam | 76 | 1/1 | 84 | 1/1 |
+
+Four misses closed: a JPJ summons demand, an LHDN refund, a Touch 'n Go suspension and a Shopee
+delivery notice — each a message that a user pasting it into ScamSense would previously have been
+told showed no warning signs.
+
+**Two misses remain, and they are a different problem.** A failed Shopee delivery and a Petronas
+prize draw both invoke a brand in routine-sounding language, without the urgency or credential
+vocabulary the model has learned to weigh. Their categories grew six-fold and five-fold
+respectively and the misses did not close, so the remaining gap is phrasing rather than volume.
+Worth stating plainly, because it is the one place where "collect more data" is demonstrably not
+the answer.
+
+Quote this as a generalisation probe, never as the model's F1; it is small and deliberately
+adversarial, and the two figures measure different things.
 
 ### Provenance — keep `collected_my` separate
 

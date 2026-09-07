@@ -99,7 +99,7 @@ return [
      */
     'shipped_models' => [
         'url' => 'rf-url-v2.0.0-pathnorm',
-        'message' => 'tfidf-msg-v2.0.0-collected-my',
+        'message' => 'tfidf-msg-v3.0.0-collected-my',
     ],
 
 ];

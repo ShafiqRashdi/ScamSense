@@ -47,6 +47,12 @@ ml-service/training/data/
 *.csv
 !*_sample.csv
 
+# The collection workbook holds the same collected messages in a spreadsheet,
+# including who received each one and when. Same reason as above: real messages
+# sent to real people do not belong in version control. Back it up separately.
+/scamsense_corpus_collection.xlsx
+~$*.xlsx
+
 # ── OS / editor ────────────────────────────────────────────────────────────
 .DS_Store
 Thumbs.db

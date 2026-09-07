@@ -13,6 +13,7 @@ import time
 import pytest
 from flask.testing import FlaskClient
 
+from app import predictors
 from app.schemas import MESSAGE_MAX_CHARS, URL_MAX_CHARS
 from tests.conftest import signed_headers, url_model_required
 
@@ -271,8 +272,11 @@ def test_health_reports_both_models_when_loaded(loaded_client: FlaskClient) -> N
     health check that lies about its models is worse than none."""
     body = loaded_client.get("/health").get_json()
 
-    assert body["models"]["url"] == "rf-url-v2.0.0-pathnorm"
-    assert body["models"]["message"] == "tfidf-msg-v2.0.0-collected-my"
+    # Against the configured artefact names rather than frozen strings: a
+    # retrain should not break a test whose subject is "health reports what is
+    # actually loaded", and hardcoding the version tests the constant instead.
+    assert body["models"]["url"] == predictors.URL_MODEL_DIRNAME
+    assert body["models"]["message"] == predictors.MESSAGE_MODEL_DIRNAME
     assert body["models_loaded"] is True
 
 
@@ -298,7 +302,7 @@ def test_the_message_route_predicts_when_the_model_is_loaded(
     body = response.get_json()
     assert body["label"] in ("scam", "legitimate")
     assert 0.0 <= body["confidence"] <= 1.0
-    assert body["model_version"] == "tfidf-msg-v2.0.0-collected-my"
+    assert body["model_version"] == predictors.MESSAGE_MODEL_DIRNAME
     assert body["request_id"] == "r1"
 
 
