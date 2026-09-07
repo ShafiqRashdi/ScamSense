@@ -3,6 +3,69 @@
 @section('title', __('Check a message or link'))
 
 @section('content')
+    @php
+        /*
+         | Tap-to-fill examples.
+         |
+         | The emptiest, deadest part of this page was a large blank textarea,
+         | and a first-time visitor has nothing to paste — they arrived to look
+         | rather than because something happened to them. These give them
+         | something to check, and they turn a demonstration into one tap
+         | instead of a paste from a notes file.
+         |
+         | Content follows the SampleSubmissionSeeder convention: the shapes are
+         | real Malaysian scams, the phone and account numbers are invented, and
+         | the domains use TLDs that do not resolve. The redaction is visible in
+         | the result, which is a useful thing for a reader to see happen.
+         |
+         | The bodies stay in Malay in both locales, deliberately. A Malaysian
+         | who prefers an English interface still receives Malay scam SMS, so
+         | translating them would show the user something they will never get.
+         | Only the labels are translated.
+         |
+         | The LABELS ARE NEUTRAL on purpose — "Parcel notice", not "Parcel
+         | scam". Naming the answer on the button spoils the check, and if the
+         | model gets one of them wrong it would announce the failure on screen
+         | before the verdict arrives. The interface should not pre-commit to a
+         | verdict it has not produced.
+         */
+        $examples = [
+            [
+                'label' => __('Parcel notice'),
+                'type' => 'message',
+                // Checked end to end against the running model rather than
+                // written and trusted. A near-identical first draft -- same
+                // scam, same length, "Pakej anda gagal dihantar kerana alamat
+                // tidak lengkap" -- landed in the medium band with no
+                // indicators at all, which is a poor thing to hand a first-time
+                // visitor as the opening example. The difference is phrasing,
+                // not content, which is the same limit AGENTS.md records for
+                // the two remaining probe misses.
+                'text' => 'Parcel anda tidak dapat dihantar. Sila kemaskini '
+                    .'maklumat anda di sini pos-semakan.xyz/update. Jika tidak '
+                    .'bungkusan akan dipulangkan kepada pengirim.',
+            ],
+            [
+                'label' => __('Prize message'),
+                'type' => 'message',
+                'text' => 'TAHNIAH! Nombor anda terpilih memenangi RM5,000 dalam '
+                    .'cabutan bertuah. Hubungi 011-2345 6789 dan berikan nombor '
+                    .'akaun bank anda untuk menuntut hadiah.',
+            ],
+            [
+                'label' => __('Electricity bill'),
+                'type' => 'message',
+                'text' => 'TNB: Bil elektrik anda bagi bulan Ogos berjumlah '
+                    .'RM128.40. Tarikh akhir bayaran 25 Ogos.',
+            ],
+            [
+                'label' => __('Bank link'),
+                'type' => 'url',
+                'text' => 'http://maybank2u.secure-verify.xyz/login/update-account',
+            ],
+        ];
+    @endphp
+
     <div class="row justify-content-center">
         <div class="col-12 col-md-9 col-lg-7">
 
@@ -54,9 +117,15 @@
                         <label for="content" class="form-label fw-semibold">
                             {{ __('Paste it here') }}
                         </label>
+                        {{-- rows="3" rather than the tall fixed box this was.
+                             app.js grows it to fit as the user types, so it
+                             starts as an invitation rather than a void. Three
+                             rows plus the min-height in the stylesheet is still
+                             a comfortable target with no JavaScript at all. --}}
                         <textarea id="content"
                                   name="content"
-                                  rows="6"
+                                  rows="3"
+                                  data-autogrow
                                   class="form-control form-control-lg @error('content') is-invalid @enderror"
                                   required
                                   autofocus
@@ -65,6 +134,22 @@
                         @error('content')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
+
+                        <div class="sc-examples mt-3" role="group"
+                             aria-label="{{ __('Example messages to try') }}">
+                            <span class="small text-body-secondary me-1">
+                                {{ __('Or try one of these:') }}
+                            </span>
+
+                            @foreach ($examples as $example)
+                                <button type="button"
+                                        class="btn btn-sm btn-outline-secondary"
+                                        data-example-type="{{ $example['type'] }}"
+                                        data-example-text="{{ $example['text'] }}">
+                                    {{ $example['label'] }}
+                                </button>
+                            @endforeach
+                        </div>
                     </div>
 
                     {{-- The busy label travels in a data attribute because the

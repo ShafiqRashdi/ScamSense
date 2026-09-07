@@ -343,12 +343,19 @@ ruff check . && black . && pytest
       ↳ **The brand green is load-bearing, not decorative.** It is deliberately far
         from the red-amber risk hues so nothing in ordinary page furniture competes
         with a risk signal. Do not introduce a warm accent (ADR 0012).
-      ↳ **OPEN A11Y DEFECT, ADR 0012:** `$sc-line-strong #d8cbb9` is the input border
-        and reaches only 1.57:1 against the input background, against WCAG 2.1
-        SC 1.4.11's required 3.0:1. Candidate `#b9a68d` measures 3.07:1, unevaluated
-        in situ. Do NOT close this by lowering `$min-contrast-ratio`.
-      ↳ Any palette change must re-run the contrast table in ADR 0012. Those figures
-        were computed, not estimated; breaking one is a regression, not a restyle.
+      ↳ **CLOSED 2026-09-08:** the input border was 1.57:1 against WCAG 2.1 SC
+        1.4.11's required 3.0:1. `$sc-line-strong` is now `#96805f` — 3.73:1 on
+        surface, 3.25:1 on paper. The `#b9a68d` candidate first noted here was
+        wrong (2.32:1, not 3.07:1) and was caught by recomputing before applying.
+      ↳ The contrast table is now ENFORCED, not documented:
+        `tests/Feature/PaletteContrastTest.php` reads the Sass variables and
+        recomputes every pair. Do not satisfy it by lowering
+        `$min-contrast-ratio` — it asserts the WCAG thresholds directly.
+      ↳ Tap-to-fill examples on the form: bodies stay Malay in BOTH locales (a
+        Malaysian on an English UI still receives Malay scam SMS), labels are
+        neutral ("Parcel notice", never "Parcel scam") so the button does not
+        announce a verdict the model has not produced. Every example is checked
+        end to end against the running model, not written and trusted.
       ↳ Malay reviewed by Shafiq: `pelik`, `tidak pasti`, `alamat` throughout.
       ↳ Risk carried by icon + text + colour; icons are inline SVG so a failed
         webfont cannot reduce the verdict to colour alone.

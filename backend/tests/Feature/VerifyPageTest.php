@@ -80,6 +80,36 @@ it('states what it is doing during the wait, in plain words, in both locales', f
         ->assertSee('Menyiapkan jawapan anda...');
 });
 
+it('offers examples that set the right type and stay Malay in both locales', function (): void {
+    // The examples exist so a first-time visitor -- who arrived to look, not
+    // because something happened to them -- has something to check, and so a
+    // demonstration is one tap rather than a paste from a notes file.
+    //
+    // Each chip carries the type it belongs to, because an example that fills
+    // the box and leaves the wrong toggle selected teaches the user that the
+    // toggle does not matter, which is the opposite of true.
+    $english = $this->get('/')
+        ->assertSee('Or try one of these:')
+        ->assertSee('data-example-type="message"', escape: false)
+        ->assertSee('data-example-type="url"', escape: false)
+        ->getContent();
+
+    // The bodies stay in Malay whatever the interface language. A Malaysian who
+    // prefers English still receives Malay scam SMS, so translating them would
+    // show the user a shape they will never actually be sent. Only the labels
+    // are translated -- pinned here because "translate everything" is the
+    // obvious instinct and it would be wrong.
+    $malay = $this->withSession(['locale' => 'ms'])->get('/')
+        ->assertSee('Atau cuba salah satu ini:')
+        ->assertSee('Mesej bungkusan')
+        ->getContent();
+
+    foreach (['Parcel anda tidak dapat dihantar', 'Bil elektrik anda bagi bulan Ogos'] as $body) {
+        expect($english)->toContain($body);
+        expect($malay)->toContain($body);
+    }
+});
+
 it('shows the privacy notice on the form itself', function (): void {
     // Required by the Phase 6 brief: the user must know what is stored
     // before they paste, not afterwards.

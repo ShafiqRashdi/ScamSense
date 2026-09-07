@@ -1,6 +1,6 @@
 # ADR 0012 — The interface is designed for an anxious reader, not a browsing one
 
-- **Status:** Accepted, with one open defect recorded below
+- **Status:** Accepted. The contrast defect recorded below was **closed on 2026-09-08**
 - **Date:** 2026-09-07
 - **Phase:** 6 (public interface)
 - **Artefacts:** `backend/resources/css/app.scss`, `backend/resources/views/verify/*`
@@ -162,24 +162,34 @@ silently produce an unreadable filled badge. The palette was then measured again
 | white on `$sc-danger` | 7.53 | 4.5 | pass |
 | white on `$sc-warning` | 5.93 | 4.5 | pass |
 | white on `$sc-success` / `$sc-brand` | 7.17 | 4.5 | pass |
-| **`$sc-line-strong` on `$sc-surface`** | **1.57** | **3.0 — AA non-text, SC 1.4.11** | **FAIL** |
+| `$sc-line-strong` on `$sc-surface` | 3.73 | 3.0 — AA non-text, SC 1.4.11 | pass *(was 1.57, see below)* |
+| `$sc-line-strong` on `$sc-paper` | 3.25 | 3.0 | pass |
+| `$sc-line-strong` on `$sc-paper-tint` | 3.40 | 3.0 | pass |
 
 Every text pairing clears AA comfortably, including the muted secondary tone, which is the one
 that usually fails in a warm palette.
 
-### Open defect: the input border does not meet SC 1.4.11
+### Closed 2026-09-08: the input border now meets SC 1.4.11
 
-`$sc-line-strong #d8cbb9` is `$input-border-color`, and its comment in the stylesheet reads
-*"input borders, which must be findable"*. Measured against the input's own background
-(`--bs-body-bg`, `#fffdfa`) it reaches **1.57:1** against a required **3.0:1**; against
-`$sc-paper` it is 1.37:1. The border is 2px, which helps a sighted user with good vision and does
-not satisfy the criterion — SC 1.4.11 governs the visual boundary that identifies the component.
+As first written, `$sc-line-strong` was `#d8cbb9` and its comment read *"input borders, which
+must be findable"*. Measured against the input's own background (`--bs-body-bg`, `#fffdfa`) it
+reached **1.57:1** against a required **3.0:1** — a hairline that looked tasteful on a designer's
+monitor and disappeared for exactly the reduced-contrast-sensitivity audience the criterion
+exists to protect. The 2px border helps a sighted user with good vision and does not satisfy
+SC 1.4.11, which governs the visual boundary that identifies the component.
 
-It is recorded here as a defect rather than fixed in the same pass, because changing it is a
-visible design change and the palette should move as one deliberate decision rather than as a
-patch. **The audience this project names — older adults with reduced contrast sensitivity — is
-exactly the group the criterion protects, so this is not a technicality.** A candidate value is
-`#b9a68d`, which reaches 3.07:1 against `$sc-surface`, but it has not been evaluated in situ.
+It is now `#96805f`: **3.73:1** on `$sc-surface`, 3.40:1 on `$sc-paper-tint` and 3.25:1 on
+`$sc-paper`. Chosen against every surface an input could sit on rather than only the one it sits
+on today, so moving a form into a tinted panel cannot quietly reintroduce the defect.
+
+> **A candidate value of `#b9a68d` was named in the first draft of this ADR as reaching 3.07:1.
+> That figure was wrong — it measures 2.32:1 and would not have fixed anything.** It was caught
+> by recomputing before applying it rather than by trusting the note. The table above is now
+> enforced by `backend/tests/Feature/PaletteContrastTest.php`, which reads the Sass variables and
+> does the arithmetic, so no future value can be adopted on the strength of a remembered number.
+
+`$sc-line-strong` is used for nothing but `$input-border-color`, so the change is confined to
+form controls.
 
 Nothing else in the palette fails. The hairline `$sc-line` at 1.32:1 is decorative — it separates
 regions already distinguished by background and spacing — and decorative boundaries are out of
@@ -207,8 +217,10 @@ scope for 1.4.11.
 - These are testable claims, and several are already pinned: a test asserts the rendered verdict
   SVG is unaffected by submitted content, and the empty-indicator state has copy of its own in
   both locales rather than an absent section.
-- **The contrast defect above is open.** It should be fixed before the demonstration, and belongs
-  in Chapter 5's limitations if it is not. Do not close it by lowering `$min-contrast-ratio`.
-- Any future palette change must re-run the contrast table. Those numbers were computed, not
-  estimated, and a change that breaks one of them is a regression rather than a restyle.
+- **The contrast table is enforced, not documented.** `PaletteContrastTest` reads the Sass
+  variables and recomputes every pair, so a palette change that breaks one is a failing test
+  rather than a restyle nobody noticed. It also covers the focus outline, which is the only thing
+  telling a keyboard or switch-access user where they are.
+- Do not satisfy that test by lowering `$min-contrast-ratio`; it asserts the WCAG thresholds
+  directly and is unaffected by the Sass setting.
 - Dark mode, if added, is a second full contrast pass — not an inversion of these values.

@@ -85,8 +85,9 @@ Design choices that are reasoning rather than taste, and that a panel is likely 
 | The verified panel renders first and owns the `h1` | it previously fell below the fold at 375px | ADR 0012 §5 |
 | The indicator card renders even when empty | an empty list is a real finding, not a failed load | ADR 0012 §6; ADR 0010 |
 | Self-hosting the webfont is what lets `font-src 'self'` stand | 41 KB, two variable files | ADR 0012 §7 |
-| **Palette contrast measured, not asserted** | 11 pairs computed; every text pair clears AA | **ADR 0012** contrast table |
-| **Open defect: input border fails SC 1.4.11** | **1.57:1 against a required 3.0:1** | **ADR 0012** — report as a limitation if unfixed at demonstration |
+| **Palette contrast measured, then enforced** | 13 pairs; every one clears its WCAG threshold | **ADR 0012** contrast table; `tests/Feature/PaletteContrastTest.php` |
+| A contrast defect was found by measuring and then fixed | input border 1.57:1 → **3.73:1** (`#d8cbb9` → `#96805f`) | ADR 0012, "Closed 2026-09-08" |
+| The first proposed fix was wrong and was caught before it shipped | `#b9a68d` was recorded as 3.07:1; it is 2.32:1 | ADR 0012 — the reason the table is now a test |
 
 ---
 
@@ -127,7 +128,7 @@ Honest gaps. Each is either work not done or a claim that should be softened.
 |---|---|
 | UAT results with real participants | **No participants recruited.** Nothing to cite |
 | Adversarial robustness | Not tested. Say so in limitations |
-| WCAG conformance as a whole | **Only the palette was measured** (ADR 0012). No audit of focus order, labels or screen-reader flow. Claim contrast, not conformance |
+| WCAG conformance as a whole | **Only the palette is measured** (ADR 0012, `PaletteContrastTest`). No audit of focus order, labels or screen-reader flow. Claim contrast, not conformance |
 | Feedback loop validated at scale | Not validated. The gate is tested; throughput under real volume is not |
 | Latency against the 3-second objective in production | Only measured locally. `verdicts.inference_ms` will evidence it once deployed |
 | Inter-annotator agreement on the collected corpus | Labelled by one person. Describe as "read end to end", never as "verified" |

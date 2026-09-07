@@ -141,3 +141,71 @@ function markBusyOnSubmit(form) {
 }
 
 document.querySelectorAll("form[data-busy-form]").forEach(markBusyOnSubmit);
+
+/*
+ | A textarea that grows with what is in it.
+ |
+ | The box was a fixed six rows, which is a lot of empty space for a page whose
+ | first job is to look like it is paying attention. It now starts at three and
+ | grows to fit, which reads as the page responding rather than waiting.
+ |
+ | Capped, because an unbounded textarea pushes the submit button off the screen
+ | and a 5,000-character message would do exactly that. Past the cap it scrolls.
+ */
+function growToFit(field) {
+    const cap = window.innerHeight * 0.5;
+
+    // Reset first: without this the box can only ever get taller, because
+    // scrollHeight is measured against the height already set.
+    field.style.height = "auto";
+    field.style.height = `${Math.min(field.scrollHeight, cap)}px`;
+    field.style.overflowY = field.scrollHeight > cap ? "auto" : "hidden";
+}
+
+document.querySelectorAll("textarea[data-autogrow]").forEach((field) => {
+    field.addEventListener("input", () => growToFit(field));
+
+    // Also on load, so a form redisplayed after a validation error comes back
+    // sized to the content the user already typed rather than collapsed.
+    if (field.value !== "") {
+        growToFit(field);
+    }
+});
+
+/*
+ | Tap-to-fill examples.
+ |
+ | A first-time visitor has nothing to paste — they came to look, not because
+ | something happened to them — and the largest element on the page was an empty
+ | box. These fill it, and they make a demonstration one tap rather than a paste
+ | from a notes file.
+ |
+ | Each example also sets the message/link toggle, because an example that fills
+ | the box and leaves the wrong type selected teaches the user that the toggle
+ | does not matter, which is the opposite of true.
+ */
+document.querySelectorAll("[data-example-text]").forEach((chip) => {
+    chip.addEventListener("click", () => {
+        const field = document.querySelector("textarea[data-autogrow]");
+        const type = document.querySelector(
+            `input[name="type"][value="${chip.dataset.exampleType}"]`,
+        );
+
+        if (!field) {
+            return;
+        }
+
+        if (type) {
+            type.checked = true;
+        }
+
+        field.value = chip.dataset.exampleText;
+        growToFit(field);
+
+        // Focus the box rather than the button. The next thing the user does is
+        // read what landed there or press Check it, and leaving focus on a chip
+        // means a keyboard user has to travel back past every other chip.
+        field.focus();
+        field.setSelectionRange(field.value.length, field.value.length);
+    });
+});

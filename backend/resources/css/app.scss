@@ -62,7 +62,14 @@ $sc-paper: #f3ede4; // the page behind the content
 $sc-paper-tint: #f7f2ea; // inset panels within a card
 $sc-surface: #fffdfa; // cards, navbar, footer
 $sc-line: #e7ddd0; // hairlines
-$sc-line-strong: #d8cbb9; // input borders, which must be findable
+// Input borders. WCAG 2.1 SC 1.4.11 requires 3:1 for the visual boundary that
+// identifies a control, and the previous value (#d8cbb9) reached 1.57:1 against
+// the input background — a hairline that read as tasteful on a designer's
+// monitor and disappeared for exactly the reduced-contrast-sensitivity audience
+// this project names. This value measures 3.73:1 on $sc-surface, 3.40:1 on
+// $sc-paper-tint and 3.25:1 on $sc-paper, so it passes wherever an input is
+// placed rather than only where one currently sits. Pinned by a test.
+$sc-line-strong: #96805f;
 
 $sc-ink: #241f1a;
 $sc-ink-muted: #6b6157;
@@ -378,4 +385,39 @@ pre code {
     .sc-indicator {
         animation: none;
     }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Tap-to-fill examples
+//
+// Quiet by design. These sit directly beneath the input and must not compete
+// with the primary action underneath them, so they are small, outlined and in
+// the secondary ink rather than the brand — the eye should reach `Check it`
+// first and find these only when it is looking for something to check.
+// ─────────────────────────────────────────────────────────────────────────────
+
+.sc-examples {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem;
+
+    .btn {
+        // Below Bootstrap's `btn-sm` padding these become hard to hit on a
+        // phone. `--bs-btn-*` rather than raw padding so the button keeps every
+        // other state it was given.
+        --bs-btn-padding-y: 0.35rem;
+        --bs-btn-padding-x: 0.7rem;
+        border-radius: 2rem;
+    }
+}
+
+// The textarea starts small and grows, so it needs a floor: three rows of
+// 17px text is a comfortable target, and with no JavaScript at all this is
+// what the box stays at rather than collapsing to something unusable.
+textarea[data-autogrow] {
+    min-height: 6rem;
+    // Set inline by app.js as the content grows. Declared here so the
+    // transition does not fight the first measurement.
+    resize: vertical;
 }
