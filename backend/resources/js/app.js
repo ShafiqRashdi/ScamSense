@@ -33,12 +33,65 @@ function markBusyOnSubmit(form) {
     }
 
     const idleChildren = Array.from(button.childNodes);
+    const panel = form.querySelector("[data-busy-panel]");
+    const status = form.querySelector("[data-busy-status]");
+    const steps = Array.from(
+        form.querySelectorAll("[data-busy-steps] li"),
+        (item) => item.textContent.trim(),
+    );
+
     let submitted = false;
+    let timer = null;
 
     const reset = () => {
         submitted = false;
+        window.clearInterval(timer);
         button.replaceChildren(...idleChildren);
         button.removeAttribute("aria-busy");
+
+        if (panel) {
+            panel.hidden = true;
+        }
+
+        if (status) {
+            status.textContent = "";
+        }
+    };
+
+    /*
+     | Rotate the status line while the browser waits for the POST to come back.
+     |
+     | These are TIME-BASED, not server-reported. The page has no way to know
+     | which stage the request is in — it is one form submission — so the lines
+     | describe what ScamSense does, in the order it does it, and stop on the
+     | last one rather than looping. The bar beside them is indeterminate for
+     | the same reason: a percentage would be a number nothing measures.
+     |
+     | Stopping on the last line matters. A carousel that keeps cycling after
+     | five seconds tells the user the page is still working when in fact
+     | something is wrong, which is the failure mode this project treats most
+     | seriously everywhere else.
+     */
+    const runSteps = () => {
+        if (!panel || !status || steps.length === 0) {
+            return;
+        }
+
+        let index = 0;
+        panel.hidden = false;
+        status.textContent = steps[0];
+
+        timer = window.setInterval(() => {
+            index += 1;
+
+            if (index >= steps.length) {
+                window.clearInterval(timer);
+
+                return;
+            }
+
+            status.textContent = steps[index];
+        }, 900);
     };
 
     form.addEventListener("submit", (event) => {
@@ -68,6 +121,8 @@ function markBusyOnSubmit(form) {
             spinner,
             document.createTextNode(button.dataset.busyLabel),
         );
+
+        runSteps();
     });
 
     /*

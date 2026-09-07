@@ -152,7 +152,7 @@
                     @if (count($verdict->indicators) > 0)
                         <ul class="list-unstyled mb-0">
                             @foreach ($verdict->indicators as $indicator)
-                                <li class="d-flex gap-2 mb-3">
+                                <li class="sc-indicator d-flex gap-2 mb-3">
                                     <span aria-hidden="true" class="text-body-secondary">&bull;</span>
                                     <div>
                                         <p class="mb-1">{{ __('indicators.'.$indicator->code) }}</p>

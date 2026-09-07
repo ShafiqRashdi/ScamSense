@@ -63,6 +63,23 @@ it('carries the hooks the submit feedback needs, in both locales', function (): 
         ->assertSee('data-busy-label="Sedang menyemak..."', escape: false);
 });
 
+it('states what it is doing during the wait, in plain words, in both locales', function (): void {
+    // Three seconds of silence reads as failure. These lines fill the wait and
+    // teach what the platform does, so they are page copy rather than chrome —
+    // and page copy for this audience must not name a model, an engine or a
+    // database. `enjin` in Malay reads as the thing in a car.
+    $this->get('/')
+        ->assertSee('Reading what you pasted...')
+        ->assertSee('Comparing it with scams we have seen before...')
+        ->assertSee('Getting your answer ready...');
+
+    $this->withSession(['locale' => 'ms'])
+        ->get('/')
+        ->assertSee('Membaca apa yang anda tampal...')
+        ->assertSee('Membandingkan dengan penipuan yang pernah kami lihat...')
+        ->assertSee('Menyiapkan jawapan anda...');
+});
+
 it('shows the privacy notice on the form itself', function (): void {
     // Required by the Phase 6 brief: the user must know what is stored
     // before they paste, not afterwards.

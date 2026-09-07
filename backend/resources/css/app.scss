@@ -306,3 +306,76 @@ pre code {
         animation: none;
     }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// The wait
+//
+// Three seconds is long enough that the page has to say something, and short
+// enough that whatever it says must be readable at a glance. The treatment is
+// a sweeping indeterminate bar plus one line of plain language at a time.
+//
+// Indeterminate on purpose. A bar that fills to a percentage would be showing a
+// progress figure nothing measures — the request is a single POST and the page
+// has no idea how far along the server is. Inventing one on a product whose
+// entire argument is that it does not overclaim would be a poor place to start.
+// ─────────────────────────────────────────────────────────────────────────────
+
+.sc-busy__track {
+    height: 4px;
+    border-radius: 2px;
+    background-color: rgba($sc-brand, 0.16);
+    overflow: hidden;
+}
+
+.sc-busy__bar {
+    display: block;
+    width: 38%;
+    height: 100%;
+    border-radius: 2px;
+    background-color: $sc-brand;
+    animation: sc-sweep 1.15s ease-in-out infinite;
+}
+
+@keyframes sc-sweep {
+    from {
+        transform: translateX(-110%);
+    }
+    to {
+        transform: translateX(370%);
+    }
+}
+
+.sc-busy__status {
+    // Reserved so the line appearing does not push the privacy notice down the
+    // page. Layout must not move while the user is waiting — that is the one
+    // moment they are most likely to be reaching for the screen.
+    min-height: 1.6em;
+    margin-top: 0.6rem;
+}
+
+// Indicators arrive one after another rather than all at once, so the list
+// reads as findings being reported rather than a block of text appearing. The
+// stagger is small; anything longer would delay the answer to make a point.
+.sc-indicator {
+    animation: sc-verdict-in 0.3s ease-out both;
+
+    @for $i from 1 through 5 {
+        &:nth-child(#{$i}) {
+            animation-delay: 0.06s * $i;
+        }
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .sc-busy__bar {
+        // An indeterminate bar that does not move carries no meaning, so it
+        // becomes a plain filled track and the status line does the work. The
+        // text still rotates: changing words is not motion.
+        width: 100%;
+        animation: none;
+    }
+
+    .sc-indicator {
+        animation: none;
+    }
+}

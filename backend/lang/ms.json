@@ -16,6 +16,10 @@
     "Check it": "Semak sekarang",
     "Checking...": "Sedang menyemak...",
 
+    "Reading what you pasted...": "Membaca apa yang anda tampal...",
+    "Comparing it with scams we have seen before...": "Membandingkan dengan penipuan yang pernah kami lihat...",
+    "Getting your answer ready...": "Menyiapkan jawapan anda...",
+
     "What happens to what you paste": "Apa kami buat dengan apa yang anda tampal",
     "We remove phone numbers, IC numbers, emails and account numbers before saving anything.": "Kami buang nombor telefon, nombor kad pengenalan, alamat emel dan nombor akaun sebelum menyimpan apa-apa.",
     "We keep the message for :days days so we can improve our scam detection, then delete it automatically.": "Kami simpan mesej itu selama :days hari supaya kami boleh menambah baik semakan penipuan kami, kemudian ia dipadam sendiri.",

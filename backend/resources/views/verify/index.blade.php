@@ -74,6 +74,48 @@
                             data-busy-label="{{ __('Checking...') }}">
                         {{ __('Check it') }}
                     </button>
+
+                    {{-- The wait.
+                         =====
+                         A verdict takes up to three seconds and the user
+                         spends all of them wondering whether anything is
+                         happening. A bare spinner fills the time without
+                         telling them anything; these lines fill it and also
+                         teach what the platform actually does, which is the
+                         same job the indicator list does on the result page.
+
+                         The copy names ordinary actions in ordinary words. It
+                         deliberately avoids naming a "model", an "engine" or a
+                         "database" -- this audience includes people for whom
+                         those words carry no meaning, and `enjin` in Malay
+                         reads as the thing in a car.
+
+                         The bar is INDETERMINATE by design. A bar that fills
+                         to a percentage would be inventing a progress figure
+                         nothing measures, and on a page whose whole argument
+                         is that it does not overclaim, a fake progress bar is
+                         a bad place to start.
+
+                         Rendered hidden and revealed by app.js, so with no
+                         JavaScript the form is exactly as it was. --}}
+                    <div class="sc-busy mt-3" data-busy-panel hidden>
+                        <div class="sc-busy__track" aria-hidden="true">
+                            <span class="sc-busy__bar"></span>
+                        </div>
+
+                        <p class="sc-busy__status text-body-secondary small mb-0"
+                           data-busy-status role="status" aria-live="polite"></p>
+                    </div>
+
+                    {{-- Read by app.js and rotated through the status line
+                         above. Kept in the markup rather than in JS so the
+                         strings stay translatable and stay with the rest of
+                         the page copy. --}}
+                    <ul data-busy-steps hidden>
+                        <li>{{ __('Reading what you pasted...') }}</li>
+                        <li>{{ __('Comparing it with scams we have seen before...') }}</li>
+                        <li>{{ __('Getting your answer ready...') }}</li>
+                    </ul>
                 </div>
             </form>
 
