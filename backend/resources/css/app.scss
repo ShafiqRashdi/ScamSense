@@ -421,3 +421,40 @@ textarea[data-autogrow] {
     // transition does not fight the first measurement.
     resize: vertical;
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Paste confirmation
+//
+// Most of these users paste rather than type — the premise of the product is
+// that something arrived and they want it checked — and nothing acknowledged
+// it. On a phone the pasted text can land below the visible part of a box that
+// has not finished growing, so "did that work?" is a real question.
+//
+// A brief brand-coloured ring, not a colour the risk bands use: this is an
+// acknowledgement, not a finding, and ADR 0012 rule 2 keeps the risk hues for
+// risk. It fades out on its own so it cannot be mistaken for a state.
+// ─────────────────────────────────────────────────────────────────────────────
+
+@keyframes sc-paste-flash {
+    from {
+        border-color: $sc-brand;
+        box-shadow: 0 0 0 0.25rem rgba($sc-brand, 0.3);
+    }
+    to {
+        border-color: $sc-line-strong;
+        box-shadow: 0 0 0 0.25rem rgba($sc-brand, 0);
+    }
+}
+
+.form-control.sc-pasted {
+    animation: sc-paste-flash 0.55s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .form-control.sc-pasted {
+        // Still acknowledged, just not faded. The border holds the brand colour
+        // for the same duration and then returns — a colour change is not the
+        // motion this setting is asking to be spared.
+        animation: sc-paste-flash 0.55s steps(1, end);
+    }
+}

@@ -209,3 +209,101 @@ document.querySelectorAll("[data-example-text]").forEach((chip) => {
         field.setSelectionRange(field.value.length, field.value.length);
     });
 });
+
+/*
+ | Length, shown only once it starts to matter — and paste confirmation.
+ |
+ | Two small things attached to the same field, kept together because both
+ | answer the same question: did what I just did register?
+ |
+ | The cap is per submission type and comes from the markup, which reads it from
+ | the same config VerifySubmissionRequest validates against. A counter that
+ | disagrees with the validator is worse than no counter at all: it tells the
+ | user they have room and then the server refuses the message.
+ */
+function attachLengthFeedback(field) {
+    const counter = document.querySelector("[data-counter]");
+    const announce = document.querySelector("[data-counter-announce]");
+
+    if (!counter) {
+        return;
+    }
+
+    // Below this share of the cap the counter stays hidden. A character count
+    // sitting there from the first keystroke is a warning about a problem
+    // nobody has yet.
+    const QUIET_BELOW = 0.9;
+
+    let wasOver = false;
+
+    const cap = () => {
+        const url = document.querySelector('input[name="type"][value="url"]');
+
+        return Number(
+            url?.checked ? field.dataset.maxUrl : field.dataset.maxMessage,
+        );
+    };
+
+    const update = () => {
+        const limit = cap();
+        const used = field.value.length;
+        const left = limit - used;
+        const over = left < 0;
+
+        counter.hidden = used < limit * QUIET_BELOW;
+        counter.classList.toggle("text-danger", over);
+        counter.classList.toggle("fw-semibold", over);
+
+        counter.textContent = over
+            ? counter.dataset.counterOver.replace(":count", String(-left))
+            : counter.dataset.counterLeft.replace(":count", String(left));
+
+        /*
+         | Announce the boundary, not the count.
+         |
+         | A live region that fires on every keystroke is unusable with a screen
+         | reader — it would read a new number for every letter typed. What
+         | actually changes what the user has to do is crossing into "too long"
+         | and back out, so only that is spoken.
+         */
+        if (announce && over !== wasOver) {
+            announce.textContent = over ? counter.textContent : "";
+            wasOver = over;
+        }
+    };
+
+    field.addEventListener("input", update);
+
+    // The cap changes with the toggle, so a message of 3,000 characters becomes
+    // far too long the moment "A link" is selected. The counter has to follow.
+    document
+        .querySelectorAll('input[name="type"]')
+        .forEach((radio) => radio.addEventListener("change", update));
+
+    /*
+     | Paste confirmation.
+     |
+     | Most of these users will paste rather than type — the whole premise is
+     | that something arrived and they want it checked — and until now nothing
+     | acknowledged it. On a phone the pasted text can land below the visible
+     | part of a box that has not finished growing, so "did that work?" is a
+     | real question rather than a hypothetical one.
+     |
+     | The class is removed on animationend rather than a timer, so it cannot
+     | get out of step with the stylesheet if the duration changes there.
+     */
+    field.addEventListener("paste", () => {
+        field.classList.remove("sc-pasted");
+
+        // Force a reflow, or removing and re-adding the class within one frame
+        // is a no-op and a second paste flashes nothing.
+        void field.offsetWidth;
+        field.classList.add("sc-pasted");
+    });
+
+    field.addEventListener("animationend", () => field.classList.remove("sc-pasted"));
+
+    update();
+}
+
+document.querySelectorAll("textarea[data-autogrow]").forEach(attachLengthFeedback);

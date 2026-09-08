@@ -110,6 +110,35 @@ it('offers examples that set the right type and stay Malay in both locales', fun
     }
 });
 
+it('takes its character caps from the same config the validator uses', function (): void {
+    // A counter that disagrees with the validator is worse than no counter: it
+    // tells the user they have room and then the server refuses the message.
+    // VerifySubmissionRequest reads these two keys, so the markup reads them
+    // too rather than repeating the numbers as literals.
+    $this->get('/')
+        ->assertSee('data-max-message="'.config('scamsense.limits.message_max_chars').'"', escape: false)
+        ->assertSee('data-max-url="'.config('scamsense.limits.url_max_chars').'"', escape: false);
+});
+
+it('keeps the character count out of the screen reader, boundary aside', function (): void {
+    // A live region updating on every keystroke reads a new number for every
+    // letter typed, which is unusable. The visible counter is aria-hidden and a
+    // separate status region announces only the crossing into "too long" --
+    // the part that changes what the user has to do.
+    $html = $this->get('/')->getContent();
+
+    expect($html)->toContain('data-counter')
+        ->toContain('aria-hidden="true"')
+        ->toContain('data-counter-announce');
+
+    // The templates keep their :count placeholder for the client to fill.
+    expect($html)->toContain(':count characters left');
+
+    $this->withSession(['locale' => 'ms'])->get('/')
+        ->assertSee('Tinggal :count huruf lagi')
+        ->assertSee('Ini terlalu panjang. Sila buang :count huruf.');
+});
+
 it('shows the privacy notice on the form itself', function (): void {
     // Required by the Phase 6 brief: the user must know what is stored
     // before they paste, not afterwards.

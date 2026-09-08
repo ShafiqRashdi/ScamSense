@@ -121,16 +121,44 @@
                              app.js grows it to fit as the user types, so it
                              starts as an invitation rather than a void. Three
                              rows plus the min-height in the stylesheet is still
-                             a comfortable target with no JavaScript at all. --}}
+                             a comfortable target with no JavaScript at all.
+
+                             The two caps are the ones VerifySubmissionRequest
+                             actually enforces, read from the same config rather
+                             than repeated as literals — a counter that
+                             disagrees with the validator is worse than none,
+                             because it tells the user they have room and then
+                             the server refuses the message. --}}
                         <textarea id="content"
                                   name="content"
                                   rows="3"
                                   data-autogrow
+                                  data-max-message="{{ config('scamsense.limits.message_max_chars') }}"
+                                  data-max-url="{{ config('scamsense.limits.url_max_chars') }}"
                                   class="form-control form-control-lg @error('content') is-invalid @enderror"
                                   required
                                   autofocus
                                   placeholder="{{ __('For example: Tahniah! Anda memenangi RM5,000...') }}"
                         >{{ old('content') }}</textarea>
+                        {{-- Length, shown only when it starts to matter.
+                             A counter sitting there from the first keystroke is
+                             a warning nobody needs; this stays hidden until 90%
+                             of the cap and then says how much room is left.
+
+                             `aria-hidden` because a live region updating on
+                             every keystroke is unusable with a screen reader.
+                             The visually-hidden status beside it announces only
+                             the crossing into "too long" and back out again,
+                             which is the part that changes what the user has to
+                             do. --}}
+                        <p class="sc-counter small text-body-secondary mb-0 mt-1 text-end"
+                           data-counter
+                           data-counter-left="{{ __(':count characters left') }}"
+                           data-counter-over="{{ __('Too long. Please remove :count characters.') }}"
+                           aria-hidden="true" hidden></p>
+
+                        <p class="visually-hidden" data-counter-announce role="status" aria-live="polite"></p>
+
                         @error('content')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
