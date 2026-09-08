@@ -62,6 +62,7 @@ function submissionSaying(string $text): Submission
 it('keeps every export behind authentication', function (string $route): void {
     $this->get(route($route))->assertRedirect('/login');
 })->with([
+    'admin.exports.all',
     'admin.exports.submissions',
     'admin.exports.feedback',
     'admin.exports.training',
@@ -184,13 +185,104 @@ it('serves model metrics as json so a figure keeps its qualifier', function (): 
     // an F1 without its caveat, which is what ModelMetricsReader exists to stop.
     modelsDirectoryWithRetiredRuns();
 
-    $this->actingAs(admin())->get(route('admin.exports.model-metrics'))
-        ->assertOk()
-        ->assertHeader('content-disposition', 'attachment; filename="scamsense-model-metrics-'.now()->format('Y-m-d').'.json"');
+    $response = $this->actingAs(admin())->get(route('admin.exports.model-metrics'))->assertOk();
+
+    expect($response->headers->get('content-disposition'))
+        ->toContain('scamsense-model-metrics-'.now()->format('Y-m-d').'.json')
+        ->and($response->headers->get('content-type'))->toContain('application/json');
 });
 
 it('never lets an export be cached for whoever asks next', function (): void {
     $response = $this->actingAs(admin())->get(route('admin.exports.submissions'))->assertOk();
 
     expect($response->headers->get('cache-control'))->toContain('no-store');
+});
+
+/*
+|--------------------------------------------------------------------------
+| One button
+|--------------------------------------------------------------------------
+*/
+
+it('offers everything as one download', function (): void {
+    /*
+     | Six buttons in a row was six decisions to make before getting any data.
+     | The files are kilobytes and the answer is almost always "all of them".
+     */
+    submissionSaying('Bungkusan anda tertahan di kastam.');
+
+    $response = $this->actingAs(admin())->get(route('admin.exports.all'))->assertOk();
+    $path = $response->baseResponse->getFile()->getPathname();
+
+    $zip = new ZipArchive;
+    expect($zip->open($path))->toBeTrue();
+
+    $names = [];
+    for ($i = 0; $i < $zip->numFiles; $i++) {
+        $names[] = basename((string) $zip->getNameIndex($i));
+    }
+    $zip->close();
+
+    expect($names)->toHaveCount(6);
+
+    foreach (['submissions', 'feedback', 'training-set', 'indicators', 'model-versions'] as $expected) {
+        expect(collect($names)->contains(fn (string $n): bool => str_contains($n, $expected)))
+            ->toBeTrue("the archive should contain the {$expected} export");
+    }
+
+    expect(collect($names)->contains(fn (string $n): bool => str_ends_with($n, '.json')))
+        ->toBeTrue('model metrics travel as JSON so a figure keeps its qualifier');
+});
+
+it('writes the same bytes into the zip as it streams on its own', function (): void {
+    /*
+     | The reason ExportController describes each dataset once instead of twice.
+     | Two code paths writing "the submissions export" is how the zip quietly
+     | starts carrying a different set of columns from the CSV beside it -- and
+     | the formula neutralisation is one of those columns' properties.
+     */
+    submissionSaying("=cmd|'/c calc'!A1 sila sahkan akaun anda");
+
+    $loose = download($this->actingAs(admin())->get(route('admin.exports.submissions'))->assertOk());
+
+    $response = $this->actingAs(admin())->get(route('admin.exports.all'))->assertOk();
+    $zip = new ZipArchive;
+    $zip->open($response->baseResponse->getFile()->getPathname());
+    $inside = (string) $zip->getFromName('scamsense-submissions-'.now()->format('Y-m-d').'.csv');
+    $zip->close();
+
+    expect($inside)->toBe($loose)
+        ->and($inside)->toContain("'=cmd");
+});
+
+it('does not leave exported personal data lying in storage', function (): void {
+    // The archive writes each CSV to disk before zipping it. Leaving those
+    // behind would be a folder of redacted-but-still-personal text sitting in
+    // storage with no retention policy over it at all.
+    submissionSaying('Bil elektrik anda.');
+
+    // Earlier runs of this suite left files here before the bug below was
+    // found, and a stale directory would make this pass or fail for the wrong
+    // reason.
+    foreach (glob(storage_path('app/exports/*')) ?: [] as $stale) {
+        is_dir($stale) ? array_map('unlink', glob($stale.'/*') ?: []) : @unlink($stale);
+        is_dir($stale) && @rmdir($stale);
+    }
+
+    $response = $this->actingAs(admin())->get(route('admin.exports.all'))->assertOk();
+    ob_start();
+    $response->baseResponse->sendContent();
+    ob_end_clean();
+
+    /*
+     | This caught a real defect. The first version globbed the workspace to
+     | delete the loose CSVs and matched nothing, so every download left a
+     | folder of redacted-but-still-personal text in storage with no retention
+     | policy over it. Deleting by the paths just written fixed it.
+     */
+    $csvs = glob(storage_path('app/exports/*/*.csv')) ?: [];
+    $dirs = array_filter(glob(storage_path('app/exports/*')) ?: [], 'is_dir');
+
+    expect($csvs)->toBe([])
+        ->and($dirs)->toBe([], 'the workspace directory should be removed too');
 });

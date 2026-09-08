@@ -42,9 +42,24 @@ it('carries every panel the dashboard gave up', function (): void {
         ->assertSee('Verdicts by model version');
 });
 
-it('offers a download beside the data', function (): void {
-    // A table of five hundred indicator codes is more useful as a file than as
-    // something to scroll, which is the whole argument for this page.
+it('leads with one button rather than six', function (): void {
+    // Six buttons in a row was six decisions to make before getting any data,
+    // and the honest answer to "which of these do I want?" is almost always
+    // "all of them". The individual files stay reachable behind a disclosure.
+    $html = $this->actingAs(admin())->get('/admin/reports')->assertOk()->getContent();
+
+    $button = strpos($html, route('admin.exports.all'));
+    $disclosure = strpos($html, '<details');
+
+    expect($button)->not->toBeFalse('the one-button download must be present')
+        ->and($disclosure)->not->toBeFalse('the individual files need a disclosure')
+        ->and($button)->toBeLessThan($disclosure, 'the button comes before the list')
+        ->and($html)->toContain('Download everything');
+});
+
+it('keeps every individual file reachable', function (): void {
+    // They are the fallback when ext-zip is unavailable, and wanting only the
+    // moderation trail should not mean downloading the corpus to get it.
     $this->actingAs(admin())->get('/admin/reports')
         ->assertOk()
         ->assertSee(route('admin.exports.submissions'), escape: false)
@@ -80,7 +95,10 @@ it('shows only serving models, with retired runs behind a disclosure', function 
     $html = $this->actingAs(admin())->get('/admin/reports')->assertOk()->getContent();
 
     $serving = strpos($html, 'rf-url-v9.9.9-serving');
-    $disclosure = strpos($html, '<details');
+    // Searched from the serving model onward. The downloads card at the top of
+    // the page has a <details> of its own, and matching that one would compare
+    // the model panel against an unrelated element.
+    $disclosure = $serving === false ? false : strpos($html, '<details', $serving);
 
     expect($serving)->not->toBeFalse('the serving model must be visible')
         ->and($disclosure)->not->toBeFalse('retired runs need a disclosure')

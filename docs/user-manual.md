@@ -183,22 +183,21 @@ with. Quote the whole sentence. *"F1 on a 1113-message collected Malaysian
 corpus"* means something different from *"97% accurate"*, and only the first is
 true.
 
-### The downloads
+### The download
 
-Six of them, at the top of the page. CSV opens in Excel or Google Sheets; the
-model metrics come as JSON, because a nested confusion matrix and a reporting
-qualifier do not survive being flattened into columns — and a figure separated
-from its qualifier is how "F1 on a small collected corpus" becomes "97%
-accurate".
+**One button: Download everything.** It gives you a zip holding all six files —
+submissions and verdicts, moderation decisions, the retraining set, indicator
+frequency, verdicts by model version, and the model metrics. CSV opens in Excel
+or Google Sheets.
 
-| Download | Use it for |
-|---|---|
-| Submissions and verdicts | Every submission with the verdict it produced |
-| Moderation decisions | The audit trail: who approved or rejected what, and when |
-| Retraining set | Approved rows and the dataset version each was exported into |
-| Indicator frequency | How often each indicator code has fired |
-| Verdicts by model version | Which model produced how many verdicts |
-| Model metrics (JSON) | The committed metrics files, qualifier included |
+This was six buttons in a row, which is six decisions to make before getting any
+data. The files are kilobytes and the answer is almost always "all of them".
+
+If you want just one, **Download one file at a time** underneath opens the
+individual list. The model metrics come as JSON rather than CSV, because a
+nested confusion matrix and a reporting qualifier do not survive being flattened
+into columns — and a figure separated from its qualifier is how "F1 on a small
+collected corpus" becomes "97% accurate".
 
 **Three things to know before you download anything.**
 

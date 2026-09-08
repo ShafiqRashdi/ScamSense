@@ -84,6 +84,13 @@ Route::middleware(['auth', EnsureUserCanModerate::class])
          | state, so a download is safe to repeat and safe to bookmark.
          */
         Route::middleware('throttle:10,1')->prefix('exports')->name('exports.')->group(function (): void {
+            // The button. Everything, one file.
+            Route::get('/all.zip', [ExportController::class, 'archive'])->name('all');
+
+            // The individual files, behind a disclosure on the page. Kept
+            // because they are the fallback when ext-zip is unavailable, and
+            // because wanting only the moderation trail should not mean
+            // downloading the corpus to get it.
             Route::get('/submissions.csv', [ExportController::class, 'submissions'])->name('submissions');
             Route::get('/feedback.csv', [ExportController::class, 'feedback'])->name('feedback');
             Route::get('/training-set.csv', [ExportController::class, 'trainingSamples'])->name('training');

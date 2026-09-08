@@ -15,28 +15,59 @@
          why every panel below sits beside a download rather than trying to be
          a table somebody can sort. --}}
 
+    @php $zip = \App\Http\Controllers\Admin\ExportController::zipIsAvailable(); @endphp
+
     <div class="card mb-4">
         <div class="card-body">
-            <h2 class="h6 fw-semibold">{{ __('Downloads') }}</h2>
-            <p class="small text-body-secondary">
-                {{ __('CSV opens in Excel or Google Sheets. Every download is recorded against your account.') }}
-            </p>
+            {{-- One button.
+                 =========
+                 This was six buttons in a row, which is six decisions to make
+                 before getting any data. The honest answer to "which of these
+                 do I want?" is almost always "all of them" -- the files are
+                 kilobytes, and the reason to open this page at all is to have
+                 the data somewhere it can be sorted.
 
-            <div class="sc-downloads">
-                @foreach ([
-                    ['admin.exports.submissions', 'Submissions and verdicts', 'Every submission with the verdict it produced. The stored text is already redacted.'],
-                    ['admin.exports.feedback', 'Moderation decisions', 'The audit trail for the moderation gate: who approved or rejected each report, and when.'],
-                    ['admin.exports.training', 'Retraining set', 'Approved rows and the dataset version each was exported into. A blank version means it has never been trained on.'],
-                    ['admin.exports.indicators', 'Indicator frequency', 'How often each indicator code has fired.'],
-                    ['admin.exports.model-versions', 'Verdicts by model version', 'Which model produced how many verdicts.'],
-                    ['admin.exports.model-metrics', 'Model metrics (JSON)', 'The committed metrics.json files, qualifier included. JSON so a figure cannot be separated from its caveat.'],
-                ] as [$route, $label, $note])
-                    <a href="{{ route($route) }}" class="sc-download">
-                        <span class="sc-download__label">{{ __($label) }}</span>
-                        <span class="sc-download__note">{{ __($note) }}</span>
-                    </a>
-                @endforeach
-            </div>
+                 The individual files stay reachable below, because wanting
+                 only the moderation trail should not mean downloading the
+                 corpus to get it, and because they are the fallback if the
+                 server has no zip extension. --}}
+            @if ($zip)
+                <a href="{{ route('admin.exports.all') }}" class="btn btn-primary btn-lg">
+                    {{ __('Download everything') }}
+                </a>
+                <p class="small text-body-secondary mb-0 mt-2">
+                    {{ __('One zip: submissions and verdicts, moderation decisions, the retraining set, indicator frequency, verdicts by model version, and the model metrics. CSV opens in Excel or Google Sheets.') }}
+                </p>
+            @else
+                {{-- Said out loud rather than hiding the button and leaving the
+                     reader to wonder. `ext-zip` is declared in composer.json,
+                     so this should only ever be seen on a misbuilt server. --}}
+                <p class="text-warning-emphasis">
+                    {{ __('The single download needs the zip extension, which this server does not have. The individual files below still work.') }}
+                </p>
+            @endif
+
+            <details class="mt-3">
+                <summary class="small fw-semibold py-1" style="cursor: pointer;">
+                    {{ __('Download one file at a time') }}
+                </summary>
+
+                <div class="sc-downloads mt-2">
+                    @foreach ([
+                        ['admin.exports.submissions', 'Submissions and verdicts', 'Every submission with the verdict it produced. The stored text is already redacted.'],
+                        ['admin.exports.feedback', 'Moderation decisions', 'Who approved or rejected each report, and when.'],
+                        ['admin.exports.training', 'Retraining set', 'Approved rows and the dataset version each was exported into. A blank version means it has never been trained on.'],
+                        ['admin.exports.indicators', 'Indicator frequency', 'How often each indicator code has fired.'],
+                        ['admin.exports.model-versions', 'Verdicts by model version', 'Which model produced how many verdicts.'],
+                        ['admin.exports.model-metrics', 'Model metrics (JSON)', 'The committed metrics.json files, qualifier included.'],
+                    ] as [$route, $label, $note])
+                        <a href="{{ route($route) }}" class="sc-download">
+                            <span class="sc-download__label">{{ __($label) }}</span>
+                            <span class="sc-download__note">{{ __($note) }}</span>
+                        </a>
+                    @endforeach
+                </div>
+            </details>
 
             {{-- Said plainly rather than left implicit. Submissions contain text
                  a third party wrote, and an administrator taking a copy of it
@@ -44,6 +75,7 @@
                  a file on a laptop. --}}
             <p class="small text-body-secondary mb-0 mt-3">
                 {{ __('Downloaded files leave the retention policy behind. Delete them when you are finished with them.') }}
+                {{ __('Every download is recorded against your account.') }}
             </p>
         </div>
     </div>

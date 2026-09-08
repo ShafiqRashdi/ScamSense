@@ -391,6 +391,18 @@ ruff check . && black . && pytest
         text by design. `CsvExporter::neutralise()` prefixes a quote; `fputcsv`
         does NOT do this (it quotes for CSV parsing, a different problem). Same
         class as the URL defanging — a second rendering context, its own rule.
+      ↳ ONE button on the page: "Download everything" (zip of all six). Six
+        buttons was six decisions before getting any data. The individual routes
+        stay, behind a <details>, as the ext-zip fallback and for anyone wanting
+        one file. `ext-zip` is in composer.json require so a build without it
+        fails at install, not at the button.
+      ↳ `ExportController::datasets()` describes each export ONCE. The archive
+        and the single routes must produce byte-identical files; two code paths
+        writing "the submissions export" is how the zip quietly starts carrying
+        different columns from the CSV beside it. Asserted by a test.
+      ↳ The archive writes CSVs to storage before zipping and deletes them BY
+        TRACKED PATH, not by glob — a glob version silently deleted nothing and
+        left exported personal data in storage after every download.
       ↳ Exports stream in chunks, are throttled 10/min, carry a UTF-8 BOM so
         Excel renders Malay, and log who took what and how many rows — never the
         content, which would copy personal data into a longer-retention place.

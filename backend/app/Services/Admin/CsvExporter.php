@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Services\Admin;
 
 use Illuminate\Contracts\Database\Eloquent\Builder;
-use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
  * CSV downloads for the admin reports page.
@@ -60,82 +59,68 @@ class CsvExporter
     private const BOM = "\xEF\xBB\xBF";
 
     /**
-     * Stream a query as a CSV download.
+     * Write a query to an open handle as CSV, returning the row count.
      *
+     * A handle rather than a response, because the same bytes have to go to two
+     * places: straight down a streamed response, and into a file that the
+     * one-button zip then adds. Two code paths writing "the submissions export"
+     * is how the zip quietly starts carrying a different set of columns from
+     * the CSV beside it.
+     *
+     * @param  resource  $handle
      * @param  list<string>  $headers  column names, written as the first row
      * @param  callable(object): list<mixed>  $row  one model to one line
      */
-    public function stream(
-        string $filename,
-        Builder $query,
-        array $headers,
-        callable $row,
-    ): StreamedResponse {
-        return response()->streamDownload(
-            function () use ($query, $headers, $row): void {
-                $handle = fopen('php://output', 'wb');
+    public function writeTo(mixed $handle, Builder $query, array $headers, callable $row): int
+    {
+        fwrite($handle, self::BOM);
+        fputcsv($handle, $headers);
 
-                fwrite($handle, self::BOM);
+        $written = 0;
 
-                fputcsv($handle, $headers);
+        $query->chunk(self::CHUNK, function ($records) use ($handle, $row, &$written): void {
+            foreach ($records as $record) {
+                fputcsv($handle, array_map(
+                    fn (mixed $cell): string => $this->neutralise($cell),
+                    $row($record),
+                ));
+                $written++;
+            }
 
-                $query->chunk(self::CHUNK, function ($records) use ($handle, $row): void {
-                    foreach ($records as $record) {
-                        fputcsv($handle, array_map(
-                            fn (mixed $cell): string => $this->neutralise($cell),
-                            $row($record),
-                        ));
-                    }
+            flush();
+        });
 
-                    flush();
-                });
-
-                fclose($handle);
-            },
-            $filename,
-            [
-                'Content-Type' => 'text/csv; charset=UTF-8',
-                // The export is derived from live data and must never be served
-                // from a cache to whoever asks next.
-                'Cache-Control' => 'no-store, private',
-            ],
-        );
+        return $written;
     }
 
     /**
-     * Stream rows already in memory as a CSV download.
+     * Write rows already in memory, returning the row count.
      *
-     * For the aggregates — indicator frequency, verdicts by model version —
+     * For the aggregates -- indicator frequency, verdicts by model version --
      * which are a `GROUP BY` rather than a table scan and so cannot be chunked
      * by primary key. They are also tens of rows rather than thousands, so
      * holding them is not the problem streaming exists to solve.
      *
+     * @param  resource  $handle
      * @param  list<string>  $headers
      * @param  iterable<array-key, list<mixed>>  $rows
      */
-    public function streamRows(string $filename, array $headers, iterable $rows): StreamedResponse
+    public function writeRowsTo(mixed $handle, array $headers, iterable $rows): int
     {
-        return response()->streamDownload(
-            function () use ($headers, $rows): void {
-                $handle = fopen('php://output', 'wb');
-                fwrite($handle, self::BOM);
-                fputcsv($handle, $headers);
+        fwrite($handle, self::BOM);
+        fputcsv($handle, $headers);
 
-                foreach ($rows as $row) {
-                    fputcsv($handle, array_map(
-                        fn (mixed $cell): string => $this->neutralise($cell),
-                        $row,
-                    ));
-                }
+        $written = 0;
 
-                fclose($handle);
-            },
-            $filename,
-            [
-                'Content-Type' => 'text/csv; charset=UTF-8',
-                'Cache-Control' => 'no-store, private',
-            ],
-        );
+        foreach ($rows as $row) {
+            fputcsv($handle, array_map(
+                fn (mixed $cell): string => $this->neutralise($cell),
+                $row,
+            ));
+            $written++;
+        }
+
+        return $written;
     }
 
     /**
