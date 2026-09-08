@@ -144,30 +144,76 @@ It asks for the new password twice and does not echo what you type. Changing
 only ever creates an account, it never modifies one — so after changing that
 value, run the command with `--from-env` to apply it.
 
-Signing in lands you on the dashboard.
+Signing in lands you on the dashboard. There are three pages, and each answers
+one question.
 
-## The dashboard
+## The dashboard — is anything wrong, and is there anything for me to do?
 
 | Panel | What it tells you |
 |---|---|
+| Submissions / Pending review / Degraded verdicts | Three counters, and the only figures on the page you might act on today |
 | Submissions over time | Daily volume by type. Empty days show as zero, so a quiet week looks quiet |
 | Verdict distribution | How results split across the risk bands |
-| Model performance | Read from the committed `metrics.json` files, so it always matches the report |
-| Most frequent indicators | Which signals fire most, split by source |
-| Threat-intel cache | Hit rate, and how close you are to exhausting the free API tier |
-| Retraining set | How much came from users versus the original corpus |
-| Degraded verdicts | How often a check could not complete — **watch this one** |
-| Verdicts by model version | Which model produced which results |
+| Why verdicts were incomplete | The breakdown behind the degraded counter — **watch this one** |
 
 **A rising degraded-verdict rate is the number worth watching.** It means a
 dependency is failing quietly: the ML service is down, or a threat-intel
 provider is unreachable. Users still get answers, so nothing looks broken from
-the outside.
+the outside. `php artisan scamsense:doctor` names the failing dependency.
+
+This page was once nine panels. Five of them were reference rather than
+anything to act on, and together they made a page to be searched rather than
+read — which buried the one number above. They are all still here, on the next
+page.
+
+## Reports and downloads — what does the data say, and can I take it away?
+
+At `/admin/reports`.
+
+| Panel | What it tells you |
+|---|---|
+| Model performance | Read from the committed `metrics.json` files, so it always matches the report |
+| Most frequent indicators | Which signals fire most, split by source |
+| Threat-intel cache | Hit rate, and how close you are to exhausting the free API tier |
+| Retraining set | How much came from users versus the original corpus |
+| Verdicts by model version | Which model produced which results |
 
 Under **Model performance**, each figure carries the sentence it must be quoted
 with. Quote the whole sentence. *"F1 on a 1113-message collected Malaysian
 corpus"* means something different from *"97% accurate"*, and only the first is
 true.
+
+### The downloads
+
+Six of them, at the top of the page. CSV opens in Excel or Google Sheets; the
+model metrics come as JSON, because a nested confusion matrix and a reporting
+qualifier do not survive being flattened into columns — and a figure separated
+from its qualifier is how "F1 on a small collected corpus" becomes "97%
+accurate".
+
+| Download | Use it for |
+|---|---|
+| Submissions and verdicts | Every submission with the verdict it produced |
+| Moderation decisions | The audit trail: who approved or rejected what, and when |
+| Retraining set | Approved rows and the dataset version each was exported into |
+| Indicator frequency | How often each indicator code has fired |
+| Verdicts by model version | Which model produced how many verdicts |
+| Model metrics (JSON) | The committed metrics files, qualifier included |
+
+**Three things to know before you download anything.**
+
+The submissions file contains the **redacted** text — phone, IC, email and
+account numbers were removed before the row was ever written, so there is no
+unredacted column to export. An export cannot leak what was never stored.
+
+Even so, it is still text a third party wrote. **A downloaded file has left the
+retention policy behind:** the scheduled purge deletes rows from the database,
+not copies on your laptop. Delete them when you are finished.
+
+**Every download is recorded against your account** — which export, how many
+rows, and who. The content is never logged; a log that recorded the exported
+rows to prove they were exported would have copied the personal data into a
+second place with a longer retention than the table it came from.
 
 ## The moderation queue
 

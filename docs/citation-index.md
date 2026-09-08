@@ -104,6 +104,10 @@ Design choices that are reasoning rather than taste, and that a panel is likely 
 | Verified-domain gate is a safety mitigation, never model accuracy | ADR 0007; stated on the dashboard beside the count |
 | Threat intel may raise a verdict, never lower one | ADR 0007 |
 | Message indicators are a pattern layer, not interpretability | **ADR 0010**; asserted by a test |
+| Admin area is three pages, one question each | dashboard 9 panels → 4; reference moved beside a download | `tests/Feature/AdminDashboardTest.php` (asserts the split from both directions); `tests/Feature/AdminReportsTest.php` |
+| **CSV exports neutralise spreadsheet formula injection** | `=`, `+`, `-`, `@`, tab, CR prefixed with a quote | `app/Services/Admin/CsvExporter.php`; `tests/Feature/AdminExportTest.php` — same class as the URL defanging, a second rendering context |
+| Exports cannot leak what was never stored | the redacted column is the only one that exists | `tests/Feature/AdminExportTest.php`; redaction runs before persistence |
+| Every download is logged; the content never is | who, which export, how many rows | `app/Http/Controllers/Admin/ExportController.php` |
 | UAT scenarios from the brief, both halves | `ml-service/tests/test_real_world_messages.py` (real model); `backend/tests/Feature/VerifyPageTest.php` (presentation, tests named `UAT:`) |
 
 ---

@@ -152,123 +152,11 @@
             </div>
         </div>
 
-        {{-- ── Model performance, read from metrics.json ───────────────────
-             Only the serving models are shown. Every superseded artefact is
-             behind the disclosure below.
-
-             `ModelMetricsReader` returns every directory holding a
-             metrics.json, which today is ten — two serving and eight retired
-             (the random-split runs, the pre-ablation runs, the url_length
-             removal test). Rendering all ten made this panel more than half the
-             page, and the count grows with every retrain. The retired runs are
-             real evidence and worth keeping reachable; they are simply not what
-             anyone opens this page to see. --}}
-        @php
-            $servingModels = array_values(array_filter($data['models'], fn (array $m): bool => $m['is_shipped']));
-            $otherModels = array_values(array_filter($data['models'], fn (array $m): bool => ! $m['is_shipped']));
-        @endphp
-
-        <div class="col-12">
-            <div class="card">
-                <div class="card-body">
-                    <h2 class="h6 fw-semibold">{{ __('Model performance') }}</h2>
-                    <p class="small text-body-secondary">
-                        {{ __('Read from the committed metrics.json files, so these cannot drift from the figures in the report.') }}
-                    </p>
-
-                    @forelse ($servingModels as $model)
-                        <x-admin.model-metrics :model="$model" />
-                    @empty
-                        <p class="text-warning-emphasis mb-0">
-                            {{ __('No serving model found. Check scamsense.shipped_models and scamsense.models_path.') }}
-                        </p>
-                    @endforelse
-
-                    @if ($otherModels)
-                        <details class="mt-3">
-                            <summary class="small fw-semibold py-1" style="cursor: pointer;">
-                                {{ __('Show superseded and experimental runs (:n)', ['n' => count($otherModels)]) }}
-                            </summary>
-                            <p class="small text-body-secondary mt-2 mb-2">
-                                {{ __('Kept for traceability. None of these is serving traffic.') }}
-                            </p>
-                            @foreach ($otherModels as $model)
-                                <x-admin.model-metrics :model="$model" />
-                            @endforeach
-                        </details>
-                    @endif
-                </div>
-            </div>
-        </div>
-
-        {{-- ── Indicators, threat intel, retraining set ───────────────── --}}
-        <div class="col-12 col-lg-4">
-            <div class="card h-100">
-                <div class="card-body">
-                    <h2 class="h6 fw-semibold">{{ __('Most frequent indicators') }}</h2>
-                    <table class="table table-sm small mb-0">
-                        <tbody>
-                            @forelse ($data['indicators'] as $indicator)
-                                <tr>
-                                    <td>
-                                        {{ $indicator['code'] }}
-                                        @unless ($indicator['is_model'])
-                                            <span class="badge text-bg-light">{{ $indicator['source'] }}</span>
-                                        @endunless
-                                    </td>
-                                    <td class="text-end">{{ number_format($indicator['count']) }}</td>
-                                </tr>
-                            @empty
-                                <tr><td class="text-body-secondary">{{ __('None yet.') }}</td></tr>
-                            @endforelse
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-12 col-lg-4">
-            <div class="card h-100">
-                <div class="card-body">
-                    <h2 class="h6 fw-semibold">{{ __('Threat-intel cache') }}</h2>
-                    <p class="display-6 mb-0">{{ number_format($data['threatIntel']['hit_rate'] * 100, 1) }}%</p>
-                    <p class="small text-body-secondary">{{ __('entries still within their 24-hour life') }}</p>
-                    <dl class="row small mb-0">
-                        <dt class="col-7">{{ __('Cached lookups') }}</dt>
-                        <dd class="col-5 text-end">{{ number_format($data['threatIntel']['total']) }}</dd>
-                        <dt class="col-7">{{ __('Flagged malicious') }}</dt>
-                        <dd class="col-5 text-end">{{ number_format($data['threatIntel']['malicious']) }}</dd>
-                        <dt class="col-7">{{ __('Expired') }}</dt>
-                        <dd class="col-5 text-end">{{ number_format($data['threatIntel']['expired']) }}</dd>
-                    </dl>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-12 col-lg-4">
-            <div class="card h-100">
-                <div class="card-body">
-                    <h2 class="h6 fw-semibold">{{ __('Retraining set') }}</h2>
-                    <dl class="row small mb-2">
-                        <dt class="col-7">{{ __('From the community') }}</dt>
-                        <dd class="col-5 text-end">{{ number_format($data['training']['community']) }}</dd>
-                        <dt class="col-7">{{ __('From the original corpus') }}</dt>
-                        <dd class="col-5 text-end">{{ number_format($data['training']['corpus']) }}</dd>
-                        <dt class="col-7">{{ __('Awaiting export') }}</dt>
-                        <dd class="col-5 text-end">{{ number_format($data['training']['awaiting_export']) }}</dd>
-                    </dl>
-                    <p class="small text-body-secondary mb-0">
-                        {{ __('Community rows reach this table only through explicit approval. Nothing here has been trained on until it is exported into a dataset version.') }}
-                    </p>
-                </div>
-            </div>
-        </div>
-
         {{-- ── Degradation and traceability ───────────────────────────── --}}
         {{-- The rate itself is a headline counter now; this panel carries only
              the breakdown, which is what turns "something is wrong" into
              "the ML service is unreachable". --}}
-        <div class="col-12 col-lg-6" id="degraded">
+        <div class="col-12" id="degraded">
             <div class="card h-100">
                 <div class="card-body">
                     <h2 class="h6 fw-semibold">{{ __('Why verdicts were incomplete') }}</h2>
@@ -299,25 +187,18 @@
             </div>
         </div>
 
-        <div class="col-12 col-lg-6">
-            <div class="card h-100">
-                <div class="card-body">
-                    <h2 class="h6 fw-semibold">{{ __('Verdicts by model version') }}</h2>
-                    <p class="small text-body-secondary">
-                        {{ __('Every verdict records the model that produced it, so any screenshot is traceable.') }}
-                    </p>
-                    <table class="table table-sm small mb-0">
-                        <tbody>
-                            @foreach ($byModelVersion as $version => $count)
-                                <tr>
-                                    <td class="font-monospace">{{ $version }}</td>
-                                    <td class="text-end">{{ number_format($count) }}</td>
-                                </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+
+        {{-- Everything that was reference rather than actionable -- model
+             metrics, indicator frequency, the threat-intel cache, the
+             retraining set and verdict counts per model version -- now lives on
+             the reports page. Nine panels made this a page to be searched
+             rather than read, and buried the degraded rate above, which is the
+             one figure worth checking daily. --}}
+        <div class="col-12">
+            <p class="text-body-secondary small mb-0">
+                {{ __('Model performance, indicator frequency, the threat-intel cache and the retraining set have moved.') }}
+                <a href="{{ route('admin.reports') }}">{{ __('Reports and downloads') }}</a>
+            </p>
         </div>
 
     </div>

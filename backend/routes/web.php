@@ -3,7 +3,9 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\ExportController;
 use App\Http\Controllers\Admin\ModerationController;
+use App\Http\Controllers\Admin\ReportsController;
 use App\Http\Controllers\FeedbackController;
 use App\Http\Controllers\VerifyController;
 use App\Http\Middleware\EnsureUserCanModerate;
@@ -66,6 +68,29 @@ Route::middleware(['auth', EnsureUserCanModerate::class])
             ->name('moderation.approve');
         Route::post('/moderation/{feedback}/reject', [ModerationController::class, 'reject'])
             ->name('moderation.reject');
+
+        Route::get('/reports', [ReportsController::class, 'index'])->name('reports');
+
+        /*
+         | Downloads.
+         |
+         | Throttled, unlike the rest of the admin area. Each of these is a full
+         | table scan streamed to the browser, so a held-down refresh key is a
+         | denial of service against the one database this project has. Ten a
+         | minute is far more than anyone reviewing data needs and far less than
+         | a loop would manage.
+         |
+         | Every route is a GET returning an attachment: nothing here changes
+         | state, so a download is safe to repeat and safe to bookmark.
+         */
+        Route::middleware('throttle:10,1')->prefix('exports')->name('exports.')->group(function (): void {
+            Route::get('/submissions.csv', [ExportController::class, 'submissions'])->name('submissions');
+            Route::get('/feedback.csv', [ExportController::class, 'feedback'])->name('feedback');
+            Route::get('/training-set.csv', [ExportController::class, 'trainingSamples'])->name('training');
+            Route::get('/indicators.csv', [ExportController::class, 'indicators'])->name('indicators');
+            Route::get('/model-versions.csv', [ExportController::class, 'modelVersions'])->name('model-versions');
+            Route::get('/model-metrics.json', [ExportController::class, 'modelMetrics'])->name('model-metrics');
+        });
     });
 
 require __DIR__.'/auth.php';

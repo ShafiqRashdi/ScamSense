@@ -21,12 +21,22 @@
             </button>
 
             <div class="collapse navbar-collapse" id="primaryNav">
+                {{-- Three pages, one job each. Moderation was reachable only
+                     by typing the URL or following a link from a dashboard
+                     counter, which is a poor way to find the one page in the
+                     admin area that has work waiting on it. --}}
                 <ul class="navbar-nav me-auto">
-                    <li class="nav-item">
-                        <a class="nav-link {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}"
-                           @if (request()->routeIs('admin.dashboard')) aria-current="page" @endif
-                           href="{{ route('admin.dashboard') }}">{{ __('Dashboard') }}</a>
-                    </li>
+                    @foreach ([
+                        ['admin.dashboard', 'Dashboard'],
+                        ['admin.moderation.index', 'Moderation'],
+                        ['admin.reports', 'Reports'],
+                    ] as [$route, $label])
+                        <li class="nav-item">
+                            <a class="nav-link {{ request()->routeIs($route) ? 'active' : '' }}"
+                               @if (request()->routeIs($route)) aria-current="page" @endif
+                               href="{{ route($route) }}">{{ __($label) }}</a>
+                        </li>
+                    @endforeach
                 </ul>
 
                 @auth

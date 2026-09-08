@@ -31,20 +31,45 @@ class DashboardService
     public function __construct(private ModelMetricsReader $metrics) {}
 
     /**
+     * What the dashboard shows: is anything wrong, and is there anything to do?
+     *
+     * The page used to render all nine panels this service can produce, which
+     * made it something to be searched rather than read. The split is by the
+     * question each panel answers, not by how expensive it is to compute:
+     * anything you would act on today stays here, and everything that is
+     * reference, traceability or evidence moved to the reports page.
+     *
      * @return array<string, mixed>
      */
-    public function summary(int $days = 30): array
+    public function operational(int $days = 30): array
     {
         return [
             'volume' => $this->submissionVolume($days),
             'totals' => $this->totals(),
             'verdicts' => $this->verdictDistribution(),
-            'indicators' => $this->topIndicators(),
             'partial' => $this->partialRate(),
             'moderation' => $this->moderationQueue(),
+        ];
+    }
+
+    /**
+     * What the reports page shows: what does the data say, and can I take it
+     * away?
+     *
+     * None of this changes what an administrator does today. All of it is what
+     * somebody asks for when they want to check a claim — which is why every
+     * panel built from it sits beside a download.
+     *
+     * @return array<string, mixed>
+     */
+    public function reference(): array
+    {
+        return [
+            'indicators' => $this->topIndicators(),
             'training' => $this->trainingSet(),
             'threatIntel' => $this->threatIntelCache(),
             'models' => $this->metrics->all(),
+            'byModelVersion' => $this->verdictsByModelVersion(),
         ];
     }
 

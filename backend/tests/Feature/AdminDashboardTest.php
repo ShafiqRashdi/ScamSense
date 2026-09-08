@@ -17,11 +17,6 @@ use App\Services\Admin\ModelMetricsReader;
 use Database\Seeders\FeedbackQueueSeeder;
 use Database\Seeders\SampleSubmissionSeeder;
 
-function admin(): User
-{
-    return User::factory()->admin()->create();
-}
-
 /*
 |--------------------------------------------------------------------------
 | Access control — AGENTS.md requires a role check on every admin route
@@ -240,8 +235,48 @@ it('renders the dashboard with real seeded data', function (): void {
         ->assertOk()
         ->assertSee('Submissions over time')
         ->assertSee('Verdict distribution')
-        ->assertSee('Threat-intel cache')
-        ->assertSee('Retraining set');
+        ->assertSee('Why verdicts were incomplete');
+});
+
+it('answers one question and sends the rest to reports', function (): void {
+    /*
+     | The page had grown to nine panels, five of which were reference rather
+     | than anything to act on today. Together they made a page to be searched
+     | rather than read, and they buried the degraded-verdict rate -- the one
+     | figure the user manual says is worth checking daily.
+     |
+     | Asserted from both directions. Checking only that the reference panels
+     | are gone would pass on a page that had lost the operational ones too.
+     */
+    $this->seed(SampleSubmissionSeeder::class);
+
+    $page = $this->actingAs(admin())->get('/admin')->assertOk();
+
+    foreach (['Submissions over time', 'Verdict distribution', 'Why verdicts were incomplete'] as $stays) {
+        $page->assertSee($stays);
+    }
+
+    /*
+     | Asserted against distinctive panel CONTENT, not the headings. The
+     | dashboard still names the moved panels in one signpost sentence so the
+     | reader is not left wondering whether the page is broken, and an
+     | assertDontSee on "Model performance" would fail on that sentence while
+     | telling us nothing about whether the panel is gone.
+     */
+    foreach ([
+        'Read from the committed metrics.json files',
+        'Show superseded and experimental runs',
+        'Most frequent indicators',
+        'entries still within their 24-hour life',
+        'Awaiting export',
+        'Verdicts by model version',
+    ] as $moved) {
+        $page->assertDontSee($moved);
+    }
+
+    // And the reader is told where they went, rather than being left to
+    // wonder whether the page is broken.
+    $page->assertSee('Reports and downloads');
 });
 
 it('clamps the day range to something sensible', function (): void {
@@ -250,89 +285,11 @@ it('clamps the day range to something sensible', function (): void {
     $this->actingAs(admin())->get('/admin?days=abc')->assertOk();
 });
 
-it('escapes a model name rather than rendering it', function (): void {
-    $dir = sys_get_temp_dir().'/scamsense-metrics-'.uniqid();
-    mkdir($dir.'/rf-url-<script>alert(1)</script>', 0777, true);
-    file_put_contents(
-        $dir.'/rf-url-<script>alert(1)</script>/metrics.json',
-        json_encode(['test' => ['f1_phishing' => 0.5]]),
-    );
-    config()->set('scamsense.models_path', $dir);
-
-    $this->actingAs(admin())
-        ->get('/admin')
-        ->assertOk()
-        ->assertDontSee('<script>alert(1)</script>', escape: false);
-})->skipOnWindows();
-
 /*
 |--------------------------------------------------------------------------
 | Density — the dashboard shows what is acted on, not everything it knows
 |--------------------------------------------------------------------------
 */
-
-/**
- * Writes a models directory holding one serving artefact and several retired
- * ones, which is the real shape: ten directories, two of them serving.
- */
-function modelsDirectoryWithRetiredRuns(): string
-{
-    $dir = sys_get_temp_dir().'/scamsense-models-'.uniqid();
-
-    foreach (['rf-url-v9.9.9-serving', 'rf-url-v0.1.0-old', 'rf-url-v0.2.0-randomsplit'] as $name) {
-        mkdir($dir.'/'.$name, 0777, true);
-        file_put_contents(
-            $dir.'/'.$name.'/metrics.json',
-            json_encode(['test' => ['f1_phishing' => 0.9, 'threshold' => 0.5]]),
-        );
-    }
-
-    config()->set('scamsense.models_path', $dir);
-    config()->set('scamsense.shipped_models.url', 'rf-url-v9.9.9-serving');
-    config()->set('scamsense.shipped_models.message', 'not-present');
-
-    return $dir;
-}
-
-it('shows only serving models, with retired runs behind a disclosure', function (): void {
-    /*
-     | ModelMetricsReader returns every directory with a metrics.json, which is
-     | ten today and grows with each retrain. Rendering all of them made this
-     | panel more than half the page while only two were serving traffic.
-     */
-    modelsDirectoryWithRetiredRuns();
-
-    $html = $this->actingAs(admin())->get('/admin')->assertOk()->getContent();
-
-    $serving = strpos($html, 'rf-url-v9.9.9-serving');
-    $disclosure = strpos($html, '<details');
-
-    expect($serving)->not->toBeFalse('the serving model must be visible')
-        ->and($disclosure)->not->toBeFalse('retired runs need a disclosure')
-        ->and($serving)->toBeLessThan($disclosure, 'serving models come before the disclosure')
-        ->and($html)->toContain('Show superseded and experimental runs (2)');
-});
-
-it('keeps retired runs reachable rather than dropping them', function (): void {
-    // They are real evidence for the report; the point is that they are not
-    // what anyone opens this page to see.
-    modelsDirectoryWithRetiredRuns();
-
-    $this->actingAs(admin())->get('/admin')
-        ->assertSee('rf-url-v0.1.0-old')
-        ->assertSee('rf-url-v0.2.0-randomsplit');
-});
-
-it('warns when no model is serving rather than showing nothing', function (): void {
-    $dir = sys_get_temp_dir().'/scamsense-models-'.uniqid();
-    mkdir($dir.'/rf-url-v0.1.0-old', 0777, true);
-    file_put_contents($dir.'/rf-url-v0.1.0-old/metrics.json', json_encode(['test' => ['f1_phishing' => 0.9]]));
-    config()->set('scamsense.models_path', $dir);
-    config()->set('scamsense.shipped_models.url', 'nothing-matches-this');
-    config()->set('scamsense.shipped_models.message', 'nor-this');
-
-    $this->actingAs(admin())->get('/admin')->assertSee('No serving model found');
-});
 
 it('does not repeat a figure that a panel already breaks down', function (): void {
     /*

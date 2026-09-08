@@ -368,15 +368,35 @@ ruff check . && black . && pytest
       ↳ Three steps: approve → export to a dataset version → train. Never collapsed.
       ↳ The MODERATOR supplies the label, not the reporter. No default selection.
       ↳ Provenance survives: feedback_id, submission_id, origin, approved_by.
-- [x] Phase 8 — Admin dashboard + metrics
-      ↳ Submission volume (zero-filled), verdict distribution, indicator frequency
-        split by source, degraded-verdict rate and reasons, threat-intel cache hit
-        rate, retraining set split by provenance, verdicts by model version.
+- [x] Phase 8 — Admin dashboard + metrics — THREE pages, one question each
+      ↳ **Dashboard** = "is anything wrong, is there anything to do?" Three
+        counters, submission volume (zero-filled), verdict distribution, and the
+        degraded-verdict reasons. Nothing else. It had grown to nine panels,
+        which buried the degraded rate — the one figure worth checking daily.
+      ↳ **Reports** (`/admin/reports`) = "what does the data say, can I take it
+        away?" Model performance, indicator frequency, threat-intel cache,
+        retraining set, verdicts by model version — each beside a download.
+      ↳ **Moderation** is now in the nav. It was reachable only by typing the
+        URL or following a dashboard counter.
+      ↳ Do NOT add a reference panel back to the dashboard. `DashboardService`
+        splits `operational()` from `reference()` precisely so the question each
+        page answers is a decision in code rather than a habit.
       ↳ Model performance is READ from the committed metrics.json artefacts, never
         recomputed, so a dashboard figure and a Chapter 4 figure cannot drift.
-        The REPORTING_QUALIFIER travels with each metric into the UI.
+        The REPORTING_QUALIFIER travels with each metric into the UI, and the
+        metrics export is JSON for the same reason — flattening to CSV columns
+        is the first step towards quoting an F1 without its caveat.
+      ↳ **CSV EXPORTS NEUTRALISE FORMULAS.** A cell starting `=`, `+`, `-`, `@`,
+        tab or CR executes in Excel/Sheets, and this app exports attacker-written
+        text by design. `CsvExporter::neutralise()` prefixes a quote; `fputcsv`
+        does NOT do this (it quotes for CSV parsing, a different problem). Same
+        class as the URL defanging — a second rendering context, its own rule.
+      ↳ Exports stream in chunks, are throttled 10/min, carry a UTF-8 BOM so
+        Excel renders Malay, and log who took what and how many rows — never the
+        content, which would copy personal data into a longer-retention place.
       ↳ `auth` plus an explicit role check on the whole admin group. A Viewer role
-        exists so the check is testable rather than vacuous.
+        exists so the check is testable rather than vacuous. Exports carry every
+        row rather than a top ten, so the same gate is asserted on each one.
 - [x] Phase 9 — Hardening, security review, deployment guide, user manual
       ↳ Security review found 10 issues (5 High); all fixed with regression tests.
         See `docs/security-review-2026-08.md`.

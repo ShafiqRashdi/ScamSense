@@ -12,6 +12,10 @@ use Illuminate\View\View;
 /**
  * The admin dashboard (Phase 8).
  *
+ * Answers one question: is anything wrong, and is there anything for me to do?
+ * Everything that is reference rather than actionable moved to ReportsController
+ * when this page had grown to nine panels.
+ *
  * Thin: one service call, one view. The role check is middleware on the route
  * group, not an `if` in here — AGENTS.md requires an explicit role check on
  * every admin route, and a check written inline is one that gets forgotten on
@@ -27,8 +31,7 @@ class DashboardController extends Controller
         $days = max(7, min($days, 90));
 
         return view('admin.dashboard', [
-            'data' => $this->dashboard->summary($days),
-            'byModelVersion' => $this->dashboard->verdictsByModelVersion(),
+            'data' => $this->dashboard->operational($days),
             'days' => $days,
         ]);
     }
