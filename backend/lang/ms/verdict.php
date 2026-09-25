@@ -25,6 +25,9 @@ declare(strict_types=1);
 
 return [
 
+    // The masthead line on the result page. A label, not the answer.
+    'checked_heading' => 'Kami sudah semak',
+
     'high' => [
         'label' => 'Berkemungkinan penipuan',
         'heading' => 'Ini kelihatan seperti penipuan',

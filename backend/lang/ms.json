@@ -2,7 +2,8 @@
     "Skip to content": "Terus ke kandungan",
     "Language": "Bahasa",
 
-    "ScamSense gives guidance, not a guarantee. If you have lost money, contact your bank immediately and report it to the police.": "ScamSense memberi panduan, bukan jaminan. Jika anda sudah kehilangan wang, segera hubungi bank anda dan buat laporan polis.",
+    "ScamSense gives guidance, not a guarantee.": "ScamSense memberi panduan, bukan jaminan.",
+    "If you have lost money, contact your bank immediately and report it to the police.": "Jika anda sudah kehilangan wang, segera hubungi bank anda dan buat laporan polis.",
 
     "Check a message or link": "Semak mesej atau pautan",
     "Is this a scam?": "Adakah ini penipuan?",
@@ -29,6 +30,14 @@
     "Reading what you pasted...": "Membaca apa yang anda tampal...",
     "Comparing it with scams we have seen before...": "Membandingkan dengan penipuan yang pernah kami lihat...",
     "Getting your answer ready...": "Menyiapkan jawapan anda...",
+
+    "STEP": "LANGKAH",
+    "Paste it": "Tampal di sini",
+    "A message someone sent you, or a link you were asked to open. You never have to say who you are.": "Mesej yang seseorang hantar kepada anda, atau pautan yang anda diminta buka. Anda tidak perlu beritahu siapa anda.",
+    "We check it": "Kami semak",
+    "We compare it against scams we have seen before. We never open the link you paste.": "Kami bandingkan dengan penipuan yang pernah kami lihat. Kami tidak pernah membuka pautan yang anda tampal.",
+    "You decide": "Anda putuskan",
+    "You get an answer in plain words, with the reasons - so the next one you can spot yourself.": "Anda dapat jawapan dalam bahasa mudah, berserta sebabnya - supaya yang seterusnya anda boleh kenal sendiri.",
 
     "What happens to what you paste": "Apa kami buat dengan apa yang anda tampal",
     "We remove phone numbers, IC numbers, emails and account numbers before saving anything.": "Kami buang nombor telefon, nombor kad pengenalan, alamat emel dan nombor akaun sebelum menyimpan apa-apa.",

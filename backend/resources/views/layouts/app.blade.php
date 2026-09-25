@@ -10,9 +10,21 @@
     @vite(['resources/css/app.scss', 'resources/js/app.js'])
 </head>
 <body class="bg-body-secondary d-flex flex-column min-vh-100">
-    <nav class="navbar navbar-expand-md bg-body border-bottom">
+    {{-- The admin bar wears the brand surface so the product reads as one
+         thing, but the admin area stops there: it is a tool, and the masthead
+         hero belongs to the pages a member of the public sees. --}}
+    <nav class="navbar navbar-expand-md sc-mast sc-mast--bar">
         <div class="container">
-            <a class="navbar-brand fw-semibold" href="{{ route('verify.show') }}">ScamSense</a>
+            <a class="sc-brand navbar-brand" href="{{ route('verify.show') }}">
+                <svg class="sc-brand__mark" viewBox="0 0 24 24" fill="none"
+                     width="24" height="24" aria-hidden="true" focusable="false">
+                    <path d="M12 2.2 4.2 5.4v6.2c0 4.8 3.2 8.9 7.8 10.2 4.6-1.3 7.8-5.4 7.8-10.2V5.4Z"
+                          fill="currentColor"/>
+                    <path d="m8.4 12.2 2.6 2.6 4.7-5" stroke="#1f4a3e" stroke-width="2.2"
+                          stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <span>ScamSense</span>
+            </a>
 
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
                     data-bs-target="#primaryNav" aria-controls="primaryNav"

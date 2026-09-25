@@ -66,13 +66,18 @@
         ];
     @endphp
 
-    <div class="row justify-content-center">
-        <div class="col-12 col-md-9 col-lg-7">
+@section('hero')
+    <div class="sc-hero">
+        <h1>{{ __('Is this a scam?') }}</h1>
+        <p>{{ __('Paste a message or a link and we will check it for you.') }}</p>
+    </div>
+@endsection
 
-            <h1 class="h3 mb-2">{{ __('Is this a scam?') }}</h1>
-            <p class="lead text-body-secondary mb-4">
-                {{ __('Paste a message or a link and we will check it for you.') }}
-            </p>
+    {{-- The card breaks out of the masthead. That overlap is the move that
+         makes the page read as designed rather than stacked, and it is why the
+         hero lives in the layout's band rather than here. --}}
+    <div class="sc-lift">
+        <div class="sc-shell">
 
             @if ($errors->any())
                 <div class="alert alert-danger" role="alert">
@@ -87,27 +92,35 @@
             {{-- `data-busy-form` opts this form into the submit feedback in
                  app.js. The verdict can take up to three seconds, and a button
                  that does nothing for three seconds gets pressed again. --}}
-            <form method="POST" action="{{ route('verify.store') }}" class="card shadow-sm" data-busy-form>
+            <form method="POST" action="{{ route('verify.store') }}" class="sc-card" data-busy-form>
                 @csrf
-                <div class="card-body p-4">
+                <div class="sc-card__body">
 
                     <fieldset class="mb-4">
                         <legend class="form-label fs-6 fw-semibold">
                             {{ __('What are you checking?') }}
                         </legend>
 
-                        <div class="btn-group w-100" role="group">
-                            <input type="radio" class="btn-check" name="type" id="type-message"
+                        {{-- Radio inputs, not buttons: this is a form control
+                             and it must submit without JavaScript. The pill is
+                             a decoration layered over them, positioned from
+                             `:checked` in CSS — so it is already in the right
+                             place on first paint, before app.js runs and even
+                             if it never does. --}}
+                        <div class="sc-seg" data-seg>
+                            <span class="sc-seg__pill" aria-hidden="true"></span>
+
+                            <input type="radio" class="sc-seg__input" name="type" id="type-message"
                                    value="message" autocomplete="off"
                                    {{ old('type', 'message') === 'message' ? 'checked' : '' }}>
-                            <label class="btn btn-outline-primary py-3" for="type-message">
+                            <label class="sc-seg__opt" for="type-message">
                                 {{ __('A message') }}
                             </label>
 
-                            <input type="radio" class="btn-check" name="type" id="type-url"
+                            <input type="radio" class="sc-seg__input" name="type" id="type-url"
                                    value="url" autocomplete="off"
                                    {{ old('type') === 'url' ? 'checked' : '' }}>
-                            <label class="btn btn-outline-primary py-3" for="type-url">
+                            <label class="sc-seg__opt" for="type-url">
                                 {{ __('A link') }}
                             </label>
                         </div>
@@ -183,9 +196,13 @@
                     {{-- The busy label travels in a data attribute because the
                          CSP is `script-src 'self'` and it must be translated.
                          Without JS the button is an ordinary submit button. --}}
-                    <button type="submit" class="btn btn-primary btn-lg w-100 py-3"
-                            data-busy-label="{{ __('Checking...') }}">
-                        {{ __('Check it') }}
+                    {{-- The wait lives INSIDE the button: a rail along its
+                         bottom edge and a label that crossfades. One element
+                         doing one job, rather than a spinner and a separate
+                         progress panel competing for the same moment. --}}
+                    <button type="submit" class="sc-cta" data-busy-label="{{ __('Checking...') }}">
+                        <span class="sc-cta__label">{{ __('Check it') }}</span>
+                        <span class="sc-cta__rail" aria-hidden="true"><i></i></span>
                     </button>
 
                     {{-- The wait.
@@ -211,14 +228,12 @@
 
                          Rendered hidden and revealed by app.js, so with no
                          JavaScript the form is exactly as it was. --}}
-                    <div class="sc-busy mt-3" data-busy-panel hidden>
-                        <div class="sc-busy__track" aria-hidden="true">
-                            <span class="sc-busy__bar"></span>
-                        </div>
-
-                        <p class="sc-busy__status text-body-secondary small mb-0"
-                           data-busy-status role="status" aria-live="polite"></p>
-                    </div>
+                    {{-- The rail now lives in the button, so this carries
+                         only the words. They fill the wait AND teach what the
+                         platform does -- the same job the indicator list does
+                         on the result page. --}}
+                    <p class="sc-busy__status" data-busy-panel data-busy-status
+                       role="status" aria-live="polite" hidden></p>
 
                     {{-- Read by app.js and rotated through the status line
                          above. Kept in the markup rather than in JS so the
@@ -232,18 +247,39 @@
                 </div>
             </form>
 
-            {{-- Privacy notice, required on the form itself (Phase 6 brief). --}}
-            <div class="card border-0 bg-body-tertiary mt-4">
-                <div class="card-body">
-                    <h2 class="h6 fw-semibold">{{ __('What happens to what you paste') }}</h2>
-                    <ul class="small text-body-secondary mb-0 ps-3">
-                        <li>{{ __('We remove phone numbers, IC numbers, emails and account numbers before saving anything.') }}</li>
-                        <li>{{ __('We keep the message for :days days so we can improve our scam detection, then delete it automatically.', ['days' => config('scamsense.retention.submission_days')]) }}</li>
-                        <li>{{ __('We never open the link you paste, and we never ask who you are.') }}</li>
-                    </ul>
-                </div>
-            </div>
+        </div>
+    </div>
 
+    {{-- ── How it works ────────────────────────────────────────────────────
+         Three steps, numbered rather than illustrated. This fills the desktop
+         width with something that teaches instead of decorating, which matters
+         for a reader who has never used a tool like this and does not know
+         whether pasting a scam somewhere is safe. --}}
+    <div class="sc-band">
+        <div class="sc-shell sc-how">
+            @foreach ([
+                ['01', 'Paste it', 'A message someone sent you, or a link you were asked to open. You never have to say who you are.'],
+                ['02', 'We check it', 'We compare it against scams we have seen before. We never open the link you paste.'],
+                ['03', 'You decide', 'You get an answer in plain words, with the reasons - so the next one you can spot yourself.'],
+            ] as [$n, $title, $body])
+                <div class="sc-step">
+                    <span class="sc-step__n">{{ __('STEP') }} {{ $n }}</span>
+                    <h2>{{ __($title) }}</h2>
+                    <p>{{ __($body) }}</p>
+                </div>
+            @endforeach
+        </div>
+    </div>
+
+    {{-- Privacy notice, required on the form itself (Phase 6 brief). --}}
+    <div class="sc-band sc-band--last">
+        <div class="sc-shell sc-priv">
+            <h2>{{ __('What happens to what you paste') }}</h2>
+            <ul>
+                <li>{{ __('We remove phone numbers, IC numbers, emails and account numbers before saving anything.') }}</li>
+                <li>{{ __('We keep the message for :days days so we can improve our scam detection, then delete it automatically.', ['days' => config('scamsense.retention.submission_days')]) }}</li>
+                <li>{{ __('We never open the link you paste, and we never ask who you are.') }}</li>
+            </ul>
         </div>
     </div>
 @endsection

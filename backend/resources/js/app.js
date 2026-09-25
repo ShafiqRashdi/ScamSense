@@ -32,7 +32,7 @@ function markBusyOnSubmit(form) {
         return;
     }
 
-    const idleChildren = Array.from(button.childNodes);
+    const idleLabel = button.querySelector(".sc-cta__label")?.textContent ?? "";
     const panel = form.querySelector("[data-busy-panel]");
     const status = form.querySelector("[data-busy-status]");
     const steps = Array.from(
@@ -46,7 +46,12 @@ function markBusyOnSubmit(form) {
     const reset = () => {
         submitted = false;
         window.clearInterval(timer);
-        button.replaceChildren(...idleChildren);
+
+        const label = button.querySelector(".sc-cta__label");
+        if (label) {
+            label.textContent = idleLabel;
+        }
+
         button.removeAttribute("aria-busy");
 
         if (panel) {
@@ -81,6 +86,7 @@ function markBusyOnSubmit(form) {
         panel.hidden = false;
         status.textContent = steps[0];
 
+
         timer = window.setInterval(() => {
             index += 1;
 
@@ -107,20 +113,17 @@ function markBusyOnSubmit(form) {
         submitted = true;
         button.setAttribute("aria-busy", "true");
 
-        // Built as nodes rather than an HTML string. The label is a
-        // translation and therefore trusted, but this is a project whose whole
-        // subject is untrusted strings reaching a page, and leaving an
-        // innerHTML sink here for a reviewer to find would undercut that.
-        const spinner = document.createElement("span");
-        spinner.className = "spinner-border spinner-border-sm me-2";
-        spinner.setAttribute("aria-hidden", "true");
+        /*
+         | The rail lives in the button's own markup and is revealed by CSS on
+         | `aria-busy`, so there is nothing to build here -- only the label to
+         | swap. Replacing the button's children the way an earlier version did
+         | would have destroyed the rail along with the label.
+         */
+        const label = button.querySelector(".sc-cta__label");
 
-        // The spinner is `aria-hidden`; the label change is what a screen
-        // reader announces, which is the more useful signal of the two.
-        button.replaceChildren(
-            spinner,
-            document.createTextNode(button.dataset.busyLabel),
-        );
+        if (label) {
+            label.textContent = button.dataset.busyLabel;
+        }
 
         runSteps();
     });

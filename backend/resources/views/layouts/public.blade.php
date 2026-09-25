@@ -10,38 +10,71 @@
 
     @vite(['resources/css/app.scss', 'resources/js/app.js'])
 </head>
-<body class="bg-body-secondary d-flex flex-column min-vh-100">
+<body class="d-flex flex-column min-vh-100">
 
     <a href="#main" class="visually-hidden-focusable p-2 bg-body">{{ __('Skip to content') }}</a>
 
-    <nav class="navbar bg-body border-bottom">
-        <div class="container">
-            <a class="navbar-brand fw-semibold" href="{{ route('verify.show') }}">ScamSense</a>
+    {{-- ── The masthead ────────────────────────────────────────────────────
+         The brand surface the page hangs from, and the only dark region on
+         the site apart from the footer that bookends it. Keeping the dark to
+         these two bands is what lets the risk colours stay the loudest thing
+         on any page (ADR 0012 rule 2).
 
-            {{-- Language switch. The audience is bilingual and many will be
-                 far more comfortable in Malay, so this must be reachable
-                 without scrolling and readable at arm's length. --}}
-            <div class="btn-group" role="group" aria-label="{{ __('Language') }}">
-                @foreach (['en' => 'English', 'ms' => 'Bahasa Malaysia'] as $code => $name)
-                    <a href="{{ route('locale.switch', $code) }}"
-                       class="btn btn-sm {{ app()->getLocale() === $code ? 'btn-secondary' : 'btn-outline-secondary' }}"
-                       @if (app()->getLocale() === $code) aria-current="true" @endif>
-                        {{ $code === 'en' ? 'EN' : 'BM' }}
-                        <span class="visually-hidden">{{ $name }}</span>
-                    </a>
-                @endforeach
+         Each page supplies its own hero inside it, so the verdict page can be
+         shallower than the landing page without a second layout. --}}
+    <header class="sc-mast">
+        <div class="sc-mast__inner">
+            <div class="sc-bar">
+                <a class="sc-brand" href="{{ route('verify.show') }}">
+                    {{-- Inline rather than an <img>: it must be the exact brand
+                         green, it must not cost a request, and it must still
+                         be there if an image fails to load. --}}
+                    <svg class="sc-brand__mark" viewBox="0 0 24 24" fill="none"
+                         width="26" height="26" aria-hidden="true" focusable="false">
+                        <path d="M12 2.2 4.2 5.4v6.2c0 4.8 3.2 8.9 7.8 10.2 4.6-1.3 7.8-5.4 7.8-10.2V5.4Z"
+                              fill="currentColor"/>
+                        <path d="m8.4 12.2 2.6 2.6 4.7-5" stroke="#1f4a3e" stroke-width="2.2"
+                              stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <span>ScamSense</span>
+                </a>
+
+                {{-- Language switch. The audience is bilingual and many will be
+                     far more comfortable in Malay, so this must be reachable
+                     without scrolling and readable at arm's length.
+
+                     Links, not buttons, and the pill is positioned from the
+                     current locale in CSS — so it is correct before any
+                     JavaScript runs and correct if none ever does. --}}
+                <div class="sc-lang" role="group" aria-label="{{ __('Language') }}"
+                     data-active="{{ app()->getLocale() === 'ms' ? 'ms' : 'en' }}">
+                    <span class="sc-lang__pill" aria-hidden="true"></span>
+                    @foreach (['en' => 'English', 'ms' => 'Bahasa Malaysia'] as $code => $name)
+                        <a href="{{ route('locale.switch', $code) }}"
+                           class="sc-lang__opt"
+                           @if (app()->getLocale() === $code) aria-current="true" @endif>
+                            {{ $code === 'en' ? 'EN' : 'BM' }}
+                            <span class="visually-hidden">{{ $name }}</span>
+                        </a>
+                    @endforeach
+                </div>
             </div>
-        </div>
-    </nav>
 
-    <main id="main" class="container py-4 flex-grow-1">
+            @yield('hero')
+        </div>
+    </header>
+
+    <main id="main" class="flex-grow-1">
         @yield('content')
     </main>
 
-    <footer class="border-top bg-body py-3 mt-auto">
-        <div class="container">
-            <p class="small text-body-secondary mb-0">
-                {{ __('ScamSense gives guidance, not a guarantee. If you have lost money, contact your bank immediately and report it to the police.') }}
+    <footer class="sc-foot mt-auto">
+        <div class="sc-foot__inner">
+            <p class="mb-0">
+                <strong>{{ __('ScamSense gives guidance, not a guarantee.') }}</strong>
+            </p>
+            <p class="mb-0">
+                {{ __('If you have lost money, contact your bank immediately and report it to the police.') }}
             </p>
         </div>
     </footer>

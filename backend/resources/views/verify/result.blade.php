@@ -17,8 +17,22 @@
             : (string) $submission->type;
     @endphp
 
-    <div class="row justify-content-center">
-        <div class="col-12 col-md-9 col-lg-7">
+@section('hero')
+    {{-- Shallower than the landing page's hero: the answer is the point, and
+         the card below has to clear the fold at 375px with enlarged text.
+
+         A <p>, NOT an h1. ADR 0012 keeps exactly one h1 per document and it is
+         always the strongest claim on the page -- the verified panel's, or
+         failing that the verdict's. "We checked it" is a page label and a
+         weaker claim than "This looks like a scam", so making it a heading
+         would demote the answer to second place in the outline. --}}
+    <div class="sc-hero sc-hero--slim">
+        <p>{{ __('verdict.checked_heading') }}</p>
+    </div>
+@endsection
+
+    <div class="sc-lift">
+        <div class="sc-shell">
 
             {{-- ── Verified address ───────────────────────────────────────
                  FIRST, deliberately. This is the answer the user came for, and
@@ -37,8 +51,9 @@
                     $authority = __('verdict.authority.'.$institution->authority);
                 @endphp
 
-                <div class="card shadow-sm border-success border-2 mb-4">
-                    <div class="card-body p-4">
+                <div class="sc-card sc-card--verified mb-4">
+                    <span class="sc-card__rule" aria-hidden="true"></span>
+                    <div class="sc-card__body">
 
                         <p class="d-flex align-items-center gap-2 mb-3">
                             <span class="badge text-bg-success fs-6 px-3 py-2 d-inline-flex align-items-center gap-2">
@@ -93,8 +108,12 @@
                  Risk is never conveyed by colour alone: the icon and the text
                  label carry the same meaning, because colour-only signalling
                  fails WCAG 1.4.1 and fails the older users this exists for. --}}
-            <div class="card shadow-sm border-{{ $risk->colour() }} border-2 mb-4">
-                <div class="card-body p-4">
+            {{-- The rule is its own element so it can DRAW across as the card lands.
+                 The risk colour arriving is the decision being made, rather than a
+                 bar that was always there. --}}
+            <div class="sc-card sc-card--verdict border-{{ $risk->colour() }} mb-4">
+                <span class="sc-card__rule bg-{{ $risk->colour() }}" aria-hidden="true"></span>
+                <div class="sc-card__body">
 
                     <p class="d-flex align-items-center gap-2 mb-3">
                         <span class="badge text-bg-{{ $risk->colour() }} fs-6 px-3 py-2 d-inline-flex align-items-center gap-2">
@@ -145,15 +164,25 @@
                  deliberately never surfaced (see app/indicators.py). Hiding the
                  section entirely left the reader with "parts of this look odd"
                  and nothing named, which reads as a list that failed to load. --}}
-            <div class="card shadow-sm mb-4">
-                <div class="card-body p-4">
-                    <h2 class="h6 fw-semibold mb-3">{{ __('verdict.indicators_heading') }}</h2>
+            {{-- Two columns on a wide screen: the findings beside what was
+                 actually checked. On a phone they stack, findings first -- the
+                 reader wants the reasons before the echo of their own input. --}}
+            <div class="sc-cols">
+            <div class="sc-panel">
+                    <h2 class="sc-panel__title">{{ __('verdict.indicators_heading') }}</h2>
 
                     @if (count($verdict->indicators) > 0)
                         <ul class="list-unstyled mb-0">
                             @foreach ($verdict->indicators as $indicator)
-                                <li class="sc-indicator d-flex gap-2 mb-3">
-                                    <span aria-hidden="true" class="text-body-secondary">&bull;</span>
+                                <li class="sc-indicator">
+                                    {{-- A drawn mark, not a bullet character
+                                         and never an emoji: it has to be the
+                                         brand green at any text size and it
+                                         must not depend on a font. --}}
+                                    <svg width="17" height="17" viewBox="0 0 16 16"
+                                         aria-hidden="true" focusable="false">
+                                        <path d="M8 1.6 14.4 8 8 14.4 1.6 8Z" fill="currentColor"/>
+                                    </svg>
                                     <div>
                                         <p class="mb-1">{{ __('indicators.'.$indicator->code) }}</p>
                                         @if ($indicator->evidence)
@@ -169,18 +198,16 @@
                         <p class="mb-0">{{ __('verdict.indicators_none.'.$type) }}</p>
                     @endif
                 </div>
-            </div>
 
             {{-- ── What was submitted ─────────────────────────────────────
                  Defanged and inside a <pre>. Never an href, never {!! !!}. --}}
-            <div class="card shadow-sm mb-4">
-                <div class="card-body p-4">
-                    <h2 class="h6 fw-semibold">{{ __('verdict.submitted.heading') }}</h2>
-                    <pre class="bg-body-tertiary p-3 rounded small text-wrap text-break mb-2"><code>{{ $defang->defangUrlsIn($submission->content_redacted) }}</code></pre>
-                    <p class="small text-body-secondary mb-0">
-                        {{ $type === 'message' ? __('verdict.submitted.note_message') : __('verdict.submitted.note') }}
-                    </p>
-                </div>
+            <div class="sc-panel">
+                <h2 class="sc-panel__title">{{ __('verdict.submitted.heading') }}</h2>
+                <pre class="sc-echo"><code>{{ $defang->defangUrlsIn($submission->content_redacted) }}</code></pre>
+                <p class="sc-panel__note">
+                    {{ $type === 'message' ? __('verdict.submitted.note_message') : __('verdict.submitted.note') }}
+                </p>
+            </div>
             </div>
 
             {{-- ── Community feedback (objective O3) ──────────────────────
@@ -191,9 +218,9 @@
                     {{ __('feedback.thanks') }}
                 </div>
             @else
-                <div class="card shadow-sm mb-4">
-                    <div class="card-body p-4">
-                        <h2 class="h6 fw-semibold">{{ __('feedback.heading') }}</h2>
+                <div class="sc-panel mt-4">
+                    <div>
+                        <h2 class="sc-panel__title">{{ __('feedback.heading') }}</h2>
                         <p class="small text-body-secondary">{{ __('feedback.explain') }}</p>
 
                         <div class="d-flex gap-2">

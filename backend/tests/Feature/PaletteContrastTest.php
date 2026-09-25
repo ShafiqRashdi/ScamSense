@@ -103,6 +103,43 @@ it('gives the input border a findable boundary', function (string $ground): void
         ->toBeGreaterThanOrEqual(3.0, "\$sc-line-strong on \${$ground}");
 })->with(['sc-surface', 'sc-paper', 'sc-paper-tint']);
 
+it('meets AA on the masthead, where the palette is inverted', function (
+    string $ink,
+    string $ground,
+): void {
+    /*
+     | The dark band was the one region the original table never covered. Every
+     | pair above puts ink on paper; these put light text on deep green, and a
+     | tone that looks fine on cream can fail badly when the relationship is
+     | reversed.
+     |
+     | The mockup for this design used #a9c4b9 as the muted tone. It measures
+     | 5.35:1 -- passing, but with little room, and it would have been adopted
+     | on the strength of looking right rather than measuring right. #b7cfc5
+     | reaches 6.05:1 and was chosen by computing both.
+     */
+    expect(contrast(palette($ink), palette($ground)))
+        ->toBeGreaterThanOrEqual(4.5, "\${$ink} on \${$ground}");
+})->with([
+    ['sc-on-deep', 'sc-deep-2'],
+    ['sc-on-deep-muted', 'sc-deep-2'],
+    ['sc-on-deep', 'sc-deep'],
+    ['sc-on-deep-muted', 'sc-deep'],
+]);
+
+it('keeps white legible on both dark surfaces', function (string $ground): void {
+    // The hero, the brand mark and the footer's lead sentence are all white on
+    // one of these two. They carry the strongest claims on the page.
+    expect(contrast('#ffffff', palette($ground)))
+        ->toBeGreaterThanOrEqual(4.5, "white on \${$ground}");
+})->with(['sc-deep', 'sc-deep-2']);
+
+it('keeps the language pill readable when it inverts', function (): void {
+    // The selected language sits as deep green on a near-white pill, which is
+    // the palette used the other way round from everywhere else on the band.
+    expect(contrast(palette('sc-deep-2'), '#ffffff'))->toBeGreaterThanOrEqual(4.5);
+});
+
 it('keeps the focus outline visible against the page', function (): void {
     // :focus-visible draws a 3px outline in $sc-brand. For a keyboard or
     // switch-access user this is the only thing telling them where they are.

@@ -77,6 +77,19 @@ $sc-ink-muted: #6b6157;
 $sc-brand: #2a6152;
 $sc-brand-dark: #1f4a3e;
 
+// ── The masthead surface ───────────────────────────────────────────────────
+// The brand band the page hangs from, and the footer that bookends it. These
+// are the only dark surfaces on the site, which is what lets the risk colours
+// stay the loudest thing on any page.
+//
+// $sc-on-deep-muted is the secondary tone ON that band. It is chosen for
+// contrast against #1f4a3e, not for looking pleasant in isolation, and
+// PaletteContrastTest asserts it.
+$sc-deep: #173a30; // footer, the heavier of the two
+$sc-deep-2: #1f4a3e; // masthead
+$sc-on-deep: #e9f1ed;
+$sc-on-deep-muted: #b7cfc5;
+
 // Risk colours. Each is dark enough to carry white text at AA, because they
 // are used as solid badge backgrounds as well as borders.
 $sc-danger: #9b2c2c;
@@ -143,6 +156,31 @@ $input-focus-border-color: $sc-brand;
 $input-btn-focus-color: rgba($sc-brand, 0.25);
 
 $btn-font-weight: 600;
+
+// ── Motion tokens ──────────────────────────────────────────────────────────
+// A critically-damped spring: roughly 2.5% overshoot, then settle. Enough that
+// a press feels physical, nowhere near the elastic bounce ADR 0012 rules out.
+// A CSS `linear()` curve, so no JavaScript and no animation library.
+$sc-spring: linear(
+    0,
+    0.045 2.7%,
+    0.176 5.9%,
+    0.68 15.2%,
+    0.877 20.5%,
+    0.954,
+    1.008 29.9%,
+    1.025 34.5%,
+    1.02 42.2%,
+    1.001 55.5%,
+    0.998 70%,
+    1
+);
+// For things that travel rather than press: fast out of the gate, long settle.
+$sc-swift: cubic-bezier(0.32, 0.72, 0, 1);
+
+// Fine fractal noise for the masthead. Held in a variable so the data URI
+// never has to survive a shell heredoc or a careless line wrap.
+$sc-grain: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E";
 
 @import "bootstrap/scss/bootstrap";
 
@@ -511,5 +549,663 @@ textarea[data-autogrow] {
     .sc-download:hover {
         transition: none;
         transform: none;
+    }
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// THE MASTHEAD DESIGN
+//
+// The page hangs from a deep green band and the content card breaks out of it.
+// That overlap is the whole idea: it gives the page two planes instead of one,
+// and it is why the layout yields a `hero` section into the band rather than
+// each page drawing its own header.
+//
+// ADR 0012's rules all still hold. The dark is confined to the masthead and the
+// footer, so the risk colours remain the loudest thing on any page; nothing
+// here is pastel, glossy, or animated in a way that borrows the register a
+// phishing page uses.
+// ═════════════════════════════════════════════════════════════════════════════
+
+body {
+    background-color: $sc-paper;
+}
+
+// A shared measure. Everything on the public pages lines up to this, including
+// the content inside the masthead, so the brand mark sits directly above the
+// left edge of the card beneath it.
+.sc-shell,
+.sc-mast__inner,
+.sc-foot__inner {
+    max-width: 68rem;
+    margin-inline: auto;
+    padding-inline: 1.15rem;
+
+    @include media-breakpoint-up(md) {
+        padding-inline: 2rem;
+    }
+}
+
+// ── The band ────────────────────────────────────────────────────────────────
+
+.sc-mast {
+    position: relative;
+    isolation: isolate;
+    color: $sc-on-deep;
+    background-color: $sc-deep-2;
+    // A single soft light from the upper right. Depth, not decoration — it is
+    // one radial on a solid, not the layered pastel gradient of a scam page.
+    background-image: radial-gradient(
+        130% 100% at 88% -25%,
+        rgba(255, 255, 255, 0.1),
+        transparent 58%
+    );
+
+    // Fine static grain. This is the answer to "can we have a background
+    // effect": it gives the green the quality of printed stock rather than
+    // flat ink, and unlike a moving background it costs nothing to render and
+    // nothing in battery on the mid-range Android this is built for.
+    &::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        z-index: -1;
+        opacity: 0.5;
+        mix-blend-mode: overlay;
+        background-image: url($sc-grain);
+    }
+}
+
+.sc-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding-block: 0.9rem;
+
+    @include media-breakpoint-up(md) {
+        padding-block: 1.15rem;
+    }
+}
+
+.sc-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    color: #fff;
+    font-weight: 700;
+    font-size: 1.15rem;
+    letter-spacing: -0.015em;
+    text-decoration: none;
+
+    &__mark {
+        flex: 0 0 auto;
+    }
+}
+
+// ── Language switch ─────────────────────────────────────────────────────────
+// The pill is placed from `data-active`, which the layout writes from the
+// current locale. No JavaScript: it is already correct on first paint.
+
+.sc-lang {
+    position: relative;
+    display: flex;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 0.5rem;
+    overflow: hidden;
+    font-size: 0.8rem;
+    font-weight: 600;
+
+    &__pill {
+        position: absolute;
+        z-index: 0;
+        inset-block: 0;
+        left: 0;
+        width: 50%;
+        background-color: rgba(255, 255, 255, 0.94);
+        transition: transform 0.34s $sc-spring;
+    }
+
+    &[data-active="ms"] .sc-lang__pill {
+        transform: translateX(100%);
+    }
+
+    &__opt {
+        position: relative;
+        z-index: 1;
+        padding: 0.4rem 0.85rem;
+        color: $sc-on-deep-muted;
+        text-decoration: none;
+        transition: color 0.22s $sc-swift;
+
+        &[aria-current="true"] {
+            color: $sc-deep-2;
+        }
+    }
+}
+
+// ── The hero ────────────────────────────────────────────────────────────────
+
+.sc-hero {
+    padding-block: 1.4rem 4rem;
+    max-width: 22ch;
+
+    h1 {
+        // Display type: tight leading and NEGATIVE tracking, because letters
+        // read too far apart as they grow. Fixed at 25px before, which is why
+        // the page read as a form rather than a proposition.
+        font-size: clamp(2.35rem, 7.5vw, 3.75rem);
+        line-height: 0.98;
+        letter-spacing: -0.04em;
+        font-weight: 700;
+        color: #fff;
+        margin-bottom: 0.7rem;
+    }
+
+    > p {
+        font-size: clamp(1.05rem, 2.4vw, 1.25rem);
+        line-height: 1.5;
+        color: $sc-on-deep-muted;
+        margin-bottom: 0;
+        max-width: 34ch;
+    }
+
+    @include media-breakpoint-up(md) {
+        padding-block: 2rem 4.7rem;
+    }
+
+    // The verdict page. Shallower, and its line is a <p> rather than an h1 —
+    // ADR 0012 keeps one h1 per document and it belongs to the answer.
+    &--slim {
+        padding-block: 0.4rem 4.5rem;
+        max-width: 30ch;
+
+        > p {
+            font-size: clamp(1.75rem, 5vw, 2.5rem);
+            line-height: 1.05;
+            letter-spacing: -0.035em;
+            font-weight: 700;
+            color: #fff;
+            max-width: none;
+        }
+    }
+}
+
+// ── The card that breaks out of the band ────────────────────────────────────
+
+.sc-lift {
+    position: relative;
+    z-index: 2;
+    margin-top: -2.9rem;
+
+    @include media-breakpoint-up(md) {
+        margin-top: -3.25rem;
+    }
+}
+
+.sc-card {
+    position: relative;
+    overflow: hidden;
+    background-color: $sc-surface;
+    border-radius: 1.1rem;
+    // Two shadows: a long soft one for the lift off the band, and a tight one
+    // so the card still has an edge where it meets pale paper.
+    box-shadow:
+        0 24px 48px -20px rgba(12, 32, 26, 0.4),
+        0 4px 12px rgba(12, 32, 26, 0.1);
+    // A bright top edge — light catching the leading face of the material.
+    border-top: 1px solid rgba(255, 255, 255, 0.9);
+
+    &__body {
+        padding: 1.25rem;
+
+        @include media-breakpoint-up(md) {
+            padding: 1.85rem;
+        }
+    }
+
+    // The risk rule, as its own element so it can be DRAWN rather than simply
+    // being present. Redundant with the badge and the heading on purpose —
+    // colour is never the only carrier of a verdict (WCAG 1.4.1).
+    &__rule {
+        position: absolute;
+        inset-inline: 0;
+        top: 0;
+        height: 7px;
+        transform-origin: left center;
+    }
+
+    &--verified .sc-card__rule {
+        background-color: $sc-success;
+    }
+}
+
+// ── Bands below the card ────────────────────────────────────────────────────
+
+.sc-band {
+    padding-block: 2.6rem 0;
+
+    &--last {
+        padding-bottom: 3.4rem;
+    }
+}
+
+.sc-how {
+    display: grid;
+    gap: 1.6rem;
+
+    @include media-breakpoint-up(md) {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1.9rem;
+    }
+}
+
+.sc-step {
+    &__n {
+        display: block;
+        font-size: 0.8rem;
+        font-weight: 700;
+        letter-spacing: 0.16em;
+        color: $sc-brand;
+        margin-bottom: 0.5rem;
+    }
+
+    h2 {
+        font-size: 1.15rem;
+        letter-spacing: -0.015em;
+        font-weight: 650;
+        margin-bottom: 0.3rem;
+    }
+
+    p {
+        font-size: 0.97rem;
+        line-height: 1.55;
+        color: $sc-ink-muted;
+        margin-bottom: 0;
+    }
+}
+
+.sc-priv {
+    border-top: 1px solid $sc-line;
+    padding-top: 1.35rem;
+    display: grid;
+    gap: 0.6rem;
+
+    h2 {
+        font-size: 1rem;
+        font-weight: 650;
+        margin-bottom: 0;
+    }
+
+    ul {
+        margin-bottom: 0;
+        padding-left: 1.2rem;
+        color: $sc-ink-muted;
+        font-size: 0.95rem;
+        line-height: 1.7;
+    }
+
+    @include media-breakpoint-up(md) {
+        grid-template-columns: auto 1fr;
+        gap: 1.6rem;
+        align-items: start;
+
+        h2 {
+            white-space: nowrap;
+        }
+    }
+}
+
+// ── Footer ──────────────────────────────────────────────────────────────────
+// Dark, to bookend the masthead. It also gives the "guidance, not a guarantee"
+// sentence the weight it deserves — that line is doing ethical work and it was
+// previously 12px grey at the bottom of the page.
+
+.sc-foot {
+    background-color: $sc-deep;
+    color: $sc-on-deep-muted;
+    font-size: 0.93rem;
+    line-height: 1.6;
+
+    &__inner {
+        padding-block: 1.5rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.4rem;
+
+        @include media-breakpoint-up(md) {
+            flex-direction: row;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1.25rem;
+        }
+    }
+
+    strong {
+        color: #fff;
+        font-weight: 650;
+    }
+}
+
+// ── Segmented control, with a sliding pill ──────────────────────────────────
+//
+// Radio inputs underneath, so the control submits with no JavaScript at all.
+// The pill is positioned from `:checked` in CSS, which means it is already in
+// the right place on first paint — app.js never has to initialise it, only
+// to let it animate.
+
+.sc-seg {
+    position: relative;
+    display: flex;
+    border: 2px solid $sc-brand;
+    border-radius: 0.75rem;
+    overflow: hidden;
+
+    &__pill {
+        position: absolute;
+        z-index: 0;
+        inset-block: 0;
+        left: 0;
+        width: 50%;
+        background-color: $sc-brand;
+        box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.2);
+        transition: transform 0.38s $sc-spring;
+    }
+
+    &__input {
+        position: absolute;
+        opacity: 0;
+        pointer-events: none;
+    }
+
+    &__opt {
+        position: relative;
+        z-index: 1;
+        flex: 1;
+        text-align: center;
+        padding: 0.85rem 0.5rem;
+        font-size: 1rem;
+        font-weight: 600;
+        color: $sc-brand;
+        cursor: pointer;
+        transition: color 0.24s $sc-swift;
+    }
+
+    // The second radio being checked drives the pill across and swaps the
+    // emphasis. Weight as well as colour, because weight is what survives a
+    // cheap screen at arm's length — and it means the selection is not carried
+    // by colour alone.
+    &__input:checked + &__opt {
+        color: #fff;
+        font-weight: 700;
+    }
+
+    &__input:nth-of-type(2):checked ~ &__pill,
+    &__input#type-url:checked ~ &__pill {
+        transform: translateX(100%);
+    }
+
+    // Keyboard focus has to land somewhere visible, and the real input is
+    // hidden. The label carries the ring instead.
+    &__input:focus-visible + &__opt {
+        outline: 3px solid $sc-brand;
+        outline-offset: -3px;
+    }
+}
+
+// ── The primary action, with the wait inside it ─────────────────────────────
+
+.sc-cta {
+    position: relative;
+    overflow: hidden;
+    display: block;
+    width: 100%;
+    margin-top: 1.35rem;
+    padding: 1rem;
+    border: 0;
+    border-radius: 0.8rem;
+    background-color: $sc-brand;
+    color: #fff;
+    font: inherit;
+    font-size: 1.1rem;
+    font-weight: 700;
+    text-align: center;
+    cursor: pointer;
+    box-shadow: 0 2px 0 rgba(0, 0, 0, 0.14);
+    transition:
+        transform 0.34s $sc-spring,
+        box-shadow 0.2s $sc-swift;
+
+    // A spring, not a linear nudge. Down fast on press, settle on release —
+    // about 2.5% overshoot, which reads as physical rather than bouncy.
+    &:active {
+        transform: scale(0.978);
+        box-shadow: 0 1px 0 rgba(0, 0, 0, 0.14);
+        transition-duration: 0.09s;
+    }
+
+    &[aria-busy="true"] {
+        // Not `disabled`: greying it out reads as "this is broken" rather than
+        // "this is working". It stays fully coloured and stops responding.
+        pointer-events: none;
+    }
+
+    &__label {
+        display: block;
+        transition: opacity 0.2s $sc-swift;
+    }
+
+    // The rail runs along the bottom edge of the button itself. Indeterminate,
+    // because the page has no idea how far along the server is and inventing a
+    // percentage would be a number nothing measures.
+    &__rail {
+        position: absolute;
+        inset-inline: 0;
+        bottom: 0;
+        height: 4px;
+        background-color: rgba(255, 255, 255, 0.2);
+        opacity: 0;
+        transition: opacity 0.2s $sc-swift;
+
+        i {
+            position: absolute;
+            inset-block: 0;
+            width: 38%;
+            background-color: rgba(255, 255, 255, 0.95);
+            animation: sc-sweep 1.15s ease-in-out infinite;
+        }
+    }
+
+    &[aria-busy="true"] .sc-cta__rail {
+        opacity: 1;
+    }
+}
+
+// ── Result panels ───────────────────────────────────────────────────────────
+
+.sc-cols {
+    display: grid;
+    gap: 1.1rem;
+    margin-bottom: 1.5rem;
+
+    @include media-breakpoint-up(lg) {
+        // Findings get the wider column; the echo of your own input does not
+        // need as much room as the reasons.
+        grid-template-columns: 1.25fr 1fr;
+        align-items: start;
+    }
+}
+
+.sc-panel {
+    background-color: $sc-surface;
+    border: 1px solid $sc-line;
+    border-radius: 1rem;
+    padding: 1.35rem 1.45rem;
+
+    &__title {
+        font-size: 0.87rem;
+        font-weight: 700;
+        letter-spacing: 0.055em;
+        text-transform: uppercase;
+        color: $sc-ink-muted;
+        margin-bottom: 1rem;
+    }
+
+    &__note {
+        font-size: 0.87rem;
+        color: $sc-ink-muted;
+        margin: 0.65rem 0 0;
+        line-height: 1.5;
+    }
+}
+
+.sc-indicator {
+    display: flex;
+    gap: 0.8rem;
+    margin-bottom: 1rem;
+    color: $sc-brand; // the mark inherits this; the text overrides below
+
+    &:last-child {
+        margin-bottom: 0;
+    }
+
+    svg {
+        flex: 0 0 auto;
+        margin-top: 0.25rem;
+    }
+
+    > div {
+        color: $sc-ink;
+    }
+}
+
+.sc-echo {
+    background-color: $sc-paper-tint;
+    border-radius: 0.6rem;
+    padding: 0.9rem;
+    font-size: 0.87rem;
+    line-height: 1.55;
+    white-space: pre-wrap;
+    word-break: break-word;
+    margin: 0;
+}
+
+// ── Arrival ─────────────────────────────────────────────────────────────────
+//
+// Declared ONLY inside the keyframes, never as a base state. If the animation
+// never runs — old browser, reduced motion, CSS partly failed — the verdict is
+// fully visible. A verdict that needs an animation to be readable is a verdict
+// that can silently disappear.
+
+@keyframes sc-land {
+    from {
+        opacity: 0;
+        transform: translateY(14px) scale(0.985);
+        filter: blur(7px);
+    }
+}
+
+@keyframes sc-draw {
+    from {
+        transform: scaleX(0);
+    }
+}
+
+@keyframes sc-rise {
+    from {
+        opacity: 0;
+        transform: translateY(9px);
+    }
+}
+
+.sc-card--verdict,
+.sc-card--verified {
+    animation: sc-land 0.46s $sc-swift both;
+}
+
+// The rule draws across as the card lands: the risk colour arrives as a
+// decision being made rather than a bar that was always there.
+.sc-card__rule {
+    animation: sc-draw 0.5s 0.13s $sc-swift both;
+}
+
+.sc-cols .sc-panel {
+    animation: sc-rise 0.42s $sc-swift both;
+
+    &:nth-child(2) {
+        animation-delay: 0.09s;
+    }
+}
+
+.sc-indicator {
+    animation: sc-rise 0.4s $sc-swift both;
+
+    @for $i from 2 through 5 {
+        &:nth-child(#{$i}) {
+            animation-delay: 0.07s * ($i - 1);
+        }
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .sc-card--verdict,
+    .sc-card--verified,
+    .sc-card__rule,
+    .sc-cols .sc-panel,
+    .sc-indicator {
+        animation: none;
+    }
+
+    .sc-lang__pill,
+    .sc-seg__pill,
+    .sc-cta,
+    .sc-cta:active {
+        transition: none;
+        transform: none;
+    }
+
+    .sc-seg__input:nth-of-type(2):checked ~ .sc-seg__pill,
+    .sc-seg__input#type-url:checked ~ .sc-seg__pill {
+        // The pill must still be in the right place; only the travel is
+        // removed. Suppressing the transform entirely would leave the label
+        // highlighted with the fill under the other option.
+        transform: translateX(100%);
+    }
+
+    .sc-lang[data-active="ms"] .sc-lang__pill {
+        transform: translateX(100%);
+    }
+}
+
+// ── The admin bar ───────────────────────────────────────────────────────────
+// The admin area borrows the brand surface for its navigation and nothing
+// else. It is a tool rather than a front door: a hero band above a moderation
+// queue would be decoration in a place where density is the point.
+
+.sc-mast--bar {
+    --bs-navbar-color: #{$sc-on-deep-muted};
+    --bs-navbar-hover-color: #fff;
+    --bs-navbar-active-color: #fff;
+    --bs-navbar-brand-color: #fff;
+    --bs-navbar-toggler-border-color: rgba(255, 255, 255, 0.3);
+    --bs-navbar-toggler-icon-bg: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba%28255,255,255,0.85%29' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
+
+    color: $sc-on-deep;
+
+    .nav-link.active {
+        font-weight: 650;
+    }
+
+    // Bootstrap's outline-secondary is tuned for a light surface and reads as
+    // a grey smudge on deep green.
+    .btn-outline-secondary {
+        --bs-btn-color: #{$sc-on-deep};
+        --bs-btn-border-color: rgba(255, 255, 255, 0.35);
+        --bs-btn-hover-color: #{$sc-deep-2};
+        --bs-btn-hover-bg: #{$sc-on-deep};
+        --bs-btn-hover-border-color: #{$sc-on-deep};
+    }
+
+    .text-body-secondary {
+        color: $sc-on-deep-muted !important;
     }
 }

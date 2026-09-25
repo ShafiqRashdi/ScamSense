@@ -1,6 +1,6 @@
 # ADR 0012 — The interface is designed for an anxious reader, not a browsing one
 
-- **Status:** Accepted. The contrast defect recorded below was **closed on 2026-09-08**
+- **Status:** Accepted. Contrast defect closed 2026-09-08; **amended 2026-09-25** — the page now hangs from a masthead (see the amendment at the end). The reasoning below is unchanged; the execution is.
 - **Date:** 2026-09-07
 - **Phase:** 6 (public interface)
 - **Artefacts:** `backend/resources/css/app.scss`, `backend/resources/views/verify/*`
@@ -224,3 +224,114 @@ scope for 1.4.11.
 - Do not satisfy that test by lowering `$min-contrast-ratio`; it asserts the WCAG thresholds
   directly and is unaffected by the Sass setting.
 - Dark mode, if added, is a second full contrast pass — not an inversion of these values.
+
+---
+
+## Amendment, 2026-09-25 — the masthead
+
+The reasoning in this ADR was right and the execution was not. Asked to look at
+the design with a presentation approaching, the verdict was "it's very boring" —
+and on inspection that was a fair reading of what was built rather than of what
+was decided.
+
+**Restraint and dullness are not the same thing, and this page had the costs of
+restraint without the confidence.** Specifically:
+
+- No identity at all. The brand was the word "ScamSense" in semibold text.
+- No display tier. `verify/index` rendered its `h1` at `.h3` — about 25px — so
+  the product's entire proposition was sized like a section heading.
+- Depth encoded nothing. The form card and the privacy notice carried the same
+  `shadow-sm`, although one is the thing you must use and the other is
+  reference.
+- The brand colour appeared twice on the whole page.
+
+Nothing above was required by the rules in this document. **Rule 2 says nothing
+may compete with a risk signal; it never said the page may not have a face.**
+
+### What changed
+
+The page now hangs from a **deep green masthead** (`$sc-deep-2 #1f4a3e`), and
+the content card **breaks out of it** with a negative margin. A dark footer
+(`$sc-deep #173a30`) bookends the page. Everything between them stays on warm
+paper.
+
+That single move does most of the work: it gives the page two planes instead of
+one, it gives the brand somewhere to live, and it makes the card's elevation
+mean something because it is lifting off a visible surface.
+
+Also: a real display tier (`clamp()`, `-0.04em` tracking, 0.98 leading — large
+type needs *negative* tracking, which the old fixed scale did not have); a
+shield-and-check mark as inline SVG; a numbered three-step band that teaches
+rather than decorates; and indicator rows that carry a drawn mark instead of a
+bullet character.
+
+**The dark is confined to those two bands.** That is what keeps rule 2 intact:
+the risk colours are still the loudest thing on any page, because they are the
+only saturated colour anywhere near the content.
+
+### The grain, and what was rejected
+
+Asked for "a background effect", the answer was **no** to an animated one and
+**yes** to a static one. A moving background is decoration with no meaning, it
+costs frames and battery on the mid-range Android this targets, and a drifting
+gradient is precisely the register a well-made phishing page uses.
+
+Instead the masthead carries **fine fractal noise at 50% opacity in overlay
+blend** — one static SVG, zero frames. It gives the green the quality of printed
+stock rather than flat ink. That is craft; movement would have been motion for
+its own sake.
+
+### Motion
+
+Four additions, each answering a question rather than filling a gap:
+
+| | |
+|---|---|
+| **Sliding pill** on the message/link control | Teaches that the two are alternatives. Interruptible by construction — a `transform` transition re-targets from wherever the pill is, rather than jumping, which the `apple-design` reference calls the single most important principle in motion |
+| **Spring press** on the primary action | `linear()` curve, ~2.5% overshoot. Physical, not bouncy — which is the line this ADR draws |
+| **The rule draws** across the verdict card as it lands | The only motion on the site carrying *meaning*: the risk colour arrives as a decision being made rather than a bar that was always there |
+| **The wait folds into the button** | A rail along its bottom edge and a crossfading label, instead of a spinner and a separate progress panel competing for one moment |
+
+All of it is `transform`, `opacity` or `filter`. **Nothing moves layout** — a
+control that shifts under a finger mid-tap is worse than no motion at all. Every
+piece is switched off under `prefers-reduced-motion`, and the arrival animations
+declare their starting state *only inside the keyframes*, so a card whose
+animation never runs is fully visible.
+
+### Contrast, re-measured
+
+The original table covered only ink-on-paper. The masthead inverts that
+relationship, and a tone that looks fine on cream can fail badly reversed — so
+`PaletteContrastTest` was extended to cover it:
+
+| Pair | Ratio | |
+|---|---:|---|
+| white on `$sc-deep-2` | 9.97 | pass |
+| `$sc-on-deep` on `$sc-deep-2` | 8.67 | pass |
+| `$sc-on-deep-muted` on `$sc-deep-2` | 6.05 | pass |
+| white on `$sc-deep` | 12.47 | pass |
+| `$sc-on-deep-muted` on `$sc-deep` | 7.57 | pass |
+| `$sc-deep-2` on white (language pill) | 9.97 | pass |
+
+> The mockup used `#a9c4b9` as the muted tone on green. It measures **5.35:1** —
+> passing, but with little room, and it would have been adopted for looking
+> right rather than measuring right. `#b7cfc5` reaches 6.05:1 and was chosen by
+> computing both. This is the second time in this ADR that a colour picked by
+> eye did not survive arithmetic.
+
+### Consequences
+
+- The layout yields a `hero` section into the band, so each page supplies its
+  own and the verdict page can be shallower than the landing page without a
+  second layout.
+- **The result page's masthead line is a `<p>`, not an `h1`.** Rule 5 keeps one
+  `h1` per document and it belongs to the strongest claim on the page — the
+  verified panel's, or failing that the verdict's. "We checked it" is a page
+  label; making it a heading would demote the answer to second place in the
+  outline. Asserted by the existing tests.
+- The admin area borrows the brand surface for its navigation bar **and nothing
+  else**. It is a tool: a hero band above a moderation queue would be decoration
+  where density is the point.
+- The segmented control keeps real radio inputs underneath and positions the
+  pill from `:checked` in CSS, so it is correct on first paint and submits with
+  no JavaScript at all.
