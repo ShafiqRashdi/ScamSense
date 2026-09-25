@@ -38,6 +38,26 @@ __pycache__/
 *.h5
 ml-service/models/**/checkpoint-*/
 
+# ── The two SERVING artefacts are the exception ────────────────────────────
+# A deployment needs weights, and neither route to getting them there works by
+# default: the training corpus is not committed either (see below), so a clean
+# checkout can neither load a model nor train one. Railway deploys from a
+# repository, so the serving weights have to be in it.
+#
+# Committed only because they now fit. `joblib.dump(..., compress=3)` takes the
+# URL forest from 131.5 MB to 38 MB -- uncompressed it was over GitHub's hard
+# 100 MB per-file limit and the push would simply have been rejected.
+#
+# Named individually, never by a wildcard. There is 1.4 GB of retired weights
+# beside these (rf-url-v1.0.0 alone is 432 MB), and they are regenerable
+# evidence rather than something a deployment needs.
+!ml-service/models/rf-url-v2.0.0-pathnorm/model.joblib
+!ml-service/models/tfidf-msg-v3.0.0-collected-my/model.joblib
+
+# Local safety copies taken before re-dumping an artefact. Git is not a backup
+# for a file git has never tracked -- this project learned that once already.
+/.backups/
+
 # ── Datasets ───────────────────────────────────────────────────────────────
 # Raw corpora are not committed: size, plus the provenance/consent basis that
 # AGENTS.md requires for every collected Malaysian message. Record each source

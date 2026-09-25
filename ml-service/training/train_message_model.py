@@ -507,7 +507,22 @@ def main() -> int:
     out_dir = args.out / f"tfidf-msg-v{args.version}"
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    joblib.dump(model, out_dir / "model.joblib")
+    # compress=3 is the difference between an artefact that can be deployed and
+    # one that cannot. Uncompressed, the Random Forest is 131.5 MB -- over
+    # GitHub's hard 100 MB per-file limit, so it cannot reach a build at all.
+    # At level 3 it is 39.1 MB.
+    #
+    # It also loads in 2.1s rather than 18.0s, which matters more than the disk
+    # saving: objective O2 allows three seconds end to end, and an 18-second
+    # model load on a cold container spends six times the whole budget before
+    # the first request is answered.
+    #
+    # Lossless. Hard labels are identical across the round trip; probabilities
+    # differ by 1.1e-16, and the same model called twice on itself differs by
+    # exactly the same amount -- that is scikit-learn's parallel float
+    # summation, not the file. Higher levels are not worth it: 6 saves a
+    # further 2 MB for twice the dump time, and 9 takes 132s to save 3 MB.
+    joblib.dump(model, out_dir / "model.joblib", compress=3)
     (out_dir / "split_indices.json").write_text(
         json.dumps({"seed": args.seed, "train": split.train, "val": split.val, "test": split.test}),
         encoding="utf-8",
