@@ -45,4 +45,61 @@ return [
         'feedback_per_hour' => 5,
     ],
 
+    /*
+     | The verified-domain allowlist lives in config/verified_institutions.php,
+     | because each entry carries a citation and a verification date and the
+     | file is long enough to deserve its own home. See docs/adr/0007.
+     */
+
+    /*
+     | Two-part public suffixes, so `maybank2u.com.my` reduces to itself rather
+     | than to `com.my`. Mirrors MULTI_PART_SUFFIXES in the ML service.
+     */
+    'multi_part_suffixes' => [
+        'com.my', 'net.my', 'org.my', 'gov.my', 'edu.my', 'mil.my', 'name.my',
+        'com.sg', 'com.au', 'co.uk', 'org.uk', 'gov.uk', 'ac.uk',
+    ],
+
+    /*
+     | Risk bands, from the measured test-set distribution in docs/RESULTS.md:
+     | low 2.0% actually phishing, medium 28.3%, high 95.2%.
+     */
+    'risk_bands' => [
+        'medium_from' => 0.20,
+        'high_from' => 0.60,
+    ],
+
+    /*
+     | Data retention (security review finding 5, PDPA 2010).
+     |
+     | The submission form promises storage; this is the period behind that
+     | promise, and `scamsense:purge` is what enforces it. Change this and the
+     | privacy notice together — the two must not drift apart.
+     |
+     | 90 days is long enough to be useful for retraining and short enough to
+     | defend as proportionate.
+     */
+    'retention' => [
+        'submission_days' => (int) env('RETENTION_SUBMISSION_DAYS', 90),
+    ],
+
+    /*
+     | Where the admin dashboard reads model performance from.
+     |
+     | It reads the committed metrics.json artefacts rather than storing its own
+     | numbers, so a figure on the dashboard and a figure in Chapter 4 cannot
+     | drift apart. Laravel never runs Python (AGENTS.md §2 rule 2) — this is a
+     | file read, not a call into the ML service.
+     */
+    'models_path' => env('ML_MODELS_PATH', base_path('../ml-service/models')),
+
+    /*
+     | The artefacts actually being served, so the dashboard can mark everything
+     | else as superseded or experimental. Must match ml-service/app/predictors.
+     */
+    'shipped_models' => [
+        'url' => 'rf-url-v2.0.0-pathnorm',
+        'message' => 'tfidf-msg-v3.0.0-collected-my',
+    ],
+
 ];

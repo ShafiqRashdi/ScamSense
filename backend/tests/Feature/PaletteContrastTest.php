@@ -1,0 +1,111 @@
+<?php
+
+declare(strict_types=1);
+
+/*
+ | ADR 0012 records a contrast table, and the whole point of computing those
+ | numbers rather than eyeballing them is that a later palette change becomes a
+ | regression rather than a restyle. A table in a document cannot enforce that.
+ | These tests read the real Sass variables and do the arithmetic.
+ |
+ | This exists because one pair was already failing when the table was first
+ | computed: $sc-line-strong is the input border, its comment read "input
+ | borders, which must be findable", and it measured 1.57:1 against a required
+ | 3.0:1 — a hairline that looked tasteful and disappeared for exactly the
+ | reduced-contrast-sensitivity audience this project names.
+ */
+
+/** The stylesheet, read once. */
+function stylesheet(): string
+{
+    return file_get_contents(resource_path('css/app.scss'));
+}
+
+/**
+ * A palette variable's hex value, straight out of the Sass source.
+ *
+ * Reading the source rather than a duplicated list here is the point: a test
+ * that carries its own copy of the colours passes happily after someone edits
+ * the stylesheet.
+ */
+function palette(string $name): string
+{
+    preg_match('/\$'.preg_quote($name, '/').':\s*(#[0-9a-fA-F]{6})\s*;/', stylesheet(), $match);
+
+    expect($match)->not->toBeEmpty("\${$name} not found in app.scss");
+
+    return $match[1];
+}
+
+/** Relative luminance, WCAG 2.1 definition. */
+function luminance(string $hex): float
+{
+    $channels = array_map(
+        static function (int $value): float {
+            $c = $value / 255;
+
+            return $c <= 0.04045 ? $c / 12.92 : (($c + 0.055) / 1.055) ** 2.4;
+        },
+        [
+            (int) hexdec(substr($hex, 1, 2)),
+            (int) hexdec(substr($hex, 3, 2)),
+            (int) hexdec(substr($hex, 5, 2)),
+        ]
+    );
+
+    return 0.2126 * $channels[0] + 0.7152 * $channels[1] + 0.0722 * $channels[2];
+}
+
+function contrast(string $foreground, string $background): float
+{
+    $a = luminance($foreground);
+    $b = luminance($background);
+
+    return (max($a, $b) + 0.05) / (min($a, $b) + 0.05);
+}
+
+it('meets AA on every text pairing in the palette', function (string $ink, string $ground): void {
+    // 4.5:1 is WCAG 2.1 SC 1.4.3 for body text. $min-contrast-ratio in the
+    // stylesheet is left at Bootstrap's 4.5 for the same reason — lowering it
+    // would let Bootstrap silently pick an unreadable foreground for a filled
+    // badge.
+    expect(contrast(palette($ink), palette($ground)))
+        ->toBeGreaterThanOrEqual(4.5, "\${$ink} on \${$ground}");
+})->with([
+    ['sc-ink', 'sc-surface'],
+    ['sc-ink', 'sc-paper'],
+    ['sc-ink', 'sc-paper-tint'],
+    ['sc-ink-muted', 'sc-surface'],
+    ['sc-ink-muted', 'sc-paper'],
+    ['sc-ink-muted', 'sc-paper-tint'],
+    ['sc-brand', 'sc-surface'],
+    ['sc-danger', 'sc-surface'],
+    ['sc-warning', 'sc-surface'],
+]);
+
+it('keeps white legible on every filled risk badge', function (string $background): void {
+    // The risk colours are used as solid badge backgrounds, not only as
+    // borders, so each has to carry white text. A badge nobody can read is a
+    // verdict nobody can read.
+    expect(contrast('#ffffff', palette($background)))
+        ->toBeGreaterThanOrEqual(4.5, "white on \${$background}");
+})->with(['sc-danger', 'sc-warning', 'sc-success', 'sc-brand']);
+
+it('gives the input border a findable boundary', function (string $ground): void {
+    // SC 1.4.11 Non-text Contrast: 3:1 for the visual boundary that identifies
+    // a user interface component. The 2px border helps a sighted user with good
+    // vision and does not satisfy the criterion on its own.
+    //
+    // Checked against every surface an input could sit on rather than only the
+    // one it sits on today, so moving a form into a tinted panel cannot quietly
+    // reintroduce the defect.
+    expect(contrast(palette('sc-line-strong'), palette($ground)))
+        ->toBeGreaterThanOrEqual(3.0, "\$sc-line-strong on \${$ground}");
+})->with(['sc-surface', 'sc-paper', 'sc-paper-tint']);
+
+it('keeps the focus outline visible against the page', function (): void {
+    // :focus-visible draws a 3px outline in $sc-brand. For a keyboard or
+    // switch-access user this is the only thing telling them where they are.
+    expect(contrast(palette('sc-brand'), palette('sc-surface')))
+        ->toBeGreaterThanOrEqual(3.0);
+});

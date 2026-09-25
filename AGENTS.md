@@ -264,19 +264,163 @@ ruff check . && black . && pytest
 
 ## 9. Current status
 
+> **Every metric quoted in the report comes from `docs/RESULTS.md`.** That file is the single
+> source of truth and is verified against the committed `metrics.json` artefacts. Commit
+> messages and superseded ADR revisions may contain figures from earlier configurations; where
+> anything disagrees with `docs/RESULTS.md`, that file wins.
+
+
 - [x] Phase 0 — repo scaffold, both services boot, health check green — see `docs/adr/0001`
 - [x] Phase 1 — DB schema, migrations, seeders — see `docs/adr/0002`
-- [ ] Phase 2 — URL lexical features + Random Forest baseline
-- [ ] Phase 3 — DistilBERT message classifier
-      ↳ also export ONNX + int8 quantised, and benchmark memory/latency/F1 against the
-        PyTorch checkpoint. This keeps a 1 GB VPS deployment viable and the measured
-        accuracy cost is a Chapter 4 result. See `docs/adr/0001`.
-- [ ] Phase 4 — Laravel ⇄ Flask integration with fallback
-- [ ] Phase 5 — Threat-intel clients (Safe Browsing, VirusTotal) with caching
-- [ ] Phase 6 — Public UI (submit, verdict, indicators)
-- [ ] Phase 7 — Feedback loop + moderation queue
-- [ ] Phase 8 — Admin dashboard + metrics
-- [ ] Phase 9 — Hardening, UAT, deployment
+- [x] Phase 2 — URL lexical features + Random Forest — see `docs/adr/0003`, `docs/adr/0004`
+      ↳ CANONICAL FIGURE: **test F1 0.8984** (phishing class), from
+        `models/rf-url-v1.2.0-no-https`, the shipped artefact. Recall 0.9780,
+        precision 0.8308, on 44,890 held-out rows, domain-grouped split, 22 features.
+        Every other F1 in ADR 0004 belongs to a superseded or comparison artefact.
+      ↳ `uses_https` was dropped: all 23,936 Tranco rows had `https://` added during
+        dataset assembly, so the feature was partly an artefact of how the CSV was
+        built. Ablation showed it was not load-bearing (+0.003 test F1 without it).
+      ↳ Quote the domain-grouped figure, never the random-split one. A random split
+        scores 0.9606 but leaks 2,979 domains between train and test.
+      ↳ The corpus is not Malaysian, and its legitimate half is Tranco-dominated.
+        Read ADR 0004 "Limitations" before citing this number in the report.
+- [x] Phase 3 — Message classifier — see `docs/adr/0005`, `docs/adr/0009`, `docs/adr/0011`
+      ↳ SERVING: `tfidf-msg-v3.0.0-collected-my`, test F1 0.9836 on 1,113 collected
+        Malaysian messages (223-row test split). Two corpora were rejected to get
+        here: ADR 0005 the synthetic one, ADR 0011 the label-contaminated one.
+      ↳ **Do NOT report 0.9735 → 0.9836 as an improvement.** Different test sets,
+        106 rows against 223. On the identical 106 rows v3 scores 0.9744 — a delta
+        of +0.0009 that hides the real change, which is two fewer missed scams for
+        two more false positives. Report the confusion matrix, not the F1.
+      ↳ **The collection worked, and it was predicted.** The v2 probe showed recall
+        tracking category support; collection was weighted to the three sparse
+        categories (parcel 18→111, prize 20→106, impersonation 19→102) and the
+        out-of-corpus probe moved 70.8% → 91.7%, missed scams 6/12 → 2/12.
+      ↳ **REMAINING LIMIT:** two probe misses persist — a Shopee delivery notice and
+        a Petronas prize draw. Both invoke a brand in routine-sounding language
+        without urgency or credential vocabulary. Their categories grew six and five
+        fold and the misses did not close, so this is phrasing rather than volume.
+        More rows in those categories is not the fix.
+      ↳ Corpus tooling: `training/validate_corpus.py` then `training/merge_corpus.py`.
+        The merge assigns splits BY TEMPLATE, never by row — a group is indivisible,
+        which is what keeps templates from straddling a partition (ADR 0005).
+      ↳ **DistilBERT has now been measured TWICE and is still not shipped** (ADR 0009
+        + its 2026-09-07 amendment). On 1,113 rows: 0.9959 against 0.9836, difference
+        +0.0122, 95% CI [-0.0043, +0.0317] — still spans zero. Doubling the corpus
+        halved the interval width (0.0727 → 0.0360) without changing the answer.
+        Always quote the interval, never the point estimate alone.
+      ↳ The two models now MISS THE SAME SINGLE SCAM of 121; the whole difference is
+        false positives, 3 against 0. The surviving advantage is in the cheaper error
+        under this project's own asymmetry, which weakens the case for adopting it.
+      ↳ `training/power_analysis.py` predicted this (~35% odds at 200 test rows) and
+        was right. Its 80% target has GROWN to ~1,500 test messages (~7,500 collected)
+        because the measured effect shrank. Do not cite the old ~800/~4,000 figures.
+      ↳ When DistilBERT is revisited: also export ONNX + int8 quantised and benchmark
+        memory/latency/F1 against the PyTorch checkpoint, to keep the 1 GB VPS option
+        open (`docs/adr/0001`).
+- [x] Phase 4 — Flask prediction API with HMAC — see `docs/api-contract.md`
+      ↳ POST /api/v1/predict/url serves rf-url-v2.0.0-pathnorm. Median 30ms, p95 76ms
+        over HTTP including HMAC.
+      ↳ POST /api/v1/predict/message serves tfidf-msg-v3.0.0-collected-my. It returns
+        503 model_unavailable only when an artefact is missing or fails to load, and
+        Laravel renders a labelled partial verdict, never a 500.
+      ↳ **OPEN DEFECT, `docs/adr/0006`:** the model flags real banking and government
+        pages — 40% false positives on a 20-URL real-site probe, including the Maybank
+        login page at 0.93. Recall is fine (0 misses on 8 phishing shapes). Cause is
+        corpus prior, not code. Do NOT retune the threshold against that probe.
+- [x] Phase 5 — Laravel integration, fusion, threat intel — see `docs/adr/0007`
+      ↳ DetectionService implements the ADR 0007 fusion order. Clean threat intel
+        NEVER lowers a verdict — a clean lookup is absence of evidence, and would
+        de-escalate most reliably on freshly registered phishing domains.
+      ↳ Verified-domain gate caps genuine institutional URLs at Low, recorded as
+        an indicator with source `registry`. A SAFETY MITIGATION, never model
+        accuracy: every figure in docs/RESULTS.md is measured with it disabled.
+      ↳ ML service unreachable, 503, or malformed → partial verdict, never a 500.
+- [x] Phase 6 — Public UI (submit, verdict, indicators) — bilingual, three risk bands
+      — visual design rationale in `docs/adr/0012`
+      ↳ Verified-address panel names the institution; the "we checked the address,
+        not the page" scoping stays visible and is asserted outside <details>.
+      ↳ **The brand green is load-bearing, not decorative.** It is deliberately far
+        from the red-amber risk hues so nothing in ordinary page furniture competes
+        with a risk signal. Do not introduce a warm accent (ADR 0012).
+      ↳ **CLOSED 2026-09-08:** the input border was 1.57:1 against WCAG 2.1 SC
+        1.4.11's required 3.0:1. `$sc-line-strong` is now `#96805f` — 3.73:1 on
+        surface, 3.25:1 on paper. The `#b9a68d` candidate first noted here was
+        wrong (2.32:1, not 3.07:1) and was caught by recomputing before applying.
+      ↳ The contrast table is now ENFORCED, not documented:
+        `tests/Feature/PaletteContrastTest.php` reads the Sass variables and
+        recomputes every pair. Do not satisfy it by lowering
+        `$min-contrast-ratio` — it asserts the WCAG thresholds directly.
+      ↳ Tap-to-fill examples on the form: bodies stay Malay in BOTH locales (a
+        Malaysian on an English UI still receives Malay scam SMS), labels are
+        neutral ("Parcel notice", never "Parcel scam") so the button does not
+        announce a verdict the model has not produced. Every example is checked
+        end to end against the running model, not written and trusted.
+      ↳ Malay reviewed by Shafiq: `pelik`, `tidak pasti`, `alamat` throughout.
+      ↳ Risk carried by icon + text + colour; icons are inline SVG so a failed
+        webfont cannot reduce the verdict to colour alone.
+- [x] Phase 7 — Feedback loop + moderation queue — see `docs/adr/0008`
+      ↳ The gate is a MODEL INVARIANT, not a service convention: TrainingSample
+        refuses to create a community row without approved feedback and a named
+        approver. Tests attack it via direct create, mass assignment, an origin
+        flip after insert, and a seeder-style insert, and assert no bulk-approve
+        route exists.
+      ↳ Three steps: approve → export to a dataset version → train. Never collapsed.
+      ↳ The MODERATOR supplies the label, not the reporter. No default selection.
+      ↳ Provenance survives: feedback_id, submission_id, origin, approved_by.
+- [x] Phase 8 — Admin dashboard + metrics — THREE pages, one question each
+      ↳ **Dashboard** = "is anything wrong, is there anything to do?" Three
+        counters, submission volume (zero-filled), verdict distribution, and the
+        degraded-verdict reasons. Nothing else. It had grown to nine panels,
+        which buried the degraded rate — the one figure worth checking daily.
+      ↳ **Reports** (`/admin/reports`) = "what does the data say, can I take it
+        away?" Model performance, indicator frequency, threat-intel cache,
+        retraining set, verdicts by model version — each beside a download.
+      ↳ **Moderation** is now in the nav. It was reachable only by typing the
+        URL or following a dashboard counter.
+      ↳ Do NOT add a reference panel back to the dashboard. `DashboardService`
+        splits `operational()` from `reference()` precisely so the question each
+        page answers is a decision in code rather than a habit.
+      ↳ Model performance is READ from the committed metrics.json artefacts, never
+        recomputed, so a dashboard figure and a Chapter 4 figure cannot drift.
+        The REPORTING_QUALIFIER travels with each metric into the UI, and the
+        metrics export is JSON for the same reason — flattening to CSV columns
+        is the first step towards quoting an F1 without its caveat.
+      ↳ **CSV EXPORTS NEUTRALISE FORMULAS.** A cell starting `=`, `+`, `-`, `@`,
+        tab or CR executes in Excel/Sheets, and this app exports attacker-written
+        text by design. `CsvExporter::neutralise()` prefixes a quote; `fputcsv`
+        does NOT do this (it quotes for CSV parsing, a different problem). Same
+        class as the URL defanging — a second rendering context, its own rule.
+      ↳ ONE button on the page: "Download everything" (zip of all six). Six
+        buttons was six decisions before getting any data. The individual routes
+        stay, behind a <details>, as the ext-zip fallback and for anyone wanting
+        one file. `ext-zip` is in composer.json require so a build without it
+        fails at install, not at the button.
+      ↳ `ExportController::datasets()` describes each export ONCE. The archive
+        and the single routes must produce byte-identical files; two code paths
+        writing "the submissions export" is how the zip quietly starts carrying
+        different columns from the CSV beside it. Asserted by a test.
+      ↳ The archive writes CSVs to storage before zipping and deletes them BY
+        TRACKED PATH, not by glob — a glob version silently deleted nothing and
+        left exported personal data in storage after every download.
+      ↳ Exports stream in chunks, are throttled 10/min, carry a UTF-8 BOM so
+        Excel renders Malay, and log who took what and how many rows — never the
+        content, which would copy personal data into a longer-retention place.
+      ↳ `auth` plus an explicit role check on the whole admin group. A Viewer role
+        exists so the check is testable rather than vacuous. Exports carry every
+        row rather than a top ten, so the same gate is asserted on each one.
+- [x] Phase 9 — Hardening, security review, deployment guide, user manual
+      ↳ Security review found 10 issues (5 High); all fixed with regression tests.
+        See `docs/security-review-2026-08.md`.
+      ↳ Findings 1 and 2 are Chapter 4 material: redaction was applied thoroughly
+        inbound, but a submitted URL re-entering through an OUTBOUND API call
+        reached the log via the HTTP client's exception message. Neither was
+        visible by reading the code.
+      ↳ Deployment is ALL-RAILWAY. The ML service stays on the private network
+        and MUST NOT be given a public domain — that single click breaks
+        AGENTS.md §2 rule 1. See `docs/deployment.md`.
+      ↳ `docs/user-manual.md` covers the public interface and the admin area,
+        English and Bahasa Malaysia.
       ↳ Docker Compose regardless of the hosting outcome: it serves the local demo, a VPS
         deploy, and reproducibility on an examiner's machine equally.
       ↳ Deployment target is still open. Ask the supervisor the narrow question: does a

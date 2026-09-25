@@ -1,0 +1,87 @@
+{
+  "model": "tfidf-msg-v2.0.0-collected-my",
+  "trained_at": "2026-08-15T15:16:08.985877+00:00",
+  "REPORTING_QUALIFIER": "F1 on a 528-message collected Malaysian corpus (493 distinct templates, 93% distinct). Real collected SMS/WhatsApp, redacted at source. Class balance is uneven: legitimate is the smaller class at 238. This is a small corpus \u2014 treat the confidence interval as wide, and do not present this figure as equivalent to one measured on a large public dataset.",
+  "split_strategy": "given",
+  "corpus": {
+    "rows": 528,
+    "unique_templates": 493,
+    "effective_n": 493,
+    "test_templates": 105,
+    "sources": [
+      "collected_my"
+    ],
+    "class_counts": {
+      "legitimate": 238,
+      "scam": 290
+    }
+  },
+  "template_leakage": {
+    "templates_shared_train_test": 5,
+    "test_rows_on_shared_templates": 6,
+    "test_rows_total": 106
+  },
+  "validation": {
+    "threshold": 0.432471,
+    "accuracy": 0.975,
+    "f1_scam": 0.9772727272727273,
+    "precision_scam": 0.9772727272727273,
+    "recall_scam": 0.9772727272727273,
+    "f1_legitimate": 0.9722222222222222,
+    "f1_macro": 0.9747474747474747,
+    "roc_auc": 0.9898989898989898,
+    "average_precision": 0.9927458442183471,
+    "confusion_matrix": {
+      "true_negative": 35,
+      "false_positive": 1,
+      "false_negative": 1,
+      "true_positive": 43
+    },
+    "support": {
+      "legitimate": 36,
+      "scam": 44
+    }
+  },
+  "test": {
+    "threshold": 0.432471,
+    "accuracy": 0.9716981132075472,
+    "f1_scam": 0.9734513274336283,
+    "precision_scam": 1.0,
+    "recall_scam": 0.9482758620689655,
+    "f1_legitimate": 0.9696969696969697,
+    "f1_macro": 0.971574148565299,
+    "roc_auc": 0.9895833333333333,
+    "average_precision": 0.9935633088255243,
+    "confusion_matrix": {
+      "true_negative": 48,
+      "false_positive": 0,
+      "false_negative": 3,
+      "true_positive": 55
+    },
+    "support": {
+      "legitimate": 48,
+      "scam": 58
+    }
+  },
+  "test_leak_free_subset": {
+    "threshold": 0.432471,
+    "accuracy": 0.9690721649484536,
+    "f1_scam": 0.968421052631579,
+    "precision_scam": 1.0,
+    "recall_scam": 0.9387755102040817,
+    "f1_legitimate": 0.9696969696969697,
+    "f1_macro": 0.9690590111642743,
+    "roc_auc": 0.9876700680272108,
+    "average_precision": 0.991365168450425,
+    "confusion_matrix": {
+      "true_negative": 48,
+      "false_positive": 0,
+      "false_negative": 3,
+      "true_positive": 46
+    },
+    "support": {
+      "legitimate": 48,
+      "scam": 49
+    }
+  }
+}

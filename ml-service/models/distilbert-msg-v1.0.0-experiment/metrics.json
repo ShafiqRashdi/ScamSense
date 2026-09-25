@@ -1,0 +1,66 @@
+{
+  "model": "distilbert-msg-v1.0.0-experiment",
+  "base_checkpoint": "distilbert-base-multilingual-cased",
+  "trained_at": "2026-08-15T15:47:32.834757+00:00",
+  "REPORTING_QUALIFIER": "F1 on a 528-message collected Malaysian corpus (493 distinct templates, 93% distinct). Real collected SMS/WhatsApp, redacted at source. Class balance is uneven: legitimate is the smaller class at 238. This is a small corpus \u2014 treat the confidence interval as wide, and do not present this figure as equivalent to one measured on a large public dataset.",
+  "STATUS": "EXPERIMENT ONLY \u2014 NOT SHIPPED. Run once to answer whether DistilBERT earns its cost on this corpus. The serving model is the TF-IDF baseline. See docs/adr/0009.",
+  "split_strategy": "given",
+  "epochs": 4,
+  "max_length": 128,
+  "seed": 42,
+  "validation": {
+    "threshold": 0.863877,
+    "accuracy": 1.0,
+    "f1_scam": 1.0,
+    "precision_scam": 1.0,
+    "recall_scam": 1.0,
+    "f1_legitimate": 1.0,
+    "f1_macro": 1.0,
+    "roc_auc": 1.0,
+    "average_precision": 1.0,
+    "confusion_matrix": {
+      "true_negative": 36,
+      "false_positive": 0,
+      "false_negative": 0,
+      "true_positive": 44
+    },
+    "support": {
+      "legitimate": 36,
+      "scam": 44
+    }
+  },
+  "test": {
+    "threshold": 0.863877,
+    "accuracy": 0.9905660377358491,
+    "f1_scam": 0.991304347826087,
+    "precision_scam": 1.0,
+    "recall_scam": 0.9827586206896551,
+    "f1_legitimate": 0.9896907216494846,
+    "f1_macro": 0.9904975347377858,
+    "roc_auc": 0.9931752873563219,
+    "average_precision": 0.9957456336766682,
+    "confusion_matrix": {
+      "true_negative": 48,
+      "false_positive": 0,
+      "false_negative": 1,
+      "true_positive": 57
+    },
+    "support": {
+      "legitimate": 48,
+      "scam": 58
+    }
+  },
+  "comparison_vs_baseline": {
+    "baseline_artefact": "tfidf-msg-v2.0.0-collected-my",
+    "baseline_test_f1_scam": 0.9734513274336283,
+    "distilbert_test_f1_scam": 0.991304347826087,
+    "difference": 0.01785302039245873,
+    "mean_difference": 0.017862494085306914,
+    "ci_lower_95": -0.016673497267759612,
+    "ci_upper_95": 0.05597393483709267,
+    "share_of_resamples_favouring_distilbert": 0.7716,
+    "resamples": 5000,
+    "interval_spans_zero": true
+  },
+  "python": "3.11.1"
+}

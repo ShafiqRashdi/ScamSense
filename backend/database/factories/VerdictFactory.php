@@ -27,7 +27,13 @@ class VerdictFactory extends Factory
             'label' => VerdictLabel::Scam,
             'risk_level' => RiskLevel::High,
             'confidence' => fake()->randomFloat(4, 0.85, 0.99),
-            'model_version' => 'distilbert-msg-v1.0.0',
+            // Deliberately not a real artefact name. `distilbert-msg-v1.0.0` sat
+            // here, which named a model that was measured as an experiment and
+            // never shipped (ADR 0009) -- exactly the string the report must
+            // never be seen attributing a live verdict to. SampleSubmissionSeeder
+            // applies the same convention for the same reason; a test whose
+            // subject is the model version sets it explicitly.
+            'model_version' => 'factory-data-not-a-model',
             'is_partial' => false,
             'partial_reason' => null,
             'inference_ms' => fake()->numberBetween(80, 400),

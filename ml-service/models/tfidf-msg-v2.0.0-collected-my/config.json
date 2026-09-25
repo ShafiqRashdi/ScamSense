@@ -1,0 +1,11 @@
+{
+  "seed": 42,
+  "model": "TfidfVectorizer(char_wb 2-5) + LogisticRegression",
+  "class_weight": "balanced",
+  "split_strategy": "given",
+  "dataset": "training\\data\\messages_my_with_metadata.csv",
+  "dataset_rows": 528,
+  "unique_templates": 493,
+  "python": "3.11.1",
+  "scikit_learn": "1.6.0"
+}

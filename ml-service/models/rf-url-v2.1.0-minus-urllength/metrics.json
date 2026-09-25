@@ -1,0 +1,78 @@
+{
+  "model": "rf-url-v2.1.0-minus-urllength",
+  "trained_at": "2026-08-15T15:25:22.150603+00:00",
+  "split_strategy": "domain",
+  "group_leakage": {
+    "domains_shared_train_test": 0,
+    "test_rows_on_shared_domains": 0,
+    "test_rows_total": 51467
+  },
+  "validation": {
+    "threshold": 0.200585,
+    "accuracy": 0.610295693164774,
+    "f1_phishing": 0.6876073514256269,
+    "precision_phishing": 0.5341227484989993,
+    "recall_phishing": 0.9648710532658472,
+    "f1_legitimate": 0.48213268792710706,
+    "f1_macro": 0.584870019676367,
+    "fbeta2_phishing": 0.8308600722261426,
+    "roc_auc": 0.8298880909831069,
+    "average_precision": 0.8222016420358526,
+    "confusion_matrix": {
+      "true_negative": 6773,
+      "false_positive": 13967,
+      "false_negative": 583,
+      "true_positive": 16013
+    },
+    "support": {
+      "legitimate": 20740,
+      "phishing": 16596
+    }
+  },
+  "test": {
+    "threshold": 0.200585,
+    "accuracy": 0.7242504906056308,
+    "f1_phishing": 0.8092780734290168,
+    "precision_phishing": 0.6873644561123159,
+    "recall_phishing": 0.9837618845362172,
+    "f1_legitimate": 0.5024191851903793,
+    "f1_macro": 0.6558486293096981,
+    "fbeta2_phishing": 0.9056565182605139,
+    "roc_auc": 0.9300200260933298,
+    "average_precision": 0.9584370680873348,
+    "confusion_matrix": {
+      "true_negative": 7165,
+      "false_positive": 13695,
+      "false_negative": 497,
+      "true_positive": 30110
+    },
+    "support": {
+      "legitimate": 20860,
+      "phishing": 30607
+    }
+  },
+  "feature_importances": {
+    "host_entropy": 0.17916096318074762,
+    "host_length": 0.13837443584563888,
+    "digit_ratio": 0.09272463575850981,
+    "longest_token_length": 0.08206782262884499,
+    "is_suspicious_tld": 0.0732279189526662,
+    "path_length": 0.0732169275386626,
+    "path_entropy": 0.07210357078938791,
+    "subdomain_count": 0.06620118494402763,
+    "hyphen_count": 0.05860951188348527,
+    "path_depth": 0.046486684871718406,
+    "dot_count": 0.04463706832280636,
+    "query_param_count": 0.03248272973342517,
+    "has_sensitive_keyword": 0.017547019539066396,
+    "is_known_shortener": 0.008886165317845085,
+    "host_is_ip_literal": 0.007171966300672737,
+    "has_port": 0.005492144543481109,
+    "brand_lookalike": 0.0007220648481922083,
+    "has_double_slash_in_path": 0.00037389255455856337,
+    "has_at_symbol": 0.00019461558226791247,
+    "has_punycode": 0.00017748245865523542,
+    "brand_token_in_subdomain": 0.00014119440533983202
+  },
+  "notes": "Threshold selected on the validation set only. The test set was evaluated once, after the threshold was fixed. Split strategy: domain. Under 'random', registrable domains appear in both train and test and the score is optimistic; 'domain' is the generalisation estimate."
+}

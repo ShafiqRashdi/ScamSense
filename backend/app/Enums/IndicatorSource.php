@@ -29,4 +29,26 @@ enum IndicatorSource: string
 
     /** A third-party reputation hit (Google Safe Browsing, VirusTotal). */
     case ThreatIntel = 'threat_intel';
+
+    /**
+     * An externally verifiable registry fact about the domain — that it is
+     * under a suffix only accredited institutions may register, or is the
+     * published domain of a licensed institution.
+     *
+     * Kept separate from every other source because ADR 0007 requires the
+     * verified-domain gate to be reportable as a safety mitigation and never
+     * folded into model accuracy. A query on this value shows exactly which
+     * verdicts were gated.
+     */
+    case Registry = 'registry';
+
+    /**
+     * Whether this source is a model attribution.
+     *
+     * Only `Model` may be described as model interpretability in the report.
+     */
+    public function isModelAttribution(): bool
+    {
+        return $this === self::Model;
+    }
 }

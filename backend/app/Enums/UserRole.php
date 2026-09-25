@@ -19,9 +19,19 @@ enum UserRole: string
     /** May approve or reject feedback, nothing else. */
     case Moderator = 'moderator';
 
+    /**
+     * May sign in and view, but may not moderate.
+     *
+     * Exists so that "signed in" and "allowed to moderate" are genuinely
+     * different states. Without a role that fails the check, the role check on
+     * the admin routes is untestable and effectively decorative — and a future
+     * account type would inherit moderation rights by default.
+     */
+    case Viewer = 'viewer';
+
     public function canModerate(): bool
     {
-        return true;
+        return $this !== self::Viewer;
     }
 
     public function canAdminister(): bool

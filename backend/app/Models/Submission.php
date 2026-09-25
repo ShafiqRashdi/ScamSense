@@ -19,7 +19,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
  * through RedactorService. Nothing in this application should ever write raw
  * user input to this model.
  */
-#[Fillable(['type', 'content_redacted', 'content_hash', 'ip_hash'])]
+#[Fillable(['type', 'content_redacted', 'content_hash', 'ip_hash', 'session_token_hash'])]
 class Submission extends Model
 {
     /** @use HasFactory<SubmissionFactory> */

@@ -1,15 +1,515 @@
 // ScamSense — application stylesheet
 //
-// Bootstrap is imported from source rather than as a prebuilt CSS file so that
-// Phase 6 can override Sass variables directly. That matters for this project:
-// the target user is a non-technical Malaysian adult, often older, on a
-// mid-range Android phone, so the type scale and touch-target sizes need to be
-// raised above Bootstrap's defaults rather than patched with utility overrides.
+// Bootstrap is imported from source rather than as a prebuilt CSS file so the
+// Sass variables can be overridden directly. That matters for this project: the
+// target user is a non-technical Malaysian adult, often older, on a mid-range
+// Android phone, so the type scale and touch-target sizes are raised above
+// Bootstrap's defaults rather than patched with utility overrides.
 //
 // Override variables ABOVE the import — Bootstrap's `!default` values only take
 // effect if they have not already been set.
 
-// $font-size-base: 1.125rem;   // Phase 6
-// $min-contrast-ratio: 4.5;    // WCAG 2.1 AA, see AGENTS.md O2
+// ─────────────────────────────────────────────────────────────────────────────
+// Typeface
+//
+// Instrument Sans, self-hosted. Self-hosting is not a preference here: the
+// content security policy sets `font-src 'self'`, and the security write-up
+// argues the policy can be strict precisely because the interface loads nothing
+// third-party. Linking Google Fonts would have required loosening the policy and
+// would have contradicted that claim — as well as disclosing every visitor's IP
+// to a third party on a site whose entire premise is caution.
+//
+// One variable file per subset covers 400–700, which is why there is no weight
+// axis in the URLs: 41 KB for the pair.
+//
+// Licensed under the SIL Open Font License 1.1 — see public/fonts/README.md.
+// ─────────────────────────────────────────────────────────────────────────────
+
+@font-face {
+    font-family: "Instrument Sans";
+    font-style: normal;
+    font-weight: 400 700;
+    font-display: swap;
+    src: url("/fonts/instrument-sans-latin.woff2") format("woff2");
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6,
+        U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+2074, U+20AC,
+        U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+    font-family: "Instrument Sans";
+    font-style: normal;
+    font-weight: 400 700;
+    font-display: swap;
+    src: url("/fonts/instrument-sans-latin-ext.woff2") format("woff2");
+    unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7,
+        U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F,
+        U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F,
+        U+A720-A7FF;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Palette — "warm reassurance"
+//
+// Warm neutrals rather than the blue-grey Bootstrap ships with. The brand
+// accent is a calm green, deliberately NOT in the red-amber family, so that
+// nothing in the ordinary furniture of the page can be mistaken for a risk
+// signal. A brand colour adjacent to the danger colour is how a user learns to
+// stop noticing the danger colour.
+// ─────────────────────────────────────────────────────────────────────────────
+
+$sc-paper: #f3ede4; // the page behind the content
+$sc-paper-tint: #f7f2ea; // inset panels within a card
+$sc-surface: #fffdfa; // cards, navbar, footer
+$sc-line: #e7ddd0; // hairlines
+// Input borders. WCAG 2.1 SC 1.4.11 requires 3:1 for the visual boundary that
+// identifies a control, and the previous value (#d8cbb9) reached 1.57:1 against
+// the input background — a hairline that read as tasteful on a designer's
+// monitor and disappeared for exactly the reduced-contrast-sensitivity audience
+// this project names. This value measures 3.73:1 on $sc-surface, 3.40:1 on
+// $sc-paper-tint and 3.25:1 on $sc-paper, so it passes wherever an input is
+// placed rather than only where one currently sits. Pinned by a test.
+$sc-line-strong: #96805f;
+
+$sc-ink: #241f1a;
+$sc-ink-muted: #6b6157;
+
+$sc-brand: #2a6152;
+$sc-brand-dark: #1f4a3e;
+
+// Risk colours. Each is dark enough to carry white text at AA, because they
+// are used as solid badge backgrounds as well as borders.
+$sc-danger: #9b2c2c;
+$sc-warning: #8a5a00;
+$sc-success: #2a6152;
+
+$primary: $sc-brand;
+$secondary: #6b6157;
+$danger: $sc-danger;
+$warning: $sc-warning;
+$success: $sc-success;
+
+$body-bg: $sc-surface;
+$body-color: $sc-ink;
+$body-secondary-bg: $sc-paper;
+$body-secondary-color: $sc-ink-muted;
+$body-tertiary-bg: $sc-paper-tint;
+$body-tertiary-color: $sc-ink-muted;
+
+$border-color: $sc-line;
+
+// WCAG 2.1 AA. Bootstrap uses this when choosing a foreground for a filled
+// background, so lowering it would silently produce unreadable badges.
+$min-contrast-ratio: 4.5;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Type and spacing
+//
+// 17px base rather than Bootstrap's 16px. Small on its own, but this interface
+// is read by people with presbyopia on a phone held at arm's length, and it
+// compounds through every derived size.
+// ─────────────────────────────────────────────────────────────────────────────
+
+$font-family-sans-serif: "Instrument Sans", system-ui, -apple-system,
+    "Segoe UI", Roboto, sans-serif;
+$font-size-base: 1.0625rem;
+$line-height-base: 1.6;
+
+$headings-font-weight: 650;
+$headings-line-height: 1.25;
+
+// The scale is set against the classes the views actually use, not against the
+// tags. `verify/index` renders its h1 as `.h3` and `verify/result` renders its
+// h1 as `.h4`, so those two steps are the page titles in practice and have to
+// be unmistakably larger than the lead paragraph beneath them. A first pass set
+// them at 1.2x and 1.1x base, which left the title and the lead almost the same
+// size and the page with no visible hierarchy.
+$h1-font-size: $font-size-base * 2.1;
+$h2-font-size: $font-size-base * 1.75;
+$h3-font-size: $font-size-base * 1.5;
+$h4-font-size: $font-size-base * 1.3;
+$h5-font-size: $font-size-base * 1.15;
+$h6-font-size: $font-size-base;
+
+$border-radius: 0.75rem;
+$border-radius-sm: 0.5rem;
+$border-radius-lg: 1rem;
+
+$card-border-color: $sc-line;
+$card-cap-bg: transparent;
+
+$input-border-color: $sc-line-strong;
+$input-focus-border-color: $sc-brand;
+$input-btn-focus-color: rgba($sc-brand, 0.25);
+
+$btn-font-weight: 600;
 
 @import "bootstrap/scss/bootstrap";
+
+// ─────────────────────────────────────────────────────────────────────────────
+// The verdict card is deliberately firmer than the rest of the page
+//
+// Soft corners and warm paper are right for the form: the person arriving is
+// often anxious, and the page should not add to it. They are wrong for the
+// moment of judgement. Rounded, gentle, pastel treatment is also the visual
+// language scam sites themselves use, so the verdict has to look like it is
+// being asserted rather than suggested.
+//
+// This targets the risk-bordered cards specifically, which is what
+// `result.blade.php` renders for a verdict and for the verified panel.
+// ─────────────────────────────────────────────────────────────────────────────
+
+.card.border-2 {
+    border-radius: $border-radius-sm;
+
+    // A heavier rule in the risk colour along the top edge. Done with the
+    // border rather than a pseudo-element painted in `currentColor`: Bootstrap's
+    // `.border-danger` sets `border-color` and leaves `color` alone, so
+    // `currentColor` resolves to the inherited ink and silently paints the bar
+    // the wrong colour on every band.
+    //
+    // Redundant with the badge and the heading, and deliberately so — colour
+    // must never be the only carrier of the verdict (WCAG 1.4.1).
+    border-top-width: 6px;
+}
+
+// Headings on the verdict read tighter and heavier than body copy, so the
+// answer is legible at a glance rather than as a paragraph to be parsed.
+h1,
+h2 {
+    letter-spacing: -0.02em;
+}
+
+// The action box inside a verdict. Bootstrap's `bg-body-tertiary` gives it the
+// warm tint; the leading rule is what separates advice from explanation for a
+// reader who is skimming.
+.card .rounded.bg-body-tertiary {
+    border-left: 3px solid rgba($sc-ink, 0.14);
+}
+
+// Inputs are large and clearly bounded. A faint 1px hairline is a fashionable
+// choice that fails badly for a user who cannot see where to tap.
+.form-control {
+    border-width: 2px;
+}
+
+// Bootstrap's focus ring is a shadow, which some Android browsers render
+// faintly. An explicit outline survives that and is a requirement, not a
+// nicety, for keyboard and switch-access users.
+:focus-visible {
+    outline: 3px solid $sc-brand;
+    outline-offset: 2px;
+}
+
+// The defanged submission. Monospace so the reader can see the address
+// character by character, which is the habit the interface is trying to teach.
+pre code {
+    font-size: 0.9em;
+    line-height: 1.55;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Interaction states
+//
+// These are micro-interactions, not decoration. ADR 0012 rules out the register
+// a scam site uses — glow, gradient, pulse, bouncy easing — so every rule below
+// has to answer a question the user is actually asking, and answer it in under
+// a fifth of a second.
+//
+// Three constraints shape all of them:
+//
+//   1. NOTHING MOVES LAYOUT. Transforms and shadows only. A control that
+//      changes size on hover shifts what is under a shaky finger.
+//   2. Hover is gated behind `hover: hover`. On a touchscreen a :hover rule
+//      sticks after the tap, so the last button pressed stays lit and reads as
+//      still selected.
+//   3. Every effect is switched off under `prefers-reduced-motion`. That
+//      setting is common among users with vestibular disorders, and this
+//      audience skews older.
+// ─────────────────────────────────────────────────────────────────────────────
+
+.btn {
+    // Bootstrap already transitions colour, border and box-shadow. Transform is
+    // the one it leaves out, and it is the one doing the work here.
+    transition: $btn-transition, transform 0.12s ease-out;
+}
+
+// The press. This is the only effect with a hard usability argument behind it:
+// a verdict takes up to three seconds (objective O2), and on a mid-range
+// Android the gap between tap and page change is long enough that a user with
+// no feedback concludes the tap missed and taps again. The button visibly
+// giving way is the cheapest possible acknowledgement, and it costs no network.
+.btn:active {
+    transform: translateY(1px);
+}
+
+@media (hover: hover) {
+    // Desktop only, and deliberately slight — a 1px lift and a shadow, which
+    // reads as "this is pressable" without announcing itself.
+    .btn-primary:hover,
+    .btn-success:hover,
+    .btn-outline-primary:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 2px 8px rgba($sc-ink, 0.16);
+    }
+
+    .btn-primary:active,
+    .btn-success:active,
+    .btn-outline-primary:active {
+        // Cancel the lift on press so the two rules do not fight.
+        transform: translateY(1px);
+        box-shadow: none;
+    }
+}
+
+// The message/link chooser. Bootstrap fills the selected segment, which on a
+// warm background at arm's length is a weaker signal than it looks in a
+// design tool. The weight change is the part that survives a cheap screen —
+// and, like the verdict, it means the selection is not carried by colour alone.
+.btn-check:checked + .btn {
+    font-weight: 700;
+    box-shadow: inset 0 2px 5px rgba($sc-ink, 0.22);
+}
+
+// The submit button while the verdict is being fetched. Set by app.js; the
+// rules live here so a JS failure leaves the button entirely normal.
+.btn[aria-busy="true"] {
+    // `disabled` would grey it out, which reads as "this is broken" rather than
+    // "this is working". It stays fully coloured and simply stops responding.
+    pointer-events: none;
+    transform: none;
+}
+
+// The answer arriving. A short rise and fade so the verdict lands rather than
+// appearing to have always been there — which supports rule 1 of ADR 0012, the
+// answer being found in one glance.
+//
+// Declared ONLY inside the keyframes, never as a base opacity. If the animation
+// never runs — old browser, CSS partly failed, reduced motion — the card
+// renders fully visible. A verdict that depends on an animation to be readable
+// is a verdict that can silently disappear.
+@keyframes sc-verdict-in {
+    from {
+        opacity: 0;
+        transform: translateY(6px);
+    }
+}
+
+.card.border-2 {
+    animation: sc-verdict-in 0.26s ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .btn,
+    .btn:active,
+    .btn-primary:hover,
+    .btn-success:hover,
+    .btn-outline-primary:hover {
+        transition: none;
+        transform: none;
+    }
+
+    .card.border-2 {
+        animation: none;
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// The wait
+//
+// Three seconds is long enough that the page has to say something, and short
+// enough that whatever it says must be readable at a glance. The treatment is
+// a sweeping indeterminate bar plus one line of plain language at a time.
+//
+// Indeterminate on purpose. A bar that fills to a percentage would be showing a
+// progress figure nothing measures — the request is a single POST and the page
+// has no idea how far along the server is. Inventing one on a product whose
+// entire argument is that it does not overclaim would be a poor place to start.
+// ─────────────────────────────────────────────────────────────────────────────
+
+.sc-busy__track {
+    height: 4px;
+    border-radius: 2px;
+    background-color: rgba($sc-brand, 0.16);
+    overflow: hidden;
+}
+
+.sc-busy__bar {
+    display: block;
+    width: 38%;
+    height: 100%;
+    border-radius: 2px;
+    background-color: $sc-brand;
+    animation: sc-sweep 1.15s ease-in-out infinite;
+}
+
+@keyframes sc-sweep {
+    from {
+        transform: translateX(-110%);
+    }
+    to {
+        transform: translateX(370%);
+    }
+}
+
+.sc-busy__status {
+    // Reserved so the line appearing does not push the privacy notice down the
+    // page. Layout must not move while the user is waiting — that is the one
+    // moment they are most likely to be reaching for the screen.
+    min-height: 1.6em;
+    margin-top: 0.6rem;
+}
+
+// Indicators arrive one after another rather than all at once, so the list
+// reads as findings being reported rather than a block of text appearing. The
+// stagger is small; anything longer would delay the answer to make a point.
+.sc-indicator {
+    animation: sc-verdict-in 0.3s ease-out both;
+
+    @for $i from 1 through 5 {
+        &:nth-child(#{$i}) {
+            animation-delay: 0.06s * $i;
+        }
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .sc-busy__bar {
+        // An indeterminate bar that does not move carries no meaning, so it
+        // becomes a plain filled track and the status line does the work. The
+        // text still rotates: changing words is not motion.
+        width: 100%;
+        animation: none;
+    }
+
+    .sc-indicator {
+        animation: none;
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Tap-to-fill examples
+//
+// Quiet by design. These sit directly beneath the input and must not compete
+// with the primary action underneath them, so they are small, outlined and in
+// the secondary ink rather than the brand — the eye should reach `Check it`
+// first and find these only when it is looking for something to check.
+// ─────────────────────────────────────────────────────────────────────────────
+
+.sc-examples {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem;
+
+    .btn {
+        // Below Bootstrap's `btn-sm` padding these become hard to hit on a
+        // phone. `--bs-btn-*` rather than raw padding so the button keeps every
+        // other state it was given.
+        --bs-btn-padding-y: 0.35rem;
+        --bs-btn-padding-x: 0.7rem;
+        border-radius: 2rem;
+    }
+}
+
+// The textarea starts small and grows, so it needs a floor: three rows of
+// 17px text is a comfortable target, and with no JavaScript at all this is
+// what the box stays at rather than collapsing to something unusable.
+textarea[data-autogrow] {
+    min-height: 6rem;
+    // Set inline by app.js as the content grows. Declared here so the
+    // transition does not fight the first measurement.
+    resize: vertical;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Paste confirmation
+//
+// Most of these users paste rather than type — the premise of the product is
+// that something arrived and they want it checked — and nothing acknowledged
+// it. On a phone the pasted text can land below the visible part of a box that
+// has not finished growing, so "did that work?" is a real question.
+//
+// A brief brand-coloured ring, not a colour the risk bands use: this is an
+// acknowledgement, not a finding, and ADR 0012 rule 2 keeps the risk hues for
+// risk. It fades out on its own so it cannot be mistaken for a state.
+// ─────────────────────────────────────────────────────────────────────────────
+
+@keyframes sc-paste-flash {
+    from {
+        border-color: $sc-brand;
+        box-shadow: 0 0 0 0.25rem rgba($sc-brand, 0.3);
+    }
+    to {
+        border-color: $sc-line-strong;
+        box-shadow: 0 0 0 0.25rem rgba($sc-brand, 0);
+    }
+}
+
+.form-control.sc-pasted {
+    animation: sc-paste-flash 0.55s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .form-control.sc-pasted {
+        // Still acknowledged, just not faded. The border holds the brand colour
+        // for the same duration and then returns — a colour change is not the
+        // motion this setting is asking to be spared.
+        animation: sc-paste-flash 0.55s steps(1, end);
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Downloads (admin reports)
+//
+// Each row is a whole link rather than a label with a small button beside it.
+// The reason is not aesthetic: a description that is not part of the target
+// leaves the actual click area a few words wide, which is a poor target on a
+// laptop trackpad and a bad one on a phone. The note explains what the file
+// contains, so it belongs inside the thing you press to get it.
+// ─────────────────────────────────────────────────────────────────────────────
+
+.sc-downloads {
+    display: grid;
+    gap: 0.5rem;
+    grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+}
+
+.sc-download {
+    display: block;
+    padding: 0.75rem 0.9rem;
+    border: 1px solid $sc-line;
+    border-radius: $border-radius-sm;
+    background-color: $sc-paper-tint;
+    text-decoration: none;
+    color: inherit;
+    transition: border-color 0.12s ease-out, transform 0.12s ease-out;
+
+    &__label {
+        display: block;
+        font-weight: 600;
+        color: $sc-brand-dark;
+    }
+
+    &__note {
+        display: block;
+        margin-top: 0.15rem;
+        font-size: 0.85em;
+        color: $sc-ink-muted;
+    }
+}
+
+@media (hover: hover) {
+    .sc-download:hover {
+        border-color: $sc-brand;
+        transform: translateY(-1px);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .sc-download,
+    .sc-download:hover {
+        transition: none;
+        transform: none;
+    }
+}

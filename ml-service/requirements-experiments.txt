@@ -1,0 +1,16 @@
+# Dependencies for one-off experiments that are NOT part of the running service.
+#
+# DistilBERT is deliberately not in requirements.txt. The comparison in
+# docs/adr/0009 was run once to answer "did you try it?" with a number, and the
+# result was that it does not earn its cost on a 528-message corpus. Shipping
+# these would add roughly 250 MB of wheels and 1-2 GB of runtime memory to a
+# service that does not use them.
+#
+# Install only when reproducing that experiment:
+#     pip install -r requirements-experiments.txt
+#
+# CPU wheels only — the CUDA build is several GB and there is no GPU here.
+--extra-index-url https://download.pytorch.org/whl/cpu
+
+torch==2.5.1
+transformers==4.47.1
