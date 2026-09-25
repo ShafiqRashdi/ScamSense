@@ -108,8 +108,6 @@
                              place on first paint, before app.js runs and even
                              if it never does. --}}
                         <div class="sc-seg" data-seg>
-                            <span class="sc-seg__pill" aria-hidden="true"></span>
-
                             <input type="radio" class="sc-seg__input" name="type" id="type-message"
                                    value="message" autocomplete="off"
                                    {{ old('type', 'message') === 'message' ? 'checked' : '' }}>
@@ -123,6 +121,19 @@
                             <label class="sc-seg__opt" for="type-url">
                                 {{ __('A link') }}
                             </label>
+
+                            {{-- LAST, not first. `~` only matches siblings that
+                                 come after the subject, so with the pill above
+                                 the inputs the rule that moves it could never
+                                 match -- the pill stayed left while the labels
+                                 swapped colour, leaving white text on white and
+                                 green text on the green fill. Both captions
+                                 disappeared.
+
+                                 Absolutely positioned, so DOM order costs
+                                 nothing visually, and it sits below the labels
+                                 on z-index regardless. --}}
+                            <span class="sc-seg__pill" aria-hidden="true"></span>
                         </div>
                     </fieldset>
 

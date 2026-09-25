@@ -139,6 +139,33 @@ it('keeps the character count out of the screen reader, boundary aside', functio
         ->assertSee('Ini terlalu panjang. Sila buang :count huruf.');
 });
 
+it('keeps the segment pill after the inputs, or it cannot move', function (): void {
+    /*
+     | A silent CSS failure, and the reason this test exists.
+     |
+     | The pill is driven by `#type-url:checked ~ .sc-seg__pill`. `~` only
+     | reaches siblings that come AFTER the subject, so with the pill written
+     | first in the markup the rule never matched -- and nothing said so. The
+     | pill stayed on the left while the labels swapped colour, which left
+     | white text on white and green text on the green fill: both captions
+     | disappeared the moment anyone chose "A link".
+     |
+     | Nothing about that is visible to a test that only checks the page
+     | renders, so the ordering is asserted directly.
+     */
+    $html = $this->get('/')->assertOk()->getContent();
+
+    $pill = strpos($html, 'sc-seg__pill');
+    $lastInput = strrpos($html, 'id="type-url"');
+
+    expect($pill)->not->toBeFalse('the pill must be rendered')
+        ->and($lastInput)->not->toBeFalse('the url radio must be rendered')
+        ->and($pill)->toBeGreaterThan(
+            $lastInput,
+            'the pill must follow the radios or the sibling selector cannot reach it',
+        );
+});
+
 it('shows the privacy notice on the form itself', function (): void {
     // Required by the Phase 6 brief: the user must know what is stored
     // before they paste, not afterwards.

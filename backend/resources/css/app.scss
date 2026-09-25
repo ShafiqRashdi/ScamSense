@@ -687,18 +687,33 @@ body {
 
 .sc-hero {
     padding-block: 1.4rem 4rem;
-    max-width: 22ch;
+
+    // NO max-width on the container. It carried `22ch`, and `ch` resolves
+    // against the element's OWN font-size -- 17px here, not the 60px of the
+    // heading inside it. That made the measure about 190px and broke
+    // "Is this a scam?" after "Is this a". Measures belong on the text they
+    // govern, at the size that text is actually set in.
 
     h1 {
-        // Display type: tight leading and NEGATIVE tracking, because letters
-        // read too far apart as they grow. Fixed at 25px before, which is why
-        // the page read as a form rather than a proposition.
-        font-size: clamp(2.35rem, 7.5vw, 3.75rem);
-        line-height: 0.98;
+        // Sized so the LONGER of the two languages still holds one line. Malay
+        // is "Adakah ini penipuan?" at twenty characters against fifteen in
+        // English, so English was never the constraint. The floor is what a
+        // 390px phone can take on one line; the ceiling is what looks right on
+        // a desktop.
+        //
+        // Tight leading and NEGATIVE tracking, because letters read too far
+        // apart as they grow. Fixed at 25px before, which is why the page read
+        // as a form rather than a proposition.
+        font-size: clamp(1.95rem, 6vw, 3.75rem);
+        line-height: 1.02;
         letter-spacing: -0.04em;
         font-weight: 700;
         color: #fff;
         margin-bottom: 0.7rem;
+        max-width: none;
+        // A safety net rather than a layout tool: if a future translation is
+        // longer still, it wraps here rather than running off the screen.
+        text-wrap: balance;
     }
 
     > p {
@@ -717,7 +732,6 @@ body {
     // ADR 0012 keeps one h1 per document and it belongs to the answer.
     &--slim {
         padding-block: 0.4rem 4.5rem;
-        max-width: 30ch;
 
         > p {
             font-size: clamp(1.75rem, 5vw, 2.5rem);
@@ -939,7 +953,9 @@ body {
         font-weight: 700;
     }
 
-    &__input:nth-of-type(2):checked ~ &__pill,
+    // The pill is the LAST child for this to work at all: `~` only reaches
+    // siblings that follow the subject. With the pill written first the rule
+    // silently never matched.
     &__input#type-url:checked ~ &__pill {
         transform: translateX(100%);
     }
@@ -1163,7 +1179,6 @@ body {
         transform: none;
     }
 
-    .sc-seg__input:nth-of-type(2):checked ~ .sc-seg__pill,
     .sc-seg__input#type-url:checked ~ .sc-seg__pill {
         // The pill must still be in the right place; only the travel is
         // removed. Suppressing the transform entirely would leave the label
