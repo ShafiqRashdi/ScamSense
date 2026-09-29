@@ -23,6 +23,15 @@
          Each page supplies its own hero inside it, so the verdict page can be
          shallower than the landing page without a second layout. --}}
     <header class="sc-mast">
+        {{-- The brand mark again, oversized and cropped into the corner as the
+             band's texture. Outline only, at 9%: it can never be read as
+             content or compete with a risk colour. --}}
+        <svg class="sc-mast__shield" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d="M12 2.2 4.2 5.4v6.2c0 4.8 3.2 8.9 7.8 10.2 4.6-1.3 7.8-5.4 7.8-10.2V5.4Z"
+                  fill="none" stroke="currentColor" stroke-width="0.6"/>
+            <path d="M12 4.6 6.3 7v4.6c0 3.6 2.4 6.6 5.7 7.6 3.3-1 5.7-4 5.7-7.6V7Z"
+                  fill="none" stroke="currentColor" stroke-width="0.4"/>
+        </svg>
         <div class="sc-mast__inner">
             <div class="sc-bar">
                 <a class="sc-brand" href="{{ route('verify.show') }}">

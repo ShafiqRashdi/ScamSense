@@ -9,21 +9,81 @@ import * as bootstrap from "bootstrap";
 
 window.bootstrap = bootstrap;
 
+const prefersReducedMotion = () =>
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+/*
+ | Links made safe, in the browser, by the same rule as DefangService.
+ |
+ | The same pattern as DefangService::defangUrlsIn: a URL starts with a scheme
+ | or `www.`. The scheme's "tt" becomes "xx" and every dot in the host becomes
+ | "[.]"; the path is left alone. Returned as parts so the page can show each
+ | change happening rather than the text simply being different.
+ |
+ | Built as DOM text nodes by the caller, never as HTML: this is the user's own
+ | pasted text and it must not become markup on the way back to the screen.
+ */
+function defangParts(text) {
+    const parts = [];
+    const url = /(?:https?:\/\/|www\.)[^\s<>"']+/gi;
+    let last = 0;
+
+    for (const match of text.matchAll(url)) {
+        if (match.index > last) {
+            parts.push({ text: text.slice(last, match.index) });
+        }
+
+        const whole = match[0];
+        const scheme = (whole.match(/^https?:\/\//i) || [""])[0];
+        const rest = whole.slice(scheme.length);
+        const slash = rest.indexOf("/");
+        const host = slash === -1 ? rest : rest.slice(0, slash);
+
+        if (scheme) {
+            parts.push({ text: scheme.slice(0, 1) });
+            parts.push({ text: scheme.slice(1, 3), to: "xx" });
+            parts.push({ text: scheme.slice(3) });
+        }
+
+        host.split(".").forEach((label, i) => {
+            if (i > 0) {
+                parts.push({ text: ".", to: "[.]" });
+            }
+            parts.push({ text: label });
+        });
+
+        if (slash !== -1) {
+            parts.push({ text: rest.slice(slash) });
+        }
+
+        last = match.index + whole.length;
+    }
+
+    if (last < text.length) {
+        parts.push({ text: text.slice(last) });
+    }
+
+    return parts;
+}
+
 /*
  | Submit feedback while a verdict is being fetched.
  |
  | Objective O2 allows three seconds end to end, and on a mid-range Android over
- | mobile data it uses most of them. Until now the button did nothing visible for
- | that whole time. For a user who is already anxious — the premise of the whole
- | interface, see ADR 0012 — silence reads as failure, and the reasonable
- | response to a button that did nothing is to press it again. That submits the
- | message twice and the second verdict overwrites the first in the UI.
+ | mobile data it uses most of them. For a user who is already anxious — the
+ | premise of the whole interface, see ADR 0012 — silence reads as failure, and
+ | the reasonable response to a button that did nothing is to press it again.
+ | That submits the message twice and the second verdict overwrites the first.
  |
- | Progressive enhancement: none of this is required for the form to work. The
- | markup carries the replacement label in a data attribute, so if this file
- | fails to load the button is an ordinary submit button and nothing looks wrong.
- | The CSP is `script-src 'self'`, so the label cannot be passed via an inline
- | script and a data attribute is the correct channel rather than a workaround.
+ | So the wait is SHOWN: the box gives way to a reading view of what was pasted,
+ | its links are made safe in front of the reader, a neutral line reads down the
+ | text, and a short checklist says what ScamSense is doing. Nothing is marked
+ | during the wait — no finding exists yet, and inventing one would be the fake
+ | progress ADR 0012 rules out. The marks arrive on the result page.
+ |
+ | Progressive enhancement: none of this is required for the form to work. With
+ | no JavaScript the button is an ordinary submit button and nothing looks wrong.
+ | The CSP is `script-src 'self'`, so labels travel in data attributes.
  */
 function markBusyOnSubmit(form) {
     const button = form.querySelector("[data-busy-label]");
@@ -35,17 +95,33 @@ function markBusyOnSubmit(form) {
     const idleLabel = button.querySelector(".sc-cta__label")?.textContent ?? "";
     const panel = form.querySelector("[data-busy-panel]");
     const status = form.querySelector("[data-busy-status]");
-    const steps = Array.from(
-        form.querySelectorAll("[data-busy-steps] li"),
-        (item) => item.textContent.trim(),
-    );
+    const items = Array.from(form.querySelectorAll("[data-busy-steps] li"));
+    const hideable = Array.from(form.querySelectorAll("[data-busy-hide]"));
+    const readingPanel = form.querySelector("[data-reading-panel]");
+    const reading = form.querySelector("[data-reading]");
+    const readingLabel = form.querySelector("[data-reading-label]");
+    const field = form.querySelector("textarea[name='content']");
 
     let submitted = false;
-    let timer = null;
+    let timers = [];
+
+    const later = (fn, ms) => timers.push(window.setTimeout(fn, ms));
+
+    const setStep = (index) => {
+        items.forEach((item, i) => {
+            item.classList.toggle("is-now", i === index);
+            item.classList.toggle("is-done", i < index);
+        });
+
+        if (status && items[index]) {
+            status.textContent = items[index].textContent.trim();
+        }
+    };
 
     const reset = () => {
         submitted = false;
-        window.clearInterval(timer);
+        timers.forEach((id) => window.clearTimeout(id));
+        timers = [];
 
         const label = button.querySelector(".sc-cta__label");
         if (label) {
@@ -53,51 +129,108 @@ function markBusyOnSubmit(form) {
         }
 
         button.removeAttribute("aria-busy");
+        hideable.forEach((el) => {
+            el.hidden = false;
+        });
+        items.forEach((item) => item.classList.remove("is-now", "is-done"));
 
         if (panel) {
             panel.hidden = true;
         }
-
+        if (readingPanel) {
+            readingPanel.hidden = true;
+        }
+        if (reading) {
+            reading.replaceChildren();
+        }
         if (status) {
             status.textContent = "";
         }
     };
 
     /*
-     | Rotate the status line while the browser waits for the POST to come back.
-     |
-     | These are TIME-BASED, not server-reported. The page has no way to know
-     | which stage the request is in — it is one form submission — so the lines
-     | describe what ScamSense does, in the order it does it, and stop on the
-     | last one rather than looping. The bar beside them is indeterminate for
-     | the same reason: a percentage would be a number nothing measures.
-     |
-     | Stopping on the last line matters. A carousel that keeps cycling after
-     | five seconds tells the user the page is still working when in fact
-     | something is wrong, which is the failure mode this project treats most
-     | seriously everywhere else.
+     | The reading view. Skipped entirely, leaving the form as it was, if any
+     | piece of it is missing — a half-built wait is worse than the plain one.
      */
-    const runSteps = () => {
-        if (!panel || !status || steps.length === 0) {
+    const showReading = () => {
+        if (!readingPanel || !reading || !field || field.value.trim() === "") {
             return;
         }
 
-        let index = 0;
-        panel.hidden = false;
-        status.textContent = steps[0];
+        const isUrl = form.querySelector("input[name='type']:checked")?.value === "url";
+        if (readingLabel) {
+            readingLabel.textContent = isUrl
+                ? readingLabel.dataset.labelUrl
+                : readingLabel.dataset.labelMessage;
+        }
 
+        const flips = [];
+        const fragment = document.createDocumentFragment();
 
-        timer = window.setInterval(() => {
-            index += 1;
-
-            if (index >= steps.length) {
-                window.clearInterval(timer);
-
+        defangParts(field.value.trim()).forEach((part) => {
+            if (!part.to) {
+                fragment.append(document.createTextNode(part.text));
                 return;
             }
+            const span = document.createElement("span");
+            span.className = "sc-df";
+            span.textContent = part.text;
+            span.dataset.to = part.to;
+            flips.push(span);
+            fragment.append(span);
+        });
 
-            status.textContent = steps[index];
-        }, 900);
+        const scan = document.createElement("span");
+        scan.className = "sc-scan";
+        fragment.append(scan);
+
+        reading.replaceChildren(fragment);
+        hideable.forEach((el) => {
+            el.hidden = true;
+        });
+        readingPanel.hidden = false;
+
+        const moving = !prefersReducedMotion();
+
+        later(() => {
+            flips.forEach((span, i) => {
+                const swap = () => {
+                    span.textContent = span.dataset.to;
+                    if (moving) {
+                        span.classList.add("is-flipped");
+                    }
+                };
+                moving ? later(swap, i * 70) : swap();
+            });
+        }, moving ? 650 : 0);
+
+        if (moving) {
+            later(() => {
+                scan.style.setProperty("--sc-scan-to", `${reading.clientHeight + 8}px`);
+                scan.classList.add("is-running");
+            }, 1100);
+        }
+    };
+
+    /*
+     | The checklist. TIME-BASED, not server-reported: the page cannot know
+     | which stage a single form submission is in, so the lines describe what
+     | ScamSense does, in order, and stop on the last one rather than looping.
+     | A list that keeps cycling after five seconds says "still working" when
+     | something may be wrong.
+     */
+    const runSteps = () => {
+        if (!panel || items.length === 0) {
+            return;
+        }
+
+        panel.hidden = false;
+        setStep(0);
+        items.forEach((_, i) => {
+            if (i > 0) {
+                later(() => setStep(i), i * 1000);
+            }
+        });
     };
 
     form.addEventListener("submit", (event) => {
@@ -113,28 +246,22 @@ function markBusyOnSubmit(form) {
         submitted = true;
         button.setAttribute("aria-busy", "true");
 
-        /*
-         | The rail lives in the button's own markup and is revealed by CSS on
-         | `aria-busy`, so there is nothing to build here -- only the label to
-         | swap. Replacing the button's children the way an earlier version did
-         | would have destroyed the rail along with the label.
-         */
         const label = button.querySelector(".sc-cta__label");
-
         if (label) {
             label.textContent = button.dataset.busyLabel;
         }
 
+        showReading();
         runSteps();
     });
 
     /*
-     | Restore the button when the page comes back from the back/forward cache.
+     | Restore the form when the page comes back from the back/forward cache.
      |
      | Without this the sequence "check something, read the verdict, press back"
-     | returns a page whose only button is permanently stuck in its busy state,
-     | because bfcache restores the live DOM rather than re-parsing the markup.
-     | That is a worse bug than the one this whole function exists to fix.
+     | returns a page whose box is hidden behind a reading view and whose only
+     | button is stuck busy, because bfcache restores the live DOM rather than
+     | re-parsing the markup.
      */
     window.addEventListener("pageshow", (event) => {
         if (event.persisted) {
@@ -144,6 +271,65 @@ function markBusyOnSubmit(form) {
 }
 
 document.querySelectorAll("form[data-busy-form]").forEach(markBusyOnSubmit);
+
+/*
+ | Copy to clipboard ("Warn your family").
+ |
+ | The button ships hidden and is revealed only where the clipboard API exists,
+ | so no one is offered a button that does nothing. If the write is refused, the
+ | text is selected instead so it can be copied by hand.
+ */
+document.querySelectorAll("[data-copy]").forEach((button) => {
+    const source = document.getElementById(button.dataset.copy);
+    const label = button.querySelector("[data-copy-label]");
+
+    if (!source || !navigator.clipboard) {
+        return;
+    }
+
+    button.hidden = false;
+    const idle = label?.textContent ?? "";
+
+    const selectSource = () => {
+        const range = document.createRange();
+        range.selectNodeContents(source);
+        const selection = window.getSelection();
+        selection?.removeAllRanges();
+        selection?.addRange(range);
+    };
+
+    button.addEventListener("click", () => {
+        navigator.clipboard.writeText(source.textContent.trim()).then(() => {
+            button.dataset.done = "";
+            if (label) {
+                label.textContent = button.dataset.copiedLabel;
+            }
+            window.setTimeout(() => {
+                delete button.dataset.done;
+                if (label) {
+                    label.textContent = idle;
+                }
+            }, 2200);
+        }, selectSource);
+    });
+});
+
+/*
+ | Reason n and mark n light up together on hover or focus, so a reader can
+ | find where in their own text each reason came from.
+ */
+document.querySelectorAll("[data-evidence-links]").forEach((scope) => {
+    const light = (target, on) => {
+        const n = target.closest("[data-n]")?.dataset.n;
+        if (!n) {
+            return;
+        }
+        scope.querySelectorAll(`[data-n="${n}"]`).forEach((el) => el.classList.toggle("is-lit", on));
+    };
+
+    ["mouseover", "focusin"].forEach((type) => scope.addEventListener(type, (e) => light(e.target, true)));
+    ["mouseout", "focusout"].forEach((type) => scope.addEventListener(type, (e) => light(e.target, false)));
+});
 
 /*
  | A textarea that grows with what is in it.

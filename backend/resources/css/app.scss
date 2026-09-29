@@ -49,30 +49,35 @@
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Palette — "warm reassurance"
+// Palette — one green system
 //
-// Warm neutrals rather than the blue-grey Bootstrap ships with. The brand
-// accent is a calm green, deliberately NOT in the red-amber family, so that
-// nothing in the ordinary furniture of the page can be mistaken for a risk
-// signal. A brand colour adjacent to the danger colour is how a user learns to
-// stop noticing the danger colour.
+// The brand accent is a calm green, deliberately NOT in the red-amber family,
+// so that nothing in the ordinary furniture of the page can be mistaken for a
+// risk signal. A brand colour adjacent to the danger colour is how a user
+// learns to stop noticing the danger colour.
+//
+// The neutrals lean the same way (ADR 0012, amendment of 2026-09-27). They
+// were warm paper; they are now greys with a slight green bias, so the page
+// reads as one system hanging from the masthead rather than a green band over
+// a cream page. The risk colours were re-measured against every new ground.
 // ─────────────────────────────────────────────────────────────────────────────
 
-$sc-paper: #f3ede4; // the page behind the content
-$sc-paper-tint: #f7f2ea; // inset panels within a card
-$sc-surface: #fffdfa; // cards, navbar, footer
-$sc-line: #e7ddd0; // hairlines
+$sc-paper: #eef2ee; // the page behind the content
+$sc-paper-tint: #f3f6f2; // inset panels within a card
+$sc-surface: #fcfdfb; // cards, navbar, footer
+$sc-line: #d6e0d9; // hairlines
 // Input borders. WCAG 2.1 SC 1.4.11 requires 3:1 for the visual boundary that
 // identifies a control, and the previous value (#d8cbb9) reached 1.57:1 against
 // the input background — a hairline that read as tasteful on a designer's
 // monitor and disappeared for exactly the reduced-contrast-sensitivity audience
-// this project names. This value measures 3.73:1 on $sc-surface, 3.40:1 on
-// $sc-paper-tint and 3.25:1 on $sc-paper, so it passes wherever an input is
-// placed rather than only where one currently sits. Pinned by a test.
-$sc-line-strong: #96805f;
+// this project names. This value measures 3.91:1 on $sc-surface, 3.66:1 on
+// $sc-paper-tint and 3.53:1 on $sc-paper, so it passes wherever an input is
+// placed rather than only where one currently sits. Pinned by a test — which
+// is what caught the first green candidate, #7d9187, at 2.96:1 on the page.
+$sc-line-strong: #708479;
 
-$sc-ink: #241f1a;
-$sc-ink-muted: #6b6157;
+$sc-ink: #16221d;
+$sc-ink-muted: #4f6159;
 
 $sc-brand: #2a6152;
 $sc-brand-dark: #1f4a3e;
@@ -89,6 +94,9 @@ $sc-deep: #173a30; // footer, the heavier of the two
 $sc-deep-2: #1f4a3e; // masthead
 $sc-on-deep: #e9f1ed;
 $sc-on-deep-muted: #b7cfc5;
+// The accent ON the band: the brand mark, the hero's key word, the step
+// numbers. 5.94:1 on $sc-deep-2.
+$sc-mint: #9fd3bd;
 
 // Risk colours. Each is dark enough to carry white text at AA, because they
 // are used as solid badge backgrounds as well as borders.
@@ -97,7 +105,7 @@ $sc-warning: #8a5a00;
 $sc-success: #2a6152;
 
 $primary: $sc-brand;
-$secondary: #6b6157;
+$secondary: $sc-ink-muted;
 $danger: $sc-danger;
 $warning: $sc-warning;
 $success: $sc-success;
@@ -125,6 +133,10 @@ $min-contrast-ratio: 4.5;
 
 $font-family-sans-serif: "Instrument Sans", system-ui, -apple-system,
     "Segoe UI", Roboto, sans-serif;
+// The defanged submission and the address breakdown. System faces only: the
+// CSP is `font-src 'self'`, and every phone already ships a legible monospace.
+$font-family-monospace: ui-monospace, "Cascadia Mono", "Roboto Mono",
+    "SF Mono", Consolas, "Liberation Mono", monospace;
 $font-size-base: 1.0625rem;
 $line-height-base: 1.6;
 
@@ -184,33 +196,6 @@ $sc-grain: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='
 
 @import "bootstrap/scss/bootstrap";
 
-// ─────────────────────────────────────────────────────────────────────────────
-// The verdict card is deliberately firmer than the rest of the page
-//
-// Soft corners and warm paper are right for the form: the person arriving is
-// often anxious, and the page should not add to it. They are wrong for the
-// moment of judgement. Rounded, gentle, pastel treatment is also the visual
-// language scam sites themselves use, so the verdict has to look like it is
-// being asserted rather than suggested.
-//
-// This targets the risk-bordered cards specifically, which is what
-// `result.blade.php` renders for a verdict and for the verified panel.
-// ─────────────────────────────────────────────────────────────────────────────
-
-.card.border-2 {
-    border-radius: $border-radius-sm;
-
-    // A heavier rule in the risk colour along the top edge. Done with the
-    // border rather than a pseudo-element painted in `currentColor`: Bootstrap's
-    // `.border-danger` sets `border-color` and leaves `color` alone, so
-    // `currentColor` resolves to the inherited ink and silently paints the bar
-    // the wrong colour on every band.
-    //
-    // Redundant with the badge and the heading, and deliberately so — colour
-    // must never be the only carrier of the verdict (WCAG 1.4.1).
-    border-top-width: 6px;
-}
-
 // Headings on the verdict read tighter and heavier than body copy, so the
 // answer is legible at a glance rather than as a paragraph to be parsed.
 h1,
@@ -221,7 +206,11 @@ h2 {
 // The action box inside a verdict. Bootstrap's `bg-body-tertiary` gives it the
 // warm tint; the leading rule is what separates advice from explanation for a
 // reader who is skimming.
-.card .rounded.bg-body-tertiary {
+//
+// Scoped to `.sc-card`, which is what the verdict renders since the masthead
+// redesign. Scoped to Bootstrap's `.card` it matched nothing on the result page
+// and instead drew the rule on the admin moderation queue's <pre>.
+.sc-card .rounded.bg-body-tertiary {
     border-left: 3px solid rgba($sc-ink, 0.14);
 }
 
@@ -318,25 +307,6 @@ pre code {
     transform: none;
 }
 
-// The answer arriving. A short rise and fade so the verdict lands rather than
-// appearing to have always been there — which supports rule 1 of ADR 0012, the
-// answer being found in one glance.
-//
-// Declared ONLY inside the keyframes, never as a base opacity. If the animation
-// never runs — old browser, CSS partly failed, reduced motion — the card
-// renders fully visible. A verdict that depends on an animation to be readable
-// is a verdict that can silently disappear.
-@keyframes sc-verdict-in {
-    from {
-        opacity: 0;
-        transform: translateY(6px);
-    }
-}
-
-.card.border-2 {
-    animation: sc-verdict-in 0.26s ease-out both;
-}
-
 @media (prefers-reduced-motion: reduce) {
     .btn,
     .btn:active,
@@ -346,10 +316,6 @@ pre code {
         transition: none;
         transform: none;
     }
-
-    .card.border-2 {
-        animation: none;
-    }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -357,29 +323,15 @@ pre code {
 //
 // Three seconds is long enough that the page has to say something, and short
 // enough that whatever it says must be readable at a glance. The treatment is
-// a sweeping indeterminate bar plus one line of plain language at a time.
+// a sweeping indeterminate rail inside the button, the pasted text shown with
+// its links being made safe, and a three-line checklist (see "The wait,
+// shown" below).
 //
 // Indeterminate on purpose. A bar that fills to a percentage would be showing a
 // progress figure nothing measures — the request is a single POST and the page
 // has no idea how far along the server is. Inventing one on a product whose
 // entire argument is that it does not overclaim would be a poor place to start.
 // ─────────────────────────────────────────────────────────────────────────────
-
-.sc-busy__track {
-    height: 4px;
-    border-radius: 2px;
-    background-color: rgba($sc-brand, 0.16);
-    overflow: hidden;
-}
-
-.sc-busy__bar {
-    display: block;
-    width: 38%;
-    height: 100%;
-    border-radius: 2px;
-    background-color: $sc-brand;
-    animation: sc-sweep 1.15s ease-in-out infinite;
-}
 
 @keyframes sc-sweep {
     from {
@@ -390,40 +342,7 @@ pre code {
     }
 }
 
-.sc-busy__status {
-    // Reserved so the line appearing does not push the privacy notice down the
-    // page. Layout must not move while the user is waiting — that is the one
-    // moment they are most likely to be reaching for the screen.
-    min-height: 1.6em;
-    margin-top: 0.6rem;
-}
 
-// Indicators arrive one after another rather than all at once, so the list
-// reads as findings being reported rather than a block of text appearing. The
-// stagger is small; anything longer would delay the answer to make a point.
-.sc-indicator {
-    animation: sc-verdict-in 0.3s ease-out both;
-
-    @for $i from 1 through 5 {
-        &:nth-child(#{$i}) {
-            animation-delay: 0.06s * $i;
-        }
-    }
-}
-
-@media (prefers-reduced-motion: reduce) {
-    .sc-busy__bar {
-        // An indeterminate bar that does not move carries no meaning, so it
-        // becomes a plain filled track and the status line does the work. The
-        // text still rotates: changing words is not motion.
-        width: 100%;
-        animation: none;
-    }
-
-    .sc-indicator {
-        animation: none;
-    }
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Tap-to-fill examples
@@ -590,6 +509,7 @@ body {
 .sc-mast {
     position: relative;
     isolation: isolate;
+    overflow: hidden;
     color: $sc-on-deep;
     background-color: $sc-deep-2;
     // A single soft light from the upper right. Depth, not decoration — it is
@@ -639,6 +559,28 @@ body {
 
     &__mark {
         flex: 0 0 auto;
+        color: $sc-mint;
+    }
+}
+
+// The shield from the brand mark, oversized and cropped into the band's
+// corner as its texture. Static, outline-only and at 9% so it can never be
+// read as content or compete with a risk colour.
+.sc-mast__shield {
+    position: absolute;
+    z-index: -1;
+    right: -5rem;
+    top: 1rem;
+    width: 15rem;
+    height: 15rem;
+    color: rgba($sc-mint, 0.09);
+    pointer-events: none;
+
+    @include media-breakpoint-up(md) {
+        right: -4rem;
+        top: -2rem;
+        width: 22rem;
+        height: 22rem;
     }
 }
 
@@ -652,7 +594,9 @@ body {
     border: 1px solid rgba(255, 255, 255, 0.3);
     border-radius: 0.5rem;
     overflow: hidden;
-    font-size: 0.8rem;
+    // The layout calls this "readable at arm's length"; at 0.8rem it was 12.8px
+    // on a ~33px target. Raised to a 40px+ target at a legible size.
+    font-size: 0.95rem;
     font-weight: 600;
 
     &__pill {
@@ -672,7 +616,7 @@ body {
     &__opt {
         position: relative;
         z-index: 1;
-        padding: 0.4rem 0.85rem;
+        padding: 0.55rem 1rem;
         color: $sc-on-deep-muted;
         text-decoration: none;
         transition: color 0.22s $sc-swift;
@@ -704,8 +648,8 @@ body {
         // Tight leading and NEGATIVE tracking, because letters read too far
         // apart as they grow. Fixed at 25px before, which is why the page read
         // as a form rather than a proposition.
-        font-size: clamp(1.95rem, 6vw, 3.75rem);
-        line-height: 1.02;
+        font-size: clamp(2.2rem, 8.5vw, 4.4rem);
+        line-height: 0.98;
         letter-spacing: -0.04em;
         font-weight: 700;
         color: #fff;
@@ -725,22 +669,64 @@ body {
     }
 
     @include media-breakpoint-up(md) {
-        padding-block: 2rem 4.7rem;
+        padding-block: 2rem 5.2rem;
     }
 
     // The verdict page. Shallower, and its line is a <p> rather than an h1 —
     // ADR 0012 keeps one h1 per document and it belongs to the answer.
+    //
+    // It must also LOOK subordinate to the answer. At 28–40px bold white it
+    // out-ranked the 22px verdict heading beneath it, so the page label was the
+    // first thing the eye landed on and the answer the second — which is rule 1
+    // failed visually while being satisfied in the outline. Set as a quiet
+    // label on the band instead: the verdict card is the display tier here.
     &--slim {
         padding-block: 0.4rem 4.5rem;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 0.4rem 1rem;
 
         > p {
-            font-size: clamp(1.75rem, 5vw, 2.5rem);
-            line-height: 1.05;
-            letter-spacing: -0.035em;
-            font-weight: 700;
-            color: #fff;
+            font-size: 1.15rem;
+            line-height: 1.4;
+            font-weight: 600;
+            color: $sc-on-deep-muted;
             max-width: none;
         }
+    }
+}
+
+// A way back that is visible without scrolling past the answer.
+.sc-back {
+    color: $sc-mint;
+    font-weight: 600;
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.25em;
+
+    &:hover {
+        color: #fff;
+    }
+}
+
+// The line under the primary action: the one reassurance that matters most
+// at the moment of pasting.
+.sc-reassure {
+    display: flex;
+    gap: 0.55rem;
+    align-items: flex-start;
+    margin: 1rem 0 0;
+    font-size: 0.95rem;
+    color: $sc-ink-muted;
+
+    svg {
+        flex: 0 0 auto;
+        width: 1.1rem;
+        height: 1.1rem;
+        margin-top: 0.2rem;
+        color: $sc-brand;
     }
 }
 
@@ -791,6 +777,27 @@ body {
     &--verified .sc-card__rule {
         background-color: $sc-success;
     }
+
+    // ADR 0012 decision 2: the moment of judgement is FIRMER than the rest of
+    // the page. The masthead redesign gave every `.sc-card` 1.1rem corners, which
+    // made the verdict the most rounded thing on the page — the soft, gentle
+    // register the ADR identifies as the visual language of scam sites. The
+    // form card keeps its softness; the verdict and the verified panel do not.
+    &--verdict,
+    &--verified {
+        border-radius: $border-radius-sm;
+    }
+
+    // The heading that states the verdict. `.h4` left it 1.13x the lead
+    // paragraph under it — the flat hierarchy decision 4 of the ADR set out to
+    // remove. Sized here rather than by swapping to `.h3` so the one h1 keeps
+    // its semantic tag chosen in the view.
+    &__verdict {
+        font-size: $h3-font-size;
+        font-weight: 700;
+        line-height: 1.2;
+        text-wrap: balance;
+    }
 }
 
 // ── Bands below the card ────────────────────────────────────────────────────
@@ -814,24 +821,36 @@ body {
 }
 
 .sc-step {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 0.2rem 0.9rem;
+    align-items: start;
+
+    // A real sequence, so it is numbered — and the number is the one thing on
+    // the band below the card carrying the masthead's colour.
     &__n {
-        display: block;
-        font-size: 0.8rem;
+        grid-row: span 2;
+        display: grid;
+        place-items: center;
+        width: 2.6rem;
+        height: 2.6rem;
+        border-radius: 50%;
+        background-color: $sc-deep-2;
+        color: $sc-mint;
+        font-size: 1.1rem;
         font-weight: 700;
-        letter-spacing: 0.16em;
-        color: $sc-brand;
-        margin-bottom: 0.5rem;
+        font-variant-numeric: tabular-nums;
     }
 
     h2 {
         font-size: 1.15rem;
         letter-spacing: -0.015em;
         font-weight: 650;
-        margin-bottom: 0.3rem;
+        margin: 0.35rem 0 0;
     }
 
     p {
-        font-size: 0.97rem;
+        font-size: 0.98rem;
         line-height: 1.55;
         color: $sc-ink-muted;
         margin-bottom: 0;
@@ -1038,15 +1057,18 @@ body {
 
 // ── Result panels ───────────────────────────────────────────────────────────
 
+.sc-stack {
+    display: grid;
+    gap: 1.2rem;
+}
+
 .sc-cols {
     display: grid;
-    gap: 1.1rem;
-    margin-bottom: 1.5rem;
+    gap: 1.2rem;
 
     @include media-breakpoint-up(lg) {
-        // Findings get the wider column; the echo of your own input does not
-        // need as much room as the reasons.
-        grid-template-columns: 1.25fr 1fr;
+        // The reasons beside the text they point into.
+        grid-template-columns: 1.1fr 1fr;
         align-items: start;
     }
 }
@@ -1054,55 +1076,498 @@ body {
 .sc-panel {
     background-color: $sc-surface;
     border: 1px solid $sc-line;
-    border-radius: 1rem;
-    padding: 1.35rem 1.45rem;
+    border-radius: 0.9rem;
+    padding: 1.35rem 1.4rem;
 
     &__title {
-        font-size: 0.87rem;
+        font-size: 1.15rem;
         font-weight: 700;
-        letter-spacing: 0.055em;
-        text-transform: uppercase;
+        letter-spacing: -0.015em;
+        margin-bottom: 0.3rem;
+    }
+
+    &__hint {
+        margin: 0 0 1rem;
+        font-size: 0.95rem;
         color: $sc-ink-muted;
-        margin-bottom: 1rem;
     }
 
     &__note {
-        font-size: 0.87rem;
+        font-size: 0.93rem;
         color: $sc-ink-muted;
-        margin: 0.65rem 0 0;
+        margin: 0.8rem 0 0;
         line-height: 1.5;
     }
 }
 
-.sc-indicator {
-    display: flex;
-    gap: 0.8rem;
-    margin-bottom: 1rem;
-    color: $sc-brand; // the mark inherits this; the text overrides below
+// ── The band tone ───────────────────────────────────────────────────────────
+// One custom property carries the verdict's colour to everything that shows
+// it: the badge, the rule, the reason numbers, the marks in the text and the
+// owner box in the address breakdown. Set from RiskLevel::colour() in the
+// view, so a band can never be drawn in the colour of a different band — the
+// bug that once marked every warning sign in the "No warning signs" green.
 
-    &:last-child {
-        margin-bottom: 0;
+.sc-tone {
+    --sc-band: #{$sc-ink-muted};
+
+    @each $band in (danger, warning, success, secondary) {
+        &--#{$band} {
+            --sc-band: var(--bs-#{$band});
+        }
     }
+}
+
+// The filled badge. A pill, because it is a label rather than a surface.
+.sc-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.45rem 0.95rem 0.45rem 0.75rem;
+    border-radius: 999px;
+    background-color: var(--sc-band);
+    color: #fff;
+    font-weight: 700;
+    font-size: 1rem;
+    line-height: 1.3;
 
     svg {
         flex: 0 0 auto;
-        margin-top: 0.25rem;
+        width: 1.15rem;
+        height: 1.15rem;
+    }
+}
+
+.sc-card__rule {
+    background-color: var(--sc-band);
+}
+
+.sc-card__verdict {
+    margin: 0.9rem 0 0.6rem;
+}
+
+.sc-lead {
+    margin: 0;
+    font-size: 1.12rem;
+    line-height: 1.55;
+    max-width: 60ch;
+}
+
+// "What to do". An arrow rather than a rail down the left edge: the rail on a
+// rounded box is the most generic move in current interface design, and the
+// arrow says what the box is for — the next step.
+.sc-todo {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 0.2rem 0.75rem;
+    margin-top: 1.3rem;
+    padding: 1rem 1.1rem;
+    border-radius: $border-radius-sm;
+    background-color: $sc-paper-tint;
+
+    > svg {
+        grid-row: span 2;
+        width: 1.4rem;
+        height: 1.4rem;
+        margin-top: 0.1rem;
+        color: var(--sc-band);
     }
 
-    > div {
+    h2,
+    h3 {
+        margin: 0;
+        font-size: 1.02rem;
+        font-weight: 650;
+        letter-spacing: normal;
+    }
+
+    p {
+        margin: 0;
+    }
+}
+
+// The verified panel's "how to check this yourself". A pointer on the summary
+// says "this opens".
+.sc-disclose {
+    margin-top: 0.9rem;
+
+    > summary {
+        cursor: pointer;
+        font-weight: 650;
+        padding-block: 0.4rem;
+        color: $sc-brand;
+    }
+
+    p {
+        margin: 0.4rem 0 0;
+        color: $sc-ink-muted;
+    }
+}
+
+// Glyphs drawn inline rather than typed as ✔ or ⓘ: U+2714 renders as a colour
+// emoji on many Android builds and U+24D8 is not in the self-hosted font, so
+// both depended on whatever fallback font the phone happened to have.
+.sc-glyph {
+    flex: 0 0 auto;
+    width: 1.1em;
+    height: 1.1em;
+}
+
+// ── Reasons, numbered ───────────────────────────────────────────────────────
+// A reason with a number has a mark carrying the same number in the text
+// beside it. One without has nothing to point at and gets the plain diamond.
+
+.sc-reasons {
+    display: grid;
+    gap: 0.3rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.sc-reason {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 0.75rem;
+    align-items: start;
+    margin-inline: -0.65rem;
+    padding: 0.6rem 0.65rem;
+    border-radius: $border-radius-sm;
+    transition: background-color 0.2s $sc-swift;
+
+    > svg {
+        margin: 0.3rem 0.35rem 0;
+        color: var(--sc-band);
+    }
+
+    p {
+        margin: 0.1rem 0 0;
+    }
+
+    &.is-lit {
+        background-color: $sc-paper-tint;
+    }
+}
+
+.sc-num {
+    display: inline-grid;
+    place-items: center;
+    min-width: 1.7rem;
+    height: 1.7rem;
+    padding: 0 0.3rem;
+    border-radius: 999px;
+    background-color: var(--sc-band);
+    color: #fff;
+    font-family: $font-family-sans-serif;
+    font-size: 0.85rem;
+    font-weight: 700;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+}
+
+// ── The echo ────────────────────────────────────────────────────────────────
+// The text the interface wants read character by character, so it cannot be
+// the smallest type on the page. It was: 0.87rem, then shrunk again by the
+// global `pre code { 0.9em }`, landing at 12.5px for a reader with presbyopia
+// checking whether a letter in a domain has been swapped.
+
+.sc-echo {
+    margin: 0;
+    padding: 1rem 1.1rem;
+    border-radius: $border-radius-sm;
+    background-color: $sc-paper-tint;
+    font-size: 1rem;
+    line-height: 1.9;
+    white-space: pre-wrap;
+    word-break: break-word;
+
+    code {
+        font: inherit;
         color: $sc-ink;
     }
 }
 
-.sc-echo {
-    background-color: $sc-paper-tint;
-    border-radius: 0.6rem;
-    padding: 0.9rem;
-    font-size: 0.87rem;
-    line-height: 1.55;
+.sc-hl {
+    padding: 0.05em 0.1em;
+    border-bottom: 2px solid var(--sc-band);
+    border-radius: 2px;
+    color: inherit;
+    background-color: transparent;
+    background-image: linear-gradient(
+        color-mix(in srgb, var(--sc-band) 20%, transparent),
+        color-mix(in srgb, var(--sc-band) 20%, transparent)
+    );
+    background-repeat: no-repeat;
+    background-size: 100% 100%;
+    -webkit-box-decoration-break: clone;
+    box-decoration-break: clone;
+    transition: background-color 0.2s;
+
+    .sc-num {
+        min-width: 1.35rem;
+        height: 1.35rem;
+        margin-right: 0.3rem;
+        font-size: 0.72rem;
+        vertical-align: 0.12em;
+    }
+
+    &.is-lit {
+        background-color: color-mix(in srgb, var(--sc-band) 16%, transparent);
+    }
+}
+
+// A redaction mask: something ScamSense did, not something the sender wrote.
+.sc-mask {
+    padding: 0.05em 0.35em;
+    border-radius: 4px;
+    background-color: #e2e8e3;
+    color: $sc-ink-muted;
+    font-size: 0.85em;
+}
+
+// ── How to read this address ────────────────────────────────────────────────
+
+.sc-anat {
+    margin-top: 1.1rem;
+
+    h3 {
+        margin: 0 0 0.5rem;
+        font-size: 1rem;
+        font-weight: 650;
+        letter-spacing: normal;
+    }
+
+    &__url {
+        padding: 0.7rem 0.9rem;
+        border: 1px dashed $sc-line-strong;
+        border-radius: $border-radius-sm;
+        font-family: $font-family-monospace;
+        line-height: 2;
+        word-break: break-all;
+    }
+
+    &__lead,
+    &__tail {
+        color: $sc-ink-muted;
+    }
+
+    &__copy {
+        text-decoration: underline wavy var(--sc-band);
+        text-decoration-thickness: 1.5px;
+        text-underline-offset: 0.3em;
+    }
+
+    &__owner {
+        margin-inline: 0.05em;
+        padding: 0.15em 0.3em;
+        border-radius: 4px;
+        box-shadow: inset 0 0 0 2px var(--sc-band);
+        font-weight: 600;
+    }
+}
+
+.sc-legend {
+    display: grid;
+    gap: 0.45rem;
+    margin: 0.7rem 0 0;
+    padding: 0;
+    list-style: none;
+    font-size: 0.95rem;
+
+    li {
+        display: grid;
+        grid-template-columns: 1.9rem 1fr;
+        gap: 0.6rem;
+        align-items: start;
+    }
+}
+
+.sc-key {
+    height: 1.2rem;
+    margin-top: 0.2rem;
+    border-radius: 4px;
+
+    &--owner {
+        box-shadow: inset 0 0 0 2px var(--sc-band);
+    }
+
+    &--copy {
+        height: 2px;
+        margin-top: 0.7rem;
+        border-radius: 0;
+        background: repeating-linear-gradient(90deg, var(--sc-band) 0 4px, transparent 4px 7px);
+    }
+
+    &--tail {
+        height: 2px;
+        margin-top: 0.7rem;
+        border-radius: 0;
+        background-color: $sc-line-strong;
+    }
+}
+
+// ── Warn your family ────────────────────────────────────────────────────────
+
+.sc-bubble {
+    max-width: 34rem;
+    margin: 1rem 0 0.9rem;
+    padding: 0.85rem 1rem;
+    border-radius: 16px 16px 16px 4px;
+    background-color: #e3efe8;
     white-space: pre-wrap;
     word-break: break-word;
-    margin: 0;
+    line-height: 1.55;
+}
+
+.sc-copy {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.7rem 1rem;
+    border: 2px solid $sc-brand;
+    border-radius: 10px;
+    background-color: $sc-surface;
+    color: $sc-brand;
+    font-weight: 650;
+    cursor: pointer;
+    transition:
+        background-color 0.15s ease-out,
+        color 0.15s ease-out,
+        transform 0.2s $sc-spring;
+
+    svg {
+        width: 1.1rem;
+        height: 1.1rem;
+    }
+
+    &:active {
+        transform: scale(0.97);
+    }
+
+    &[data-done] {
+        background-color: $sc-brand;
+        color: #fff;
+    }
+}
+
+@media (hover: hover) {
+    .sc-copy:not([data-done]):hover {
+        background-color: $sc-paper-tint;
+    }
+}
+
+.sc-note {
+    display: flex;
+    gap: 0.5rem;
+    align-items: flex-start;
+    margin: 0.8rem 0 0;
+    font-size: 0.93rem;
+    color: $sc-ink-muted;
+
+    svg {
+        flex: 0 0 auto;
+        width: 1rem;
+        height: 1rem;
+        margin-top: 0.2rem;
+        color: $sc-brand;
+    }
+}
+
+// ── The wait, shown ─────────────────────────────────────────────────────────
+// On submit app.js swaps the box for a reading view of what was pasted and
+// makes the links safe in front of the reader — a real step, done in the
+// browser by the same rule DefangService applies. The scan line marks nothing:
+// no finding exists yet, and marking text before the answer is known would be
+// progress nothing measured, which ADR 0012 rules out. Marks appear only on
+// the result page.
+
+.sc-reading {
+    position: relative;
+    overflow: hidden;
+    max-height: 16rem;
+    padding: 1rem 1.1rem;
+    border: 1px solid $sc-line;
+    border-radius: $border-radius-sm;
+    background-color: $sc-paper-tint;
+    font-family: $font-family-monospace;
+    font-size: 1rem;
+    line-height: 1.75;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.sc-df.is-flipped {
+    animation: sc-flip 0.5s $sc-swift both;
+}
+
+@keyframes sc-flip {
+    0% {
+        background-color: rgba($sc-brand, 0.35);
+        color: $sc-brand-dark;
+    }
+}
+
+.sc-scan {
+    position: absolute;
+    inset-inline: 0;
+    top: 0;
+    height: 2.2rem;
+    border-bottom: 2px solid $sc-brand;
+    background: linear-gradient(to bottom, transparent, rgba($sc-brand, 0.1) 70%, rgba($sc-brand, 0.5));
+    transform: translateY(-2.4rem);
+    pointer-events: none;
+
+    &.is-running {
+        animation: sc-scan 1.7s cubic-bezier(0.45, 0, 0.55, 1) forwards;
+    }
+}
+
+@keyframes sc-scan {
+    to {
+        transform: translateY(var(--sc-scan-to, 8rem));
+        opacity: 0.2;
+    }
+}
+
+.sc-steps-live {
+    display: grid;
+    gap: 0.35rem;
+    margin: 1.1rem 0 0;
+    padding: 0;
+    list-style: none;
+
+    li {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        color: $sc-ink-muted;
+        transition: color 0.3s $sc-swift;
+
+        &::before {
+            content: "";
+            flex: 0 0 auto;
+            width: 0.55rem;
+            height: 0.55rem;
+            border: 2px solid $sc-line-strong;
+            border-radius: 50%;
+            transition:
+                background-color 0.3s,
+                border-color 0.3s;
+        }
+
+        &.is-now {
+            color: $sc-ink;
+            font-weight: 600;
+
+            &::before {
+                border-color: $sc-brand;
+                background-color: $sc-brand;
+            }
+        }
+
+        &.is-done::before {
+            background-color: $sc-line-strong;
+        }
+    }
 }
 
 // ── Arrival ─────────────────────────────────────────────────────────────────
@@ -1111,12 +1576,18 @@ body {
 // never runs — old browser, reduced motion, CSS partly failed — the verdict is
 // fully visible. A verdict that needs an animation to be readable is a verdict
 // that can silently disappear.
+//
+// The order is the reading order: the card lands, its rule draws, the badge
+// settles, then each reason arrives WITH its mark in the text, so the eye is
+// led from the claim to the evidence for it.
 
 @keyframes sc-land {
     from {
         opacity: 0;
         transform: translateY(14px) scale(0.985);
-        filter: blur(7px);
+        // Kept light: a large blur over a whole card is the costliest thing a
+        // mid-range Android GPU can be asked to animate.
+        filter: blur(3px);
     }
 }
 
@@ -1129,35 +1600,84 @@ body {
 @keyframes sc-rise {
     from {
         opacity: 0;
-        transform: translateY(9px);
+        transform: translateY(10px);
+    }
+}
+
+@keyframes sc-pop {
+    from {
+        opacity: 0;
+        transform: scale(0.5);
+    }
+}
+
+@keyframes sc-ink {
+    from {
+        background-size: 0% 100%;
+    }
+}
+
+@keyframes sc-badge {
+    from {
+        opacity: 0;
+        transform: translateY(-6px) scale(0.92);
     }
 }
 
 .sc-card--verdict,
 .sc-card--verified {
-    animation: sc-land 0.46s $sc-swift both;
+    animation: sc-land 0.5s $sc-swift both;
+}
+
+.sc-card--verified + .sc-card--verdict {
+    animation: sc-rise 0.45s 0.25s $sc-swift both;
 }
 
 // The rule draws across as the card lands: the risk colour arrives as a
 // decision being made rather than a bar that was always there.
 .sc-card__rule {
-    animation: sc-draw 0.5s 0.13s $sc-swift both;
+    animation: sc-draw 0.55s 0.18s $sc-swift both;
+}
+
+.sc-badge {
+    animation: sc-badge 0.45s 0.28s $sc-spring both;
 }
 
 .sc-cols .sc-panel {
-    animation: sc-rise 0.42s $sc-swift both;
+    animation: sc-rise 0.45s 0.4s $sc-swift both;
 
     &:nth-child(2) {
-        animation-delay: 0.09s;
+        animation-delay: 0.5s;
     }
 }
 
-.sc-indicator {
-    animation: sc-rise 0.4s $sc-swift both;
+.sc-stack > .sc-panel {
+    animation: sc-rise 0.45s 0.65s $sc-swift both;
+}
 
-    @for $i from 2 through 5 {
-        &:nth-child(#{$i}) {
-            animation-delay: 0.07s * ($i - 1);
+// Reason n and mark n share a delay, so each finding arrives as a pair. Keyed
+// on the number, not the list position: an unnumbered reason earlier in the
+// list would otherwise put every pair after it out of step.
+.sc-reason:not([data-n]) {
+    animation: sc-rise 0.45s 0.75s $sc-swift both;
+}
+
+@for $i from 1 through 8 {
+    $delay: 0.75s + 0.16s * ($i - 1);
+
+    .sc-reason[data-n="#{$i}"] {
+        animation: sc-rise 0.45s $delay $sc-swift both;
+
+        .sc-num {
+            animation: sc-pop 0.45s $delay $sc-spring both;
+        }
+    }
+
+    .sc-hl[data-n="#{$i}"] {
+        animation: sc-ink 0.55s $delay $sc-swift both;
+
+        .sc-num {
+            animation: sc-pop 0.45s $delay $sc-spring both;
         }
     }
 }
@@ -1166,15 +1686,26 @@ body {
     .sc-card--verdict,
     .sc-card--verified,
     .sc-card__rule,
+    .sc-badge,
     .sc-cols .sc-panel,
-    .sc-indicator {
-        animation: none;
+    .sc-stack > .sc-panel,
+    .sc-reason,
+    .sc-hl,
+    .sc-num,
+    .sc-df.is-flipped {
+        animation: none !important;
+    }
+
+    .sc-scan {
+        display: none;
     }
 
     .sc-lang__pill,
     .sc-seg__pill,
     .sc-cta,
-    .sc-cta:active {
+    .sc-cta:active,
+    .sc-copy,
+    .sc-reason {
         transition: none;
         transform: none;
     }

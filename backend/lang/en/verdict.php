@@ -162,5 +162,39 @@ return [
         'message' => 'Nothing specific stood out. Our checks look at the wording, and this one did not clearly match either a scam or an ordinary message.',
     ],
 
+    // Under "What we noticed", shown only when at least one reason could be
+    // located in the text and so carries a number.
+    'indicators_hint' => 'The numbers match the marked parts of what you checked.',
+
+    /*
+     | The address breakdown under a checked link. It teaches the one habit that
+     | beats a lookalike link: the owner is the part just before the first
+     | single slash, and a company name anywhere else proves nothing.
+     */
+    'anatomy' => [
+        'heading' => 'How to read this address',
+        'owner' => 'Who owns this address. This is the part to check.',
+        'copied' => 'A copied name. Anyone can put this here.',
+        'tail' => 'Anything after the first single slash does not change who owns it.',
+    ],
+
+    /*
+     | "Warn your family", on the high band only. The message keeps "likely":
+     | the platform never claims more than the verdict does, and a forwarded
+     | message is exactly where an overclaim would travel furthest. The link
+     | inside it stays defanged so forwarding it cannot cause an accidental tap.
+     */
+    'share' => [
+        'heading' => 'Warn your family',
+        'explain' => 'Scam messages are often passed around family groups. Copy this and send it to them.',
+        'button' => 'Copy message',
+        'copied' => 'Copied',
+        'note' => 'The link stays in its safe form, so nobody can open it by accident.',
+        'message' => [
+            'url' => 'ScamSense says this link is likely a scam. Do not open it:',
+            'message' => 'ScamSense says this message is likely a scam. Do not reply, do not open any link in it, and do not send money.',
+        ],
+    ],
+
     'check_another' => 'Check something else',
 ];

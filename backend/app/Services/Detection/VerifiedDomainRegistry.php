@@ -150,8 +150,12 @@ class VerifiedDomainRegistry
      * Mirrors the logic in the ML service's url_features module, including the
      * Malaysian two-part suffixes: without them `maybank2u.com.my` would reduce
      * to `com.my` and every Malaysian domain would collapse together.
+     *
+     * Public because the result page's address breakdown needs the same answer
+     * to "who owns this address". A second copy of this reduction would be free
+     * to disagree with the one that decides whether a domain is verified.
      */
-    private function registrableDomain(string $host): ?string
+    public function registrableDomain(string $host): ?string
     {
         $labels = explode('.', $host);
         $count = count($labels);

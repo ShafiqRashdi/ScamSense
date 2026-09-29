@@ -335,3 +335,139 @@ relationship, and a tone that looks fine on cream can fail badly reversed — so
 - The segmented control keeps real radio inputs underneath and positions the
   pill from `:checked` in CSS, so it is correct on first paint and submits with
   no JavaScript at all.
+
+---
+
+## Amendment, 2026-09-27 — one green system, and reasons that point at the text
+
+### Context
+
+A design audit of the result page, run after the masthead amendment above,
+found that the redesign had quietly undone parts of this ADR:
+
+- **Decision 2 was reversed.** The verdict moved from Bootstrap's `.card` to the
+  new `.sc-card`, which carried 1.1rem corners. The rule that made the verdict
+  firmer (`.card.border-2`) still existed but matched nothing, so the verdict
+  had become the *most* rounded thing on the page.
+- **The page label outranked the answer.** "We checked it" was set at 28–40px
+  bold white; the verdict heading beneath it was 22px. Rule 1 held in the
+  document outline and failed on the screen.
+- **Warning signs were marked in the "no warning" colour.** Each indicator
+  carried a brand-green diamond, and since `$sc-success == $sc-brand`, a
+  "Likely a scam" verdict listed its reasons in the colour of "No warning
+  signs" — a direct conflict with rule 2.
+- **The echo of the submission was the smallest text on the page** (12.5px
+  after two nested reductions), although it is the text the reader is asked to
+  check character by character.
+
+Those four were corrected first. The redesign below was then built on the
+corrected page, previewed as a clickable prototype, and adopted.
+
+### Options considered for the colour
+
+| Option | Trade-off |
+|---|---|
+| Keep the warm paper neutrals | Already measured and documented, but the page read as a green band laid over a cream page rather than one system. |
+| **Green-biased neutrals under the same brand green** | One coherent system; every risk colour re-measured and still passes. Requires this amendment and new contrast values. |
+| Deep teal brand (`#1d4f5a`) | Also far from red and amber, and passes AA throughout. But it is no longer green, so "No warning signs" would need its own colour and decision 1's deliberate collapse (`$sc-success == $sc-brand`) would have to be unpicked. |
+| Navy or royal blue | Passes AA, but most Malaysian banks and government sites are blue, and those are the brands scam pages imitate. A blue ScamSense looks like the thing it warns about — rule 3. |
+| Purple / violet | Reads as a generic technology product, and purple-to-blue is one of the most recognisable defaults of generated interfaces. Wrong register for a calm tool used by older adults. |
+
+Teal and navy were compared against green on the live prototype before the
+choice was made.
+
+### Decision
+
+**The brand stays green, and the neutrals follow it.** `$sc-paper`,
+`$sc-paper-tint`, `$sc-surface`, `$sc-line`, `$sc-ink` and `$sc-ink-muted` now
+carry a slight green bias instead of a warm one. `$sc-mint` (#9fd3bd) is added as
+the accent *on* the dark band only: the brand mark and the step numbers.
+
+**Each reason points at the words it came from.** `SubmissionExplainer` looks
+for each indicator's evidence in the defanged, redacted submission. Where it is
+found, the reason is numbered and the same number is marked in the reader's own
+text; hovering or focusing either one lights both. Where it is not found, the
+reason keeps a plain diamond and its evidence line — a number pointing at
+nothing would break the promise the hint line makes. This is the product's
+third step ("the reasons — so the next one you can spot yourself") made
+visible rather than asserted.
+
+**Links are taken apart.** Under a checked link, the address is split into what
+comes before the host, the labels in front of the owner, the registrable domain
+that says who owns it, and everything after the first single slash — each with
+a one-line key. On `maybank2u.secure-verify.xyz` it shows that the owner is
+`secure-verify.xyz` and that "maybank2u" is a copied name anyone could write
+there. The registrable domain comes from `VerifiedDomainRegistry`, the same code
+that decides whether a domain is verified, so the two cannot disagree.
+
+**The wait is shown, but nothing is claimed during it.** On submit the box gives
+way to the pasted text; its links are defanged in front of the reader, a neutral
+line reads down the text, and the three existing status lines become a short
+checklist. **No marks appear during the wait.** The page does not know the result
+yet, and marking suspicious phrases before the answer exists would be the kind of
+invented progress this ADR has rejected twice already. Defanging is shown because
+it is real and deterministic.
+
+**"Warn your family" on the high band.** A copyable message for family groups,
+where Malaysian scam messages circulate. It keeps the verdict's hedge ("likely a
+scam") and the defanged link, because a forwarded message is where an overclaim
+or a live link would travel furthest.
+
+**Decision 2 is restored** on the new component: the verdict and verified cards
+use `$border-radius-sm` while the form card keeps its softer corners.
+
+### Rejected or deferred
+
+- **An "Already replied, clicked or paid?" panel** with the National Scam
+  Response Centre number and bank-first advice. Useful, but deferred: the
+  hotline and the advice must be confirmed against official sources before the
+  platform tells a frightened reader to act on them.
+- **IBM Plex Mono for the echo.** The prototype used it; production uses the
+  system monospace stack instead, because the CSP is `font-src 'self'` and a
+  second self-hosted family is 30–40 KB for text every phone can already render
+  legibly.
+- **Colouring the question word in the hero.** It would split "Is this a scam?"
+  into two translation strings for one decorative colour.
+
+### Contrast, re-measured
+
+Computed from the Sass source by `PaletteContrastTest`.
+
+| Pair | Ratio | Requirement | |
+|---|---:|---|---|
+| `$sc-ink` on `$sc-surface` | 16.07 | 4.5 | pass |
+| `$sc-ink` on `$sc-paper` | 14.50 | 4.5 | pass |
+| `$sc-ink-muted` on `$sc-surface` | 6.46 | 4.5 | pass |
+| `$sc-ink-muted` on `$sc-paper-tint` | 6.05 | 4.5 | pass |
+| `$sc-ink-muted` on `$sc-paper` | 5.83 | 4.5 | pass |
+| `$sc-brand` on `$sc-surface` | 7.02 | 4.5 | pass |
+| `$sc-danger` on `$sc-surface` | 7.38 | 4.5 | pass |
+| `$sc-danger` on `$sc-paper` | 6.66 | 4.5 | pass |
+| `$sc-warning` on `$sc-surface` | 5.81 | 4.5 | pass |
+| `$sc-warning` on `$sc-paper` | 5.24 | 4.5 | pass |
+| `$sc-line-strong` on `$sc-surface` | 3.91 | 3.0 — SC 1.4.11 | pass |
+| `$sc-line-strong` on `$sc-paper-tint` | 3.66 | 3.0 | pass |
+| `$sc-line-strong` on `$sc-paper` | 3.53 | 3.0 | pass |
+| `$sc-mint` on `$sc-deep-2` | 5.94 | 4.5 | pass |
+
+> The first green candidate for the input border, `#7d9187`, measured **2.96:1**
+> on the new page ground — under the 3.0 floor by a hair, and invisible to the
+> eye as a failure. It was caught by computing it before it reached
+> `PaletteContrastTest`. `#708479` clears every ground. This is the third time
+> in this ADR that a colour chosen by eye did not survive arithmetic.
+
+### Consequences
+
+- The result view receives a `SubmissionExplanation` DTO from the controller.
+  Every segment of the echo is still escaped by `{{ }}`; a segment only selects
+  a class, so the marks add no route for submitted content to reach the page
+  unescaped. The single `{!! !!}` (the enum's icon SVG) is unchanged.
+- Marks depend on the ML service returning evidence as a substring of the
+  submission. If that contract changes, reasons lose their numbers rather than
+  pointing at the wrong words — the safe failure.
+- The reading view re-implements `DefangService`'s URL pattern in JavaScript.
+  The two must change together.
+- `DefangService` only recognises links that begin with a scheme or `www.`, so a
+  bare `pos-semakan.xyz/update` inside a message is echoed as typed. Recorded
+  here rather than changed, because widening the pattern changes what the
+  security tests assert.

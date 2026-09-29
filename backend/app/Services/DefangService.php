@@ -57,6 +57,9 @@ class DefangService
      *
      * Used for message submissions, where the dangerous link is embedded in
      * prose rather than being the whole submission.
+     *
+     * resources/js/app.js (defangParts) mirrors this pattern to show links being
+     * made safe while the verdict is fetched. Change the two together.
      */
     public function defangUrlsIn(string $text): string
     {

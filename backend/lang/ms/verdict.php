@@ -145,5 +145,30 @@ return [
         'message' => 'Tiada apa-apa yang jelas menonjol. Semakan kami melihat cara ayat itu ditulis, dan mesej ini tidak jelas menyerupai penipuan mahupun mesej biasa.',
     ],
 
+    // Di bawah "Apa yang kami perasan", hanya jika sekurang-kurangnya satu
+    // sebab dapat dijumpai dalam teks dan diberi nombor.
+    'indicators_hint' => 'Nombor ini sama dengan bahagian yang ditanda dalam apa yang anda semak.',
+
+    'anatomy' => [
+        'heading' => 'Cara membaca alamat ini',
+        'owner' => 'Siapa pemilik alamat ini. Bahagian inilah yang perlu anda semak.',
+        'copied' => 'Nama yang ditiru. Sesiapa pun boleh letak nama ini di sini.',
+        'tail' => 'Apa-apa selepas tanda condong (/) yang pertama tidak mengubah pemiliknya.',
+    ],
+
+    // "Beri amaran kepada keluarga", untuk keputusan berisiko tinggi sahaja.
+    // Kekalkan "berkemungkinan": kami tidak mendakwa lebih daripada keputusan.
+    'share' => [
+        'heading' => 'Beri amaran kepada keluarga',
+        'explain' => 'Mesej penipuan selalu dikongsi dalam kumpulan keluarga. Salin ini dan hantar kepada mereka.',
+        'button' => 'Salin mesej',
+        'copied' => 'Sudah disalin',
+        'note' => 'Pautan kekal dalam bentuk selamat, jadi tiada siapa boleh membukanya secara tidak sengaja.',
+        'message' => [
+            'url' => 'ScamSense mendapati pautan ini berkemungkinan penipuan. Jangan buka:',
+            'message' => 'ScamSense mendapati mesej ini berkemungkinan penipuan. Jangan balas, jangan buka apa-apa pautan di dalamnya, dan jangan hantar wang.',
+        ],
+    ],
+
     'check_another' => 'Semak perkara lain',
 ];

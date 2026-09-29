@@ -11,6 +11,7 @@ use App\Models\Verdict;
 use App\Services\Detection\DetectionService;
 use App\Services\Feedback\SessionTokenService;
 use App\Services\RedactorService;
+use App\Services\SubmissionExplainer;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
@@ -26,6 +27,7 @@ class VerifyController extends Controller
         private DetectionService $detection,
         private RedactorService $redactor,
         private SessionTokenService $sessionToken,
+        private SubmissionExplainer $explainer,
     ) {}
 
     public function show(): View
@@ -76,6 +78,8 @@ class VerifyController extends Controller
             'submission' => $submission,
             'verdictRecord' => $record,
             'isUrl' => $type === SubmissionType::Url,
+            // Where each reason sits in the text, for the numbered marks.
+            'explanation' => $this->explainer->explain($type, $redaction->text, $verdict->indicators),
         ]);
     }
 

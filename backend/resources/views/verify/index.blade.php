@@ -96,7 +96,7 @@
                 @csrf
                 <div class="sc-card__body">
 
-                    <fieldset class="mb-4">
+                    <fieldset class="mb-4" data-busy-hide>
                         <legend class="form-label fs-6 fw-semibold">
                             {{ __('What are you checking?') }}
                         </legend>
@@ -137,7 +137,7 @@
                         </div>
                     </fieldset>
 
-                    <div class="mb-3">
+                    <div class="mb-3" data-busy-hide>
                         <label for="content" class="form-label fw-semibold">
                             {{ __('Paste it here') }}
                         </label>
@@ -211,10 +211,30 @@
                          bottom edge and a label that crossfades. One element
                          doing one job, rather than a spinner and a separate
                          progress panel competing for the same moment. --}}
+                    {{-- The wait, shown. Hidden until submit, when app.js hides
+                         the box above and fills this with what was pasted —
+                         links made safe in front of the reader, the same rule
+                         DefangService applies. Nothing is marked here: no
+                         finding exists yet. --}}
+                    <div class="mt-1" data-reading-panel hidden>
+                        <p class="fw-semibold mb-2" data-reading-label
+                           data-label-message="{{ __('Your message') }}"
+                           data-label-url="{{ __('Your link') }}"></p>
+                        <div class="sc-reading" data-reading aria-hidden="true"></div>
+                    </div>
+
                     <button type="submit" class="sc-cta" data-busy-label="{{ __('Checking...') }}">
                         <span class="sc-cta__label">{{ __('Check it') }}</span>
                         <span class="sc-cta__rail" aria-hidden="true"><i></i></span>
                     </button>
+
+                    <p class="sc-reassure">
+                        <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+                            <rect x="4" y="8.5" width="12" height="9" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/>
+                            <path d="M6.8 8.5V6.2a3.2 3.2 0 0 1 6.4 0v2.3" fill="none" stroke="currentColor" stroke-width="1.8"/>
+                        </svg>
+                        <span>{{ __('We never open the link you paste, and we never ask who you are.') }}</span>
+                    </p>
 
                     {{-- The wait.
                          =====
@@ -243,14 +263,16 @@
                          only the words. They fill the wait AND teach what the
                          platform does -- the same job the indicator list does
                          on the result page. --}}
-                    <p class="sc-busy__status" data-busy-panel data-busy-status
-                       role="status" aria-live="polite" hidden></p>
+                    <p class="visually-hidden" data-busy-status role="status" aria-live="polite"></p>
 
                     {{-- Read by app.js and rotated through the status line
                          above. Kept in the markup rather than in JS so the
                          strings stay translatable and stay with the rest of
                          the page copy. --}}
-                    <ul data-busy-steps hidden>
+                    {{-- Shown as a checklist while waiting: the current line in
+                         full ink, earlier ones dimmed. The visually-hidden status
+                         above speaks each line once for screen readers. --}}
+                    <ul class="sc-steps-live" data-busy-steps data-busy-panel hidden>
                         <li>{{ __('Reading what you pasted...') }}</li>
                         <li>{{ __('Comparing it with scams we have seen before...') }}</li>
                         <li>{{ __('Getting your answer ready...') }}</li>
@@ -274,7 +296,7 @@
                 ['03', 'You decide', 'You get an answer in plain words, with the reasons - so the next one you can spot yourself.'],
             ] as [$n, $title, $body])
                 <div class="sc-step">
-                    <span class="sc-step__n">{{ __('STEP') }} {{ $n }}</span>
+                    <span class="sc-step__n" aria-label="{{ __('STEP') }} {{ (int) $n }}">{{ (int) $n }}</span>
                     <h2>{{ __($title) }}</h2>
                     <p>{{ __($body) }}</p>
                 </div>
