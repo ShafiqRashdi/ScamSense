@@ -85,8 +85,12 @@ Thumbs.db
 /ID Pass.txt
 
 # The report itself. A binary .docx merges badly and would bloat the repo;
-# it lives with the author, not in version control.
-/ScamSense_Chapter_4.docx
+# it lives with the author, not in version control. Matched by extension, not
+# by name: a file-by-file rule let two renamed chapter drafts slip into a commit.
+# Report drafts, reference PDFs and screenshots live in ../ScamSense-Report/.
+*.docx
+*.pdf
+~$*
 /example wireframe.png
 
 # Generated design canvas. Built from the .dc.html sources in docs/wireframes/
