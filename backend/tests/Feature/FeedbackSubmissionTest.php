@@ -33,7 +33,7 @@ function fakeMlOk(): void
 function submitAndGetVerdict(string $content = 'http://lhdn-refund.site/claim'): Verdict
 {
     fakeMlOk();
-    test()->post('/verify', ['type' => 'url', 'content' => $content])->assertOk();
+    test()->followingRedirects()->post('/verify', ['type' => 'url', 'content' => $content])->assertOk();
 
     return Verdict::latest('id')->firstOrFail();
 }

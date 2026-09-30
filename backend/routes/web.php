@@ -36,17 +36,28 @@ Route::post('/verify', [VerifyController::class, 'store'])
     ->middleware(['throttle:verify-minute', 'throttle:verify-hour'])
     ->name('verify.store');
 
+// The visitor's own latest verdict, from their session (ResultSession).
+Route::get('/result', [VerifyController::class, 'result'])->name('verify.result');
+
 /*
  | Language switch. The locale is whitelisted against a fixed list rather than
  | taken from the URL, so a crafted value cannot reach the translator or the
  | session as arbitrary text.
+ |
+ | It returns to the page named in `from`, again from a fixed list, never to a
+ | URL taken from the request: that would be an open redirect. It used to call
+ | back(), but the pages send no Referer (no-referrer policy), so back() fell
+ | through to "the last page this session opened" and could land anywhere.
  */
 Route::get('/locale/{locale}', function (string $locale): RedirectResponse {
     if (in_array($locale, ['en', 'ms'], true)) {
         session()->put('locale', $locale);
     }
 
-    return back();
+    $from = request()->query('from');
+    $returnable = ['verify.show', 'verify.result', 'about', 'howto'];
+
+    return redirect()->route(in_array($from, $returnable, true) ? $from : 'verify.show');
 })->name('locale.switch');
 
 /*

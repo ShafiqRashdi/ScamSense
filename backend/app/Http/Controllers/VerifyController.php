@@ -11,15 +11,21 @@ use App\Models\Verdict;
 use App\Services\Detection\DetectionService;
 use App\Services\Feedback\SessionTokenService;
 use App\Services\RedactorService;
+use App\Services\ResultSession;
 use App\Services\SubmissionExplainer;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 /**
  * The public verification flow (objective O2).
  *
- * Thin by design: validate, redact, detect, persist, render. Every decision
- * lives in a service.
+ * Thin by design: validate, redact, detect, persist, redirect, render. Every
+ * decision lives in a service.
+ *
+ * Post/Redirect/Get: the verdict is shown at GET /result, not in the response
+ * to the POST, so the page has an address the language switch and the
+ * feedback buttons can return to, and refreshing it never resubmits.
  */
 class VerifyController extends Controller
 {
@@ -28,6 +34,7 @@ class VerifyController extends Controller
         private RedactorService $redactor,
         private SessionTokenService $sessionToken,
         private SubmissionExplainer $explainer,
+        private ResultSession $results,
     ) {}
 
     public function show(): View
@@ -35,7 +42,7 @@ class VerifyController extends Controller
         return view('verify.index');
     }
 
-    public function store(VerifySubmissionRequest $request): View
+    public function store(VerifySubmissionRequest $request): RedirectResponse
     {
         $type = $request->submissionType();
         $raw = $request->content();
@@ -73,13 +80,40 @@ class VerifyController extends Controller
             ]);
         }
 
+        $this->results->remember($verdict, $record);
+
+        return redirect()->route('verify.result');
+    }
+
+    /**
+     * The visitor's own latest verdict. Nothing to show, or the submission
+     * has since been purged: back to the form.
+     */
+    public function result(): View|RedirectResponse
+    {
+        $remembered = $this->results->recall();
+        $record = $remembered === null
+            ? null
+            : Verdict::query()->with('submission')->find($remembered->verdictId);
+
+        if ($remembered === null || $record?->submission === null) {
+            return redirect()->route('verify.show');
+        }
+
+        $submission = $record->submission;
+        $verdict = $remembered->verdict;
+
         return view('verify.result', [
             'verdict' => $verdict,
             'submission' => $submission,
             'verdictRecord' => $record,
-            'isUrl' => $type === SubmissionType::Url,
+            'isUrl' => $submission->type === SubmissionType::Url,
             // Where each reason sits in the text, for the numbered marks.
-            'explanation' => $this->explainer->explain($type, $redaction->text, $verdict->indicators),
+            'explanation' => $this->explainer->explain(
+                $submission->type,
+                $submission->content_redacted,
+                $verdict->indicators,
+            ),
         ]);
     }
 

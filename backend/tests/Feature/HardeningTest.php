@@ -75,7 +75,7 @@ it('renders an icon unaffected by submitted content', function (): void {
 
     $payload = '</span><script>alert(1)</script><span>';
 
-    $html = $this->post('/verify', ['type' => 'message', 'content' => $payload])
+    $html = $this->followingRedirects()->post('/verify', ['type' => 'message', 'content' => $payload])
         ->assertOk()
         ->getContent();
 

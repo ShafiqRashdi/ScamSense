@@ -57,7 +57,7 @@ class ModerationController extends Controller
             $validated['note'] ?? null,
         );
 
-        return back()->with('status', __('Feedback approved and added to the retraining set.'));
+        return redirect()->route('admin.moderation.index')->with('status', __('Feedback approved and added to the retraining set.'));
     }
 
     public function reject(Request $request, Feedback $feedback): RedirectResponse
@@ -68,6 +68,6 @@ class ModerationController extends Controller
 
         $this->moderation->reject($feedback, $request->user(), $validated['note'] ?? null);
 
-        return back()->with('status', __('Feedback rejected. Nothing was added to the retraining set.'));
+        return redirect()->route('admin.moderation.index')->with('status', __('Feedback rejected. Nothing was added to the retraining set.'));
     }
 }

@@ -29,7 +29,7 @@ function fakePrediction(float $probability = 0.9): void
 it('renders a script payload escaped, never executed', function (): void {
     fakePrediction();
 
-    $html = $this->post('/verify', ['type' => 'message', 'content' => '<script>alert(1)</script>'])
+    $html = $this->followingRedirects()->post('/verify', ['type' => 'message', 'content' => '<script>alert(1)</script>'])
         ->assertOk()
         ->getContent();
 
@@ -40,7 +40,7 @@ it('renders a script payload escaped, never executed', function (): void {
 it('renders an image onerror payload escaped', function (): void {
     fakePrediction();
 
-    $html = $this->post('/verify', ['type' => 'message', 'content' => '<img src=x onerror=alert(1)>'])
+    $html = $this->followingRedirects()->post('/verify', ['type' => 'message', 'content' => '<img src=x onerror=alert(1)>'])
         ->assertOk()
         ->getContent();
 
@@ -61,7 +61,7 @@ it('accepts an internal address as text and never fetches it', function (string 
      */
     fakePrediction();
 
-    $this->post('/verify', ['type' => 'url', 'content' => $url])->assertOk();
+    $this->followingRedirects()->post('/verify', ['type' => 'url', 'content' => $url])->assertOk();
 
     Http::assertNotSent(fn ($request): bool => str_contains($request->url(), '169.254.169.254')
         || str_contains($request->url(), '127.0.0.1:5001/api/v1/predict/url?')
@@ -75,7 +75,7 @@ it('accepts an internal address as text and never fetches it', function (string 
 it('stores a SQL injection string as literal text', function (): void {
     fakePrediction();
 
-    $this->post('/verify', ['type' => 'message', 'content' => "' OR '1'='1"])->assertOk();
+    $this->followingRedirects()->post('/verify', ['type' => 'message', 'content' => "' OR '1'='1"])->assertOk();
 
     expect(Submission::first()->content_redacted)->toBe("' OR '1'='1");
 });
@@ -102,7 +102,7 @@ it('throttles the eleventh verification request in a minute', function (): void 
 it('never renders a submitted url as a clickable link', function (): void {
     fakePrediction();
 
-    $html = $this->post('/verify', ['type' => 'url', 'content' => 'http://evil-probe.xyz/pay'])
+    $html = $this->followingRedirects()->post('/verify', ['type' => 'url', 'content' => 'http://evil-probe.xyz/pay'])
         ->assertOk()
         ->getContent();
 

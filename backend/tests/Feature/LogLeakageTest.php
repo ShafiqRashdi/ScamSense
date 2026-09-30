@@ -167,7 +167,7 @@ it('leaks neither the submitted URL nor any key across a whole failed submission
     ));
 
     $lines = captureLog(function (): void {
-        $this->post('/verify', ['type' => 'url', 'content' => VICTIM_URL])->assertOk();
+        $this->followingRedirects()->post('/verify', ['type' => 'url', 'content' => VICTIM_URL])->assertOk();
     });
 
     $logged = implode("\n", $lines);
@@ -183,7 +183,7 @@ it('leaks nothing through a submitted message either', function (): void {
     Http::fake(fn () => throw new ConnectionException('boom for https://x.test/'.str_repeat('a', 40)));
 
     $lines = captureLog(function (): void {
-        $this->post('/verify', [
+        $this->followingRedirects()->post('/verify', [
             'type' => 'message',
             'content' => 'Hubungi 012-345 6789 atau klik https://scam-example.test/pay?tok=ABCDEF1234567890',
         ])->assertOk();

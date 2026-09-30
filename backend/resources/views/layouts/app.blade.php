@@ -15,7 +15,7 @@
          hero belongs to the pages a member of the public sees. --}}
     <nav class="navbar navbar-expand-md sc-mast sc-mast--bar">
         <div class="container">
-            <a class="sc-brand navbar-brand" href="{{ route('verify.show') }}">
+            <a class="sc-brand navbar-brand" href="{{ route('admin.dashboard') }}">
                 <svg class="sc-brand__mark" viewBox="0 0 24 24" fill="none"
                      width="24" height="24" aria-hidden="true" focusable="false">
                     <path d="M12 2.2 4.2 5.4v6.2c0 4.8 3.2 8.9 7.8 10.2 4.6-1.3 7.8-5.4 7.8-10.2V5.4Z"

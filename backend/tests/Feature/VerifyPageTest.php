@@ -30,7 +30,7 @@ function fakeMl(float $probability, string $label = 'scam'): void
 
 function submit(string $content, string $type = 'url')
 {
-    return test()->post('/verify', ['type' => $type, 'content' => $content]);
+    return test()->followingRedirects()->post('/verify', ['type' => $type, 'content' => $content]);
 }
 
 /*
@@ -179,11 +179,11 @@ it('escapes an event-handler payload', function (): void {
 });
 
 it('rejects a javascript scheme url', function (): void {
-    submit('javascript:alert(1)')->assertSessionHasErrors('content');
+    $this->post('/verify', ['type' => 'url', 'content' => 'javascript:alert(1)'])->assertSessionHasErrors('content');
 });
 
 it('rejects content over the length limit', function (): void {
-    submit(str_repeat('a', 6000), 'message')->assertSessionHasErrors('content');
+    $this->post('/verify', ['type' => 'message', 'content' => str_repeat('a', 6000)])->assertSessionHasErrors('content');
 });
 
 /*

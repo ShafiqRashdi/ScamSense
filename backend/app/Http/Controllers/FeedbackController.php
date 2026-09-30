@@ -46,6 +46,9 @@ class FeedbackController extends Controller
             }
         }
 
-        return back()->with('feedback_received', true);
+        // Named, not back(): with no Referer, back() lands on whichever page
+        // this session opened last, which was the admin dashboard when it was
+        // open in another tab.
+        return redirect()->route('verify.result')->with('feedback_received', true);
     }
 }

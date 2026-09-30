@@ -74,7 +74,7 @@
                      data-active="{{ app()->getLocale() === 'ms' ? 'ms' : 'en' }}">
                     <span class="sc-lang__pill" aria-hidden="true"></span>
                     @foreach (['en' => 'English', 'ms' => 'Bahasa Malaysia'] as $code => $name)
-                        <a href="{{ route('locale.switch', $code) }}"
+                        <a href="{{ route('locale.switch', ['locale' => $code, 'from' => request()->route()?->getName()]) }}"
                            class="sc-lang__opt"
                            @if (app()->getLocale() === $code) aria-current="true" @endif>
                             {{ $code === 'en' ? 'EN' : 'BM' }}

@@ -18,6 +18,9 @@ use Illuminate\Foundation\Http\FormRequest;
  */
 class SubmitFeedbackRequest extends FormRequest
 {
+    /** Back to the visitor's result, not "the previous page" (see VerifySubmissionRequest). */
+    protected $redirectRoute = 'verify.result';
+
     /**
      * Feedback may only be left on a verdict from the visitor's own session.
      *

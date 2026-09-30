@@ -19,6 +19,13 @@ use Illuminate\Validation\Rule;
  */
 class VerifySubmissionRequest extends FormRequest
 {
+    /**
+     * Where a failed validation returns. Named rather than "previous page":
+     * the site sends no Referer, so "previous" means whatever this session
+     * opened last, possibly the admin area in another tab.
+     */
+    protected $redirectRoute = 'verify.show';
+
     public function authorize(): bool
     {
         // Public endpoint. Rate limiting is middleware, not authorisation.
