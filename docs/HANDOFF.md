@@ -12,11 +12,12 @@ Read this first, then `AGENTS.md` for the standing rules. This file is *state*;
 
 1. ~~Get Shafiq's three Malay decisions and update the 4 tests.~~ Done
    2026-09-30: 420 tests, 419 pass, 1 skipped; pint clean.
-2. **Commit** the redesign, the export fix and the test-key fix.
+2. ~~Commit the redesign, the export fix and the test-key fix.~~ Done.
 3. ~~**Fix `docs/deployment.md`** (the `railway run` defect) and **the AGENTS.md
    URL figure**.~~ Done 2026-09-30. (Described under "Known defects to fix before
    deploying", kept for the record.)
-4. **Shafiq pushes.** Then delete the two `backup/*` branches.
+4. ~~Push, then delete the two `backup/*` branches.~~ Done 2026-09-30:
+   `origin/master` = `master` at `a26acb8`; backups deleted.
 5. **Railway:** set the $5 hard cap first; no public domain on the ML
    service; daily purge cron.
 6. **Run the doctor inside Railway**, not from the local PC.
@@ -213,13 +214,15 @@ Breaking one is worse than doing nothing.
 
 ### Repository
 
-- **`master` is at `f6c604c`, 8 commits ahead of `origin/master`, not
-  pushed.** Push before deploying. `feat/result-page-touchup` now equals
-  `master`.
-- **On 29 September the unpushed history was rewritten** so that report drafts
-  (`.docx`) never reach GitHub. The old history is on
-  `backup/before-docx-cleanup` and `backup/before-docs-cleanup`. They are
-  local only: **never push them**, and delete them after the push.
+- **`master` is pushed**: `origin/master` equals local `master` (2026-09-30,
+  `a26acb8`, plus this handoff update). No `.docx`, `.pdf` or `.xlsx` is in
+  the pushed history.
+- On 29 September the then-unpushed history was rewritten so report drafts
+  never reached GitHub. The `backup/*` branches that held the old history were
+  deleted after the push; their only unique files (Chapter 4 corrected,
+  Chapter 5) are identical copies of those in `C:\dev\ScamSense-Report\`.
+- `feat/result-page-touchup` and `feat/url-features` are old local branches,
+  already merged into `master`. They are not needed.
 - GitHub: `ShafiqRashdi/ScamSense`, **private**, deliberately. Serving model
   weights are committed (38 MB). The collected corpus,
   `scamsense_corpus_collection.xlsx`, stays in the repo root because the
@@ -271,8 +274,7 @@ arithmetic**. Compute, do not estimate.
 
 ### Blocking — the user must do these
 
-1. **Push to GitHub.** `origin/master` is 8 commits behind. Do not push the
-   `backup/*` branches.
+1. ~~Push to GitHub.~~ Done 2026-09-30.
 2. **Railway.** Not deployed yet. Hobby plan, ~$5/month.
    - **Set a hard usage limit at $5 first**, before creating the project. That
      turns "I might be billed more" into "I cannot be."
