@@ -45,5 +45,17 @@
         <env name="PULSE_ENABLED" value="false"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
         <env name="NIGHTWATCH_ENABLED" value="false"/>
+        <!--
+            No real threat-intel calls from tests, ever. Without these the suite
+            read the real keys from .env, and every test that faked only the ML
+            service sent its URL to VirusTotal and Safe Browsing for real.
+            RefreshDatabase empties the 24-hour cache each time, so nothing was
+            ever reused. It exhausted the 500-a-day VirusTotal quota on
+            2026-09-29, and the deployed site shares that key. A test that needs
+            a provider sets the key with config() and fakes the HTTP call.
+            force="true" so a key set in the OS environment cannot leak through.
+        -->
+        <env name="VIRUSTOTAL_KEY" value="" force="true"/>
+        <env name="GOOGLE_SAFE_BROWSING_KEY" value="" force="true"/>
     </php>
 </phpunit>
