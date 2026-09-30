@@ -83,6 +83,27 @@ it('meets AA on every text pairing in the palette', function (string $ink, strin
     ['sc-warning', 'sc-surface'],
 ]);
 
+it('keeps the "What to do" box readable in every band tint', function (string $ink, string $wash): void {
+    /*
+     | The action box inside a verdict is tinted in the band's own colour and
+     | carries two kinds of text: body ink, and its heading and arrows in the
+     | risk colour itself. The risk colour on its own tint is the pair that
+     | could quietly fail -- a darker tint makes the box look more urgent and
+     | makes its heading harder to read at the same time.
+     */
+    expect(contrast(palette($ink), palette($wash)))
+        ->toBeGreaterThanOrEqual(4.5, "\${$ink} on \${$wash}");
+})->with([
+    ['sc-ink', 'sc-wash-danger'],
+    ['sc-danger', 'sc-wash-danger'],
+    ['sc-ink', 'sc-wash-warning'],
+    ['sc-warning', 'sc-wash-warning'],
+    ['sc-ink', 'sc-wash-success'],
+    ['sc-success', 'sc-wash-success'],
+    // The privacy panel's icons sit on the success tint too.
+    ['sc-brand', 'sc-wash-success'],
+]);
+
 it('keeps white legible on every filled risk badge', function (string $background): void {
     // The risk colours are used as solid badge backgrounds, not only as
     // borders, so each has to carry white text. A badge nobody can read is a

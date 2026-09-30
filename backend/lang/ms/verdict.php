@@ -16,9 +16,12 @@ declare(strict_types=1);
 |     will later resolve into something definite. It will not.
 |   - `alamat` throughout, never `domain`. The audience includes older adults
 |     and `domain` is a technical English term.
+|   - `scam`, not `penipuan`, and `letakkan`, not `tampal`, across the whole
+|     site (Shafiq, 2026-09-30). The one exception is the phone's own menu
+|     word `Tampal`, where the site names or draws that menu.
 |
 | `body` and `action` are nested by submission type. Telling someone who pasted
-| an SMS that "pautan ini mempunyai beberapa ciri penipuan" announces that the
+| an SMS that "pautan ini mempunyai beberapa ciri scam" announces that the
 | system did not read what they sent.
 |
 */
@@ -29,11 +32,11 @@ return [
     'checked_heading' => 'Kami sudah semak',
 
     'high' => [
-        'label' => 'Berkemungkinan penipuan',
-        'heading' => 'Ini kelihatan seperti penipuan',
+        'label' => 'Berkemungkinan scam',
+        'heading' => 'Ini kelihatan seperti scam',
         'body' => [
-            'url' => 'Pautan ini mempunyai beberapa ciri yang sering kami lihat pada pautan penipuan. Kami sangat menasihatkan anda supaya tidak membukanya.',
-            'message' => 'Mesej ini mempunyai beberapa ciri yang sering kami lihat pada mesej penipuan. Kami sangat menasihatkan anda supaya jangan balas dan jangan ikut apa-apa arahan di dalamnya.',
+            'url' => 'Pautan ini mempunyai beberapa ciri yang sering kami lihat pada pautan scam. Kami sangat menasihatkan anda supaya tidak membukanya.',
+            'message' => 'Mesej ini mempunyai beberapa ciri yang sering kami lihat pada mesej scam. Kami sangat menasihatkan anda supaya jangan balas dan jangan ikut apa-apa arahan di dalamnya.',
         ],
         'action_heading' => 'Apa yang perlu anda buat',
         'action' => [
@@ -68,8 +71,8 @@ return [
         'label' => 'Tiada tanda amaran',
         'heading' => 'Kami tidak menemui tanda amaran',
         'body' => [
-            'url' => 'Pautan ini tidak mempunyai ciri yang biasa kami lihat pada pautan penipuan.',
-            'message' => 'Mesej ini tidak mempunyai ciri yang biasa kami lihat pada mesej penipuan.',
+            'url' => 'Pautan ini tidak mempunyai ciri yang biasa kami lihat pada pautan scam.',
+            'message' => 'Mesej ini tidak mempunyai ciri yang biasa kami lihat pada mesej scam.',
         ],
         'action_heading' => 'Tetap perlu diingat',
         'action' => [
@@ -99,7 +102,7 @@ return [
         'body_suffix' => 'Hanya :authority boleh mendaftarkan alamat yang berakhir dengan :domain_suffix. Penipu tidak boleh.',
 
         'teach_heading' => 'Cara anda boleh semak sendiri',
-        'teach' => 'Lihat bahagian sebelum tanda condong (/) yang pertama. Itulah alamat sebenar. Pautan penipuan meniru nama tetapi bukan alamat — :example bukan :institution.',
+        'teach' => 'Lihat bahagian sebelum tanda condong (/) yang pertama. Itulah alamat sebenar. Pautan scam meniru nama tetapi bukan alamat — :example bukan :institution.',
 
         'scope_heading' => 'Kami menyemak alamat, bukan halaman',
         'scope' => 'Jika pautan ini datang daripada mesej yang anda tidak jangkakan, tetap berhati-hati. Cara paling selamat ialah taip sendiri alamat bank anda, atau guna aplikasi rasmi mereka, bukannya klik pautan.',
@@ -141,8 +144,8 @@ return [
      | senarai yang gagal dimuatkan.
      */
     'indicators_none' => [
-        'url' => 'Tiada apa-apa yang jelas menonjol. Semakan kami melihat cara alamat itu ditulis, dan alamat ini tidak jelas menyerupai penipuan mahupun laman web terkenal yang sah.',
-        'message' => 'Tiada apa-apa yang jelas menonjol. Semakan kami melihat cara ayat itu ditulis, dan mesej ini tidak jelas menyerupai penipuan mahupun mesej biasa.',
+        'url' => 'Tiada apa-apa yang jelas menonjol. Semakan kami melihat cara alamat itu ditulis, dan alamat ini tidak jelas menyerupai scam mahupun laman web terkenal yang sah.',
+        'message' => 'Tiada apa-apa yang jelas menonjol. Semakan kami melihat cara ayat itu ditulis, dan mesej ini tidak jelas menyerupai scam mahupun mesej biasa.',
     ],
 
     // Di bawah "Apa yang kami perasan", hanya jika sekurang-kurangnya satu
@@ -154,20 +157,6 @@ return [
         'owner' => 'Siapa pemilik alamat ini. Bahagian inilah yang perlu anda semak.',
         'copied' => 'Nama yang ditiru. Sesiapa pun boleh letak nama ini di sini.',
         'tail' => 'Apa-apa selepas tanda condong (/) yang pertama tidak mengubah pemiliknya.',
-    ],
-
-    // "Beri amaran kepada keluarga", untuk keputusan berisiko tinggi sahaja.
-    // Kekalkan "berkemungkinan": kami tidak mendakwa lebih daripada keputusan.
-    'share' => [
-        'heading' => 'Beri amaran kepada keluarga',
-        'explain' => 'Mesej penipuan selalu dikongsi dalam kumpulan keluarga. Salin ini dan hantar kepada mereka.',
-        'button' => 'Salin mesej',
-        'copied' => 'Sudah disalin',
-        'note' => 'Pautan kekal dalam bentuk selamat, jadi tiada siapa boleh membukanya secara tidak sengaja.',
-        'message' => [
-            'url' => 'ScamSense mendapati pautan ini berkemungkinan penipuan. Jangan buka:',
-            'message' => 'ScamSense mendapati mesej ini berkemungkinan penipuan. Jangan balas, jangan buka apa-apa pautan di dalamnya, dan jangan hantar wang.',
-        ],
     ],
 
     'check_another' => 'Semak perkara lain',

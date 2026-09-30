@@ -17,6 +17,13 @@
         $type = $submission->type instanceof \App\Enums\SubmissionType
             ? $submission->type->value
             : (string) $submission->type;
+
+        /* "What to do" is shown one instruction per line. The lines are the
+           translation's own sentences, split here rather than restructured in
+           the lang files, so a test that every band carries both submission
+           types keeps covering exactly what is shown. */
+        $sentences = static fn (string $text): array =>
+            preg_split('/(?<=[.!?])\s+/u', trim($text), -1, PREG_SPLIT_NO_EMPTY) ?: [$text];
     @endphp
 
 @section('hero')
@@ -30,7 +37,7 @@
          would demote the answer to second place in the outline. --}}
     <div class="sc-hero sc-hero--slim">
         <p>{{ __('verdict.checked_heading') }}</p>
-        <a class="sc-back" href="{{ route('verify.show') }}">&larr; {{ __('verdict.check_another') }}</a>
+        <a class="sc-back" href="{{ route('verify.show') }}"><span class="sc-back__arrow" aria-hidden="true">&larr;</span> {{ __('verdict.check_another') }}</a>
     </div>
 @endsection
 
@@ -67,30 +74,36 @@
                             {{ __('verdict.verified.label') }}
                         </span>
 
-                        <h1 class="sc-card__verdict">
-                            {{ __('verdict.verified.heading', ['institution' => $name]) }}
-                        </h1>
+                        <div class="sc-verdict-grid">
+                            <div>
+                                <h1 class="sc-card__verdict">
+                                    {{ __('verdict.verified.heading', ['institution' => $name]) }}
+                                </h1>
 
-                        <p class="sc-lead">
-                            @if ($institution->bySuffix)
-                                {{ __('verdict.verified.body_suffix', [
-                                    'authority' => $authority,
-                                    'domain_suffix' => '.'.\Illuminate\Support\Str::after($institution->domain, '.'),
-                                ]) }}
-                            @else
-                                {{ __('verdict.verified.body_institution', [
-                                    'domain' => $institution->domain,
-                                    'institution' => $name,
-                                    'authority' => $authority,
-                                ]) }}
-                            @endif
-                        </p>
+                                <p class="sc-lead">
+                                    @if ($institution->bySuffix)
+                                        {{ __('verdict.verified.body_suffix', [
+                                            'authority' => $authority,
+                                            'domain_suffix' => '.'.\Illuminate\Support\Str::after($institution->domain, '.'),
+                                        ]) }}
+                                    @else
+                                        {{ __('verdict.verified.body_institution', [
+                                            'domain' => $institution->domain,
+                                            'institution' => $name,
+                                            'authority' => $authority,
+                                        ]) }}
+                                    @endif
+                                </p>
+                            </div>
 
-                        {{-- Always visible. This is what stops the panel above
-                             being read as a safety guarantee. --}}
-                        <div class="p-3 rounded bg-body-tertiary mt-3">
-                            <h2 class="h6 fw-semibold">{{ __('verdict.verified.scope_heading') }}</h2>
-                            <p class="mb-0">{{ __('verdict.verified.scope') }}</p>
+                            {{-- Always visible. This is what stops the panel
+                                 above being read as a safety guarantee. Beside
+                                 the heading on a wide screen, so it is read in
+                                 the same glance rather than after it. --}}
+                            <div class="sc-todo sc-todo--scope">
+                                <h2>{{ __('verdict.verified.scope_heading') }}</h2>
+                                <p>{{ __('verdict.verified.scope') }}</p>
+                            </div>
                         </div>
 
                         {{-- Progressive disclosure: teaching only. --}}
@@ -139,16 +152,28 @@
                         $verdictTag = $verifiedFirst ? 'h2' : 'h1';
                         $actionTag = $verdictTag === 'h1' ? 'h2' : 'h3';
                     @endphp
-                    <{{ $verdictTag }} class="sc-card__verdict">{{ __('verdict.'.$band.'.heading') }}</{{ $verdictTag }}>
-                    <p class="sc-lead">{{ __('verdict.'.$band.'.body.'.$type) }}</p>
+                    <div class="sc-verdict-grid">
+                        <div>
+                            <{{ $verdictTag }} class="sc-card__verdict">{{ __('verdict.'.$band.'.heading') }}</{{ $verdictTag }}>
+                            <p class="sc-lead">{{ __('verdict.'.$band.'.body.'.$type) }}</p>
+                        </div>
 
-                    <div class="sc-todo">
-                        <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">
-                            <path d="M4 10h11M11 5.5 15.5 10 11 14.5" fill="none" stroke="currentColor" stroke-width="2"
-                                  stroke-linecap="round" stroke-linejoin="round"/>
-                        </svg>
-                        <{{ $actionTag }}>{{ __('verdict.'.$band.'.action_heading') }}</{{ $actionTag }}>
-                        <p>{{ __('verdict.'.$band.'.action.'.$type) }}</p>
+                        {{-- Beside the finding on a wide screen, in the band's
+                             tint: the one thing to do, one line per step. --}}
+                        <div class="sc-todo">
+                            <{{ $actionTag }}>{{ __('verdict.'.$band.'.action_heading') }}</{{ $actionTag }}>
+                            <ul>
+                                @foreach ($sentences(__('verdict.'.$band.'.action.'.$type)) as $line)
+                                    <li>
+                                        <svg viewBox="0 0 12 12" aria-hidden="true" focusable="false">
+                                            <path d="M2 6h8M6.5 2.5 10 6 6.5 9.5" fill="none" stroke="currentColor" stroke-width="1.8"
+                                                  stroke-linecap="round" stroke-linejoin="round"/>
+                                        </svg>
+                                        <span>{{ $line }}</span>
+                                    </li>
+                                @endforeach
+                            </ul>
+                        </div>
                     </div>
 
                     @if (__('verdict.'.$band.'.closing') !== 'verdict.'.$band.'.closing')
@@ -265,45 +290,6 @@
                 </section>
             </div>
 
-            {{-- ── Warn your family ────────────────────────────────────────
-                 High band only. Scam messages travel through family groups,
-                 so the most useful thing a reader can do next is often to
-                 warn someone else. The copied text keeps "likely" and keeps
-                 the link defanged — a forwarded message is where an overclaim
-                 or a live link would travel furthest. --}}
-            @if ($band === 'high')
-                @php
-                    $safe = $defang->defangUrlsIn($submission->content_redacted);
-                    $excerpt = \Illuminate\Support\Str::limit($safe, 110, '...');
-                    $shareText = $type === 'url'
-                        ? __('verdict.share.message.url')."\n".$excerpt
-                        : __('verdict.share.message.message')."\n\n\"".$excerpt.'"';
-                @endphp
-                <section class="sc-panel" aria-labelledby="share-heading">
-                    <h2 class="sc-panel__title" id="share-heading">{{ __('verdict.share.heading') }}</h2>
-                    <p class="sc-panel__hint mb-0">{{ __('verdict.share.explain') }}</p>
-                    <div class="sc-bubble" id="share-text">{{ $shareText }}</div>
-                    {{-- Hidden until app.js confirms the clipboard exists; with
-                         no JavaScript the bubble is still plain, selectable text. --}}
-                    <button type="button" class="sc-copy" data-copy="share-text"
-                            data-copied-label="{{ __('verdict.share.copied') }}" hidden>
-                        <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">
-                            <rect x="7" y="7" width="10" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/>
-                            <path d="M13 4.5V4a1.5 1.5 0 0 0-1.5-1.5h-7A1.5 1.5 0 0 0 3 4v7a1.5 1.5 0 0 0 1.5 1.5H5"
-                                  fill="none" stroke="currentColor" stroke-width="1.8"/>
-                        </svg>
-                        <span data-copy-label>{{ __('verdict.share.button') }}</span>
-                    </button>
-                    <p class="sc-note">
-                        <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">
-                            <rect x="4" y="8.5" width="12" height="9" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/>
-                            <path d="M6.8 8.5V6.2a3.2 3.2 0 0 1 6.4 0v2.3" fill="none" stroke="currentColor" stroke-width="1.8"/>
-                        </svg>
-                        <span>{{ __('verdict.share.note') }}</span>
-                    </p>
-                </section>
-            @endif
-
             {{-- ── Community feedback (objective O3) ──────────────────────
                  Goes to a moderation queue. Nothing here reaches a model
                  without an administrator reviewing it — see ADR 0008. --}}
@@ -313,29 +299,33 @@
                 </div>
             @else
                 <section class="sc-panel">
-                    <h2 class="sc-panel__title">{{ __('feedback.heading') }}</h2>
-                    <p class="sc-panel__hint mb-0">{{ __('feedback.explain') }}</p>
+                    <div class="sc-fb">
+                        <div>
+                            <h2 class="sc-panel__title">{{ __('feedback.heading') }}</h2>
+                            <p class="sc-panel__hint mb-0">{{ __('feedback.explain') }}</p>
+                            <p class="small text-body-secondary mt-2 mb-0">{{ __('feedback.moderated') }}</p>
+                        </div>
 
-                    <div class="d-flex gap-2 mt-3">
-                        @foreach ([1 => 'feedback.agree', 0 => 'feedback.dispute'] as $agrees => $key)
-                            <form method="POST" action="{{ route('feedback.store') }}" class="flex-fill">
-                                @csrf
-                                <input type="hidden" name="verdict_id" value="{{ $verdictRecord->id }}">
-                                <input type="hidden" name="agrees" value="{{ $agrees }}">
-                                <button type="submit" class="btn btn-outline-secondary w-100 py-3">
-                                    {{ __($key) }}
-                                </button>
-                            </form>
-                        @endforeach
+                        <div class="sc-fb__btns">
+                            @foreach ([1 => 'feedback.agree', 0 => 'feedback.dispute'] as $agrees => $key)
+                                <form method="POST" action="{{ route('feedback.store') }}">
+                                    @csrf
+                                    <input type="hidden" name="verdict_id" value="{{ $verdictRecord->id }}">
+                                    <input type="hidden" name="agrees" value="{{ $agrees }}">
+                                    <button type="submit" class="btn btn-outline-secondary w-100 py-3 px-4">
+                                        {{ __($key) }}
+                                    </button>
+                                </form>
+                            @endforeach
+                        </div>
                     </div>
-
-                    <p class="small text-body-secondary mt-3 mb-0">{{ __('feedback.moderated') }}</p>
                 </section>
             @endif
 
-            {{-- Solid, because it is the page's one next step. --}}
-            <a href="{{ route('verify.show') }}" class="btn btn-primary btn-lg w-100 py-3">
-                {{ __('verdict.check_another') }}
+            {{-- Solid, because it is the page's one next step. The same button
+                 as "Check it" on the form, so the way on looks like the way in. --}}
+            <a href="{{ route('verify.show') }}" class="sc-cta sc-cta--again">
+                <span class="sc-cta__label">{{ __('verdict.check_another') }}</span>
             </a>
 
         </div>

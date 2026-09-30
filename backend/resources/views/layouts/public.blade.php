@@ -10,7 +10,9 @@
 
     @vite(['resources/css/app.scss', 'resources/js/app.js'])
 </head>
-<body class="d-flex flex-column min-vh-100">
+{{-- `sc-public` scopes the security-print ribbon to the public pages; the
+     admin area is a tool and gets none of it (ADR 0012). --}}
+<body class="sc-public d-flex flex-column min-vh-100">
 
     <a href="#main" class="visually-hidden-focusable p-2 bg-body">{{ __('Skip to content') }}</a>
 
@@ -22,7 +24,7 @@
 
          Each page supplies its own hero inside it, so the verdict page can be
          shallower than the landing page without a second layout. --}}
-    <header class="sc-mast">
+    <header class="sc-mast @yield('mast_class')">
         {{-- The brand mark again, oversized and cropped into the corner as the
              band's texture. Outline only, at 9%: it can never be read as
              content or compete with a risk colour. --}}
@@ -47,6 +49,19 @@
                     </svg>
                     <span>ScamSense</span>
                 </a>
+
+                {{-- Plain links rather than tab-shaped buttons: a tab look would
+                     read as another switch like the Message / Link choice on the
+                     form. On a phone they drop to their own row inside the band,
+                     because the brand, two links and EN/BM do not fit on one. --}}
+                <nav class="sc-nav" aria-label="{{ __('pages.nav.label') }}">
+                    @foreach (['about', 'howto'] as $page)
+                        <a href="{{ route($page) }}" class="sc-nav__link"
+                           @if (request()->routeIs($page)) aria-current="page" @endif>
+                            {{ __('pages.nav.'.$page) }}
+                        </a>
+                    @endforeach
+                </nav>
 
                 {{-- Language switch. The audience is bilingual and many will be
                      far more comfortable in Malay, so this must be reachable
@@ -82,8 +97,21 @@
             <p class="mb-0">
                 <strong>{{ __('ScamSense gives guidance, not a guarantee.') }}</strong>
             </p>
-            <p class="mb-0">
-                {{ __('If you have lost money, contact your bank immediately and report it to the police.') }}
+            {{-- The most consequential sentence on the site, so it sits in its
+                 own box rather than trailing after the one above. --}}
+            <p class="sc-foot__help">
+                <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+                    <circle cx="10" cy="10" r="7.5" fill="none" stroke="currentColor" stroke-width="1.8"/>
+                    <path d="M10 6v5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    <circle cx="10" cy="14" r="1.1" fill="currentColor"/>
+                </svg>
+                <span>{{ __('If you have lost money, contact your bank immediately and report it to the police.') }}</span>
+            </p>
+            <p class="sc-foot__meta">
+                @foreach (['about', 'howto'] as $page)
+                    <a href="{{ route($page) }}">{{ __('pages.nav.'.$page) }}</a>
+                @endforeach
+                <span>{{ __('Final Year Project · Universiti Poli-Tech Malaysia') }}</span>
             </p>
         </div>
     </footer>

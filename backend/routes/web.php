@@ -21,6 +21,13 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', [VerifyController::class, 'show'])->name('verify.show');
 
 /*
+ | The two reading pages. Static: nothing is submitted, stored or looked up, so
+ | they need no controller and no rate limit beyond the site's defaults.
+ */
+Route::view('/about', 'pages.about')->name('about');
+Route::view('/how-to-use', 'pages.howto')->name('howto');
+
+/*
  | Rate limits from AGENTS.md §3: 10/minute and 30/hour per IP. Both apply —
  | the per-minute limit stops a burst, the hourly one stops a slow grind that
  | would stay under it all day.

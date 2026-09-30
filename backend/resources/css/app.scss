@@ -104,6 +104,14 @@ $sc-danger: #9b2c2c;
 $sc-warning: #8a5a00;
 $sc-success: #2a6152;
 
+// Faint tints of each risk colour, for the "What to do" box inside a verdict.
+// The action reads as part of the verdict rather than as grey reference. Each
+// carries both ink and its own risk colour as text, and PaletteContrastTest
+// asserts both pairings (ADR 0012, amendment of 2026-09-30).
+$sc-wash-danger: #f8eceb;
+$sc-wash-warning: #f7f0e3;
+$sc-wash-success: #eaf2ee;
+
 $primary: $sc-brand;
 $secondary: $sc-ink-muted;
 $danger: $sc-danger;
@@ -189,6 +197,11 @@ $sc-spring: linear(
 );
 // For things that travel rather than press: fast out of the gate, long settle.
 $sc-swift: cubic-bezier(0.32, 0.72, 0, 1);
+// Press feedback and short entrances. A strong ease-out: the browser's own
+// `ease-out` is too weak to read as a response at 160ms.
+$sc-ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+// Something moving from one place on screen to another (the segment choice).
+$sc-ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
 
 // Fine fractal noise for the masthead. Held in a variable so the data URI
 // never has to survive a shell heredoc or a careless line wrap.
@@ -201,17 +214,6 @@ $sc-grain: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='
 h1,
 h2 {
     letter-spacing: -0.02em;
-}
-
-// The action box inside a verdict. Bootstrap's `bg-body-tertiary` gives it the
-// warm tint; the leading rule is what separates advice from explanation for a
-// reader who is skimming.
-//
-// Scoped to `.sc-card`, which is what the verdict renders since the masthead
-// redesign. Scoped to Bootstrap's `.card` it matched nothing on the result page
-// and instead drew the rule on the admin moderation queue's <pre>.
-.sc-card .rounded.bg-body-tertiary {
-    border-left: 3px solid rgba($sc-ink, 0.14);
 }
 
 // Inputs are large and clearly bounded. A faint 1px hairline is a fashionable
@@ -274,45 +276,24 @@ pre code {
     // Desktop only, and deliberately slight — a 1px lift and a shadow, which
     // reads as "this is pressable" without announcing itself.
     .btn-primary:hover,
-    .btn-success:hover,
-    .btn-outline-primary:hover {
+    .btn-success:hover {
         transform: translateY(-1px);
         box-shadow: 0 2px 8px rgba($sc-ink, 0.16);
     }
 
     .btn-primary:active,
-    .btn-success:active,
-    .btn-outline-primary:active {
+    .btn-success:active {
         // Cancel the lift on press so the two rules do not fight.
         transform: translateY(1px);
         box-shadow: none;
     }
 }
 
-// The message/link chooser. Bootstrap fills the selected segment, which on a
-// warm background at arm's length is a weaker signal than it looks in a
-// design tool. The weight change is the part that survives a cheap screen —
-// and, like the verdict, it means the selection is not carried by colour alone.
-.btn-check:checked + .btn {
-    font-weight: 700;
-    box-shadow: inset 0 2px 5px rgba($sc-ink, 0.22);
-}
-
-// The submit button while the verdict is being fetched. Set by app.js; the
-// rules live here so a JS failure leaves the button entirely normal.
-.btn[aria-busy="true"] {
-    // `disabled` would grey it out, which reads as "this is broken" rather than
-    // "this is working". It stays fully coloured and simply stops responding.
-    pointer-events: none;
-    transform: none;
-}
-
 @media (prefers-reduced-motion: reduce) {
     .btn,
     .btn:active,
     .btn-primary:hover,
-    .btn-success:hover,
-    .btn-outline-primary:hover {
+    .btn-success:hover {
         transition: none;
         transform: none;
     }
@@ -343,31 +324,6 @@ pre code {
 }
 
 
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Tap-to-fill examples
-//
-// Quiet by design. These sit directly beneath the input and must not compete
-// with the primary action underneath them, so they are small, outlined and in
-// the secondary ink rather than the brand — the eye should reach `Check it`
-// first and find these only when it is looking for something to check.
-// ─────────────────────────────────────────────────────────────────────────────
-
-.sc-examples {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 0.4rem;
-
-    .btn {
-        // Below Bootstrap's `btn-sm` padding these become hard to hit on a
-        // phone. `--bs-btn-*` rather than raw padding so the button keeps every
-        // other state it was given.
-        --bs-btn-padding-y: 0.35rem;
-        --bs-btn-padding-x: 0.7rem;
-        border-radius: 2rem;
-    }
-}
 
 // The textarea starts small and grows, so it needs a floor: three rows of
 // 17px text is a comfortable target, and with no JavaScript at all this is
@@ -537,9 +493,10 @@ body {
 
 .sc-bar {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
-    gap: 1rem;
+    gap: 0.35rem 1rem;
     padding-block: 0.9rem;
 
     @include media-breakpoint-up(md) {
@@ -698,16 +655,42 @@ body {
     }
 }
 
-// A way back that is visible without scrolling past the answer.
+// A way back that is visible without scrolling past the answer. An outlined
+// button rather than an underlined link: a 44px target for a thumb, and it
+// reads as an action rather than as more of the page label beside it.
 .sc-back {
-    color: $sc-mint;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.55rem 0.9rem;
+    border: 1px solid rgba(255, 255, 255, 0.28);
+    border-radius: 0.6rem;
+    color: #fff;
     font-weight: 600;
-    text-decoration: underline;
-    text-decoration-thickness: 1px;
-    text-underline-offset: 0.25em;
+    text-decoration: none;
+    transition:
+        background-color 150ms ease,
+        transform 160ms $sc-ease-out;
 
-    &:hover {
+    &:active {
+        transform: scale(0.97);
+    }
+
+    &__arrow {
+        display: inline-block;
+        transition: transform 200ms $sc-ease-out;
+    }
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .sc-back:hover {
         color: #fff;
+        background-color: rgba(255, 255, 255, 0.08);
+    }
+
+    // Points the way it goes.
+    .sc-back:hover .sc-back__arrow {
+        transform: translateX(-3px);
     }
 }
 
@@ -745,6 +728,10 @@ body {
 .sc-card {
     position: relative;
     overflow: hidden;
+    // Set explicitly: on the home page the card sits inside the green band,
+    // whose light text colour it would otherwise inherit -- the form's own
+    // labels went near-white on the card once.
+    color: $sc-ink;
     background-color: $sc-surface;
     border-radius: 1.1rem;
     // Two shadows: a long soft one for the lift off the band, and a tight one
@@ -792,99 +779,165 @@ body {
     // paragraph under it — the flat hierarchy decision 4 of the ADR set out to
     // remove. Sized here rather than by swapping to `.h3` so the one h1 keeps
     // its semantic tag chosen in the view.
+    // Display size. It was $h3 (about 26px), which left the answer only a step
+    // above the text beneath it; the verdict is the one thing on this page the
+    // reader must take in at a glance (ADR 0012 rule 1).
     &__verdict {
-        font-size: $h3-font-size;
+        font-size: clamp(1.9rem, 4.2vw, 2.75rem);
         font-weight: 700;
-        line-height: 1.2;
+        line-height: 1.05;
+        letter-spacing: -0.03em;
         text-wrap: balance;
+    }
+
+    // When the verified panel owns the h1, the verdict beneath it steps down,
+    // so the two headings do not compete for the same glance.
+    &--verified + &--verdict &__verdict {
+        font-size: clamp(1.4rem, 2.6vw, 1.75rem);
+        letter-spacing: -0.02em;
+    }
+}
+
+// On a wide screen the verdict is two columns: the finding on the left, what
+// to do on the right, both visible without scrolling. Stacked on a phone,
+// finding first.
+.sc-verdict-grid {
+    display: grid;
+    gap: 1.3rem;
+
+    @include media-breakpoint-up(lg) {
+        grid-template-columns: 1.15fr 1fr;
+        column-gap: 3rem;
+        align-items: start;
+
+        > .sc-todo {
+            margin-top: 0;
+        }
     }
 }
 
 // ── Bands below the card ────────────────────────────────────────────────────
 
+// One vertical rhythm for every seam between sections. Under ~64px two
+// sections read as one crammed block.
 .sc-band {
-    padding-block: 2.6rem 0;
+    padding-block: clamp(3.5rem, 8vw, 6rem) 0;
 
     &--last {
-        padding-bottom: 3.4rem;
+        padding-bottom: clamp(3.5rem, 8vw, 6rem);
     }
+}
+
+// A section heading with a hairline under it, so "How it works" is a titled
+// section rather than three loose paragraphs under the form.
+.sc-section-head {
+    margin: 0 0 1.75rem;
+    padding-bottom: 0.85rem;
+    border-bottom: 1px solid $sc-line;
+    font-size: clamp(1.45rem, 2.4vw, 1.9rem);
+    font-weight: 700;
+    letter-spacing: -0.02em;
 }
 
 .sc-how {
     display: grid;
-    gap: 1.6rem;
+    gap: 2rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
 
     @include media-breakpoint-up(md) {
         grid-template-columns: repeat(3, 1fr);
-        gap: 1.9rem;
+        gap: 2.5rem;
     }
 }
 
 .sc-step {
-    display: grid;
-    grid-template-columns: auto 1fr;
-    gap: 0.2rem 0.9rem;
-    align-items: start;
-
-    // A real sequence, so it is numbered — and the number is the one thing on
-    // the band below the card carrying the masthead's colour.
+    // A real sequence, so it is numbered, and the numeral is set large enough
+    // to be the thing the eye lands on when scanning down the page. Brand
+    // green on paper: 6.34:1, no risk hue anywhere near it.
     &__n {
-        grid-row: span 2;
-        display: grid;
-        place-items: center;
-        width: 2.6rem;
-        height: 2.6rem;
-        border-radius: 50%;
-        background-color: $sc-deep-2;
-        color: $sc-mint;
-        font-size: 1.1rem;
+        display: block;
+        margin-bottom: 0.8rem;
+        color: $sc-brand;
+        font-size: 3.2rem;
         font-weight: 700;
+        line-height: 1;
+        letter-spacing: -0.05em;
         font-variant-numeric: tabular-nums;
     }
 
-    h2 {
-        font-size: 1.15rem;
+    h3 {
+        font-size: 1.25rem;
         letter-spacing: -0.015em;
         font-weight: 650;
-        margin: 0.35rem 0 0;
+        margin: 0 0 0.45rem;
     }
 
     p {
-        font-size: 0.98rem;
-        line-height: 1.55;
-        color: $sc-ink-muted;
-        margin-bottom: 0;
-    }
-}
-
-.sc-priv {
-    border-top: 1px solid $sc-line;
-    padding-top: 1.35rem;
-    display: grid;
-    gap: 0.6rem;
-
-    h2 {
+        max-width: 34ch;
         font-size: 1rem;
-        font-weight: 650;
-        margin-bottom: 0;
-    }
-
-    ul {
-        margin-bottom: 0;
-        padding-left: 1.2rem;
+        line-height: 1.6;
         color: $sc-ink-muted;
-        font-size: 0.95rem;
-        line-height: 1.7;
+        margin-bottom: 0;
     }
 
     @include media-breakpoint-up(md) {
-        grid-template-columns: auto 1fr;
-        gap: 1.6rem;
-        align-items: start;
+        padding-top: 1.2rem;
+        border-top: 2px solid $sc-line;
+    }
+}
 
-        h2 {
-            white-space: nowrap;
+// The privacy notice, as a panel rather than small print. Each promise gets a
+// drawn icon so it can be found again at a glance.
+.sc-priv {
+    display: grid;
+    gap: 1.4rem;
+    padding: clamp(1.4rem, 3vw, 2.25rem);
+    border: 1px solid $sc-line;
+    border-radius: 1rem;
+    background-color: $sc-surface;
+
+    h2 {
+        margin: 0;
+        font-size: 1.3rem;
+        font-weight: 700;
+        letter-spacing: -0.01em;
+    }
+
+    ul {
+        display: grid;
+        gap: 1rem;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+    }
+
+    li {
+        display: grid;
+        grid-template-columns: 2.5rem 1fr;
+        gap: 0.9rem;
+        align-items: start;
+    }
+
+    &__ico {
+        display: grid;
+        place-items: center;
+        width: 2.5rem;
+        height: 2.5rem;
+        border-radius: 0.6rem;
+        background-color: $sc-wash-success;
+        color: $sc-brand;
+
+        svg {
+            width: 1.25rem;
+            height: 1.25rem;
         }
+    }
+
+    @include media-breakpoint-up(md) {
+        grid-template-columns: 1fr 1.6fr;
+        gap: 3rem;
     }
 }
 
@@ -894,55 +947,93 @@ body {
 // previously 12px grey at the bottom of the page.
 
 .sc-foot {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
     background-color: $sc-deep;
     color: $sc-on-deep-muted;
-    font-size: 0.93rem;
+    font-size: 0.95rem;
     line-height: 1.6;
 
     &__inner {
-        padding-block: 1.5rem;
-        display: flex;
-        flex-direction: column;
-        gap: 0.4rem;
+        padding-block: 2.5rem;
+        display: grid;
+        gap: 1.1rem;
 
         @include media-breakpoint-up(md) {
-            flex-direction: row;
-            justify-content: space-between;
+            grid-template-columns: 1fr 1.4fr;
             align-items: center;
-            gap: 1.25rem;
+            column-gap: 2rem;
         }
     }
 
     strong {
         color: #fff;
+        font-size: 1.1rem;
         font-weight: 650;
+    }
+
+    // "If you have lost money..." is the most consequential sentence on the
+    // site, so it sits in its own outlined box rather than as a trailing line.
+    &__help {
+        display: flex;
+        gap: 0.8rem;
+        align-items: flex-start;
+        margin: 0;
+        padding: 0.95rem 1.1rem;
+        border: 1px solid rgba(255, 255, 255, 0.16);
+        border-radius: 0.75rem;
+        color: $sc-on-deep;
+
+        svg {
+            flex: 0 0 auto;
+            width: 1.25rem;
+            height: 1.25rem;
+            margin-top: 0.15rem;
+            color: $sc-mint;
+        }
+    }
+
+    &__meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem 1.25rem;
+        margin: 0;
+        padding-top: 1.1rem;
+        border-top: 1px solid rgba(255, 255, 255, 0.12);
+        font-size: 0.9rem;
+
+        @include media-breakpoint-up(md) {
+            grid-column: 1 / -1;
+        }
+
+        a {
+            color: $sc-on-deep-muted;
+            text-underline-offset: 0.2em;
+        }
     }
 }
 
-// ── Segmented control, with a sliding pill ──────────────────────────────────
+// ── Segmented control ───────────────────────────────────────────────────────
 //
 // Radio inputs underneath, so the control submits with no JavaScript at all.
-// The pill is positioned from `:checked` in CSS, which means it is already in
-// the right place on first paint — app.js never has to initialise it, only
-// to let it animate.
+//
+// The selected state is a COPY of both labels, white on green, clipped to the
+// checked half (`.sc-seg__on`). It replaced a sliding pill whose labels
+// changed colour on their own timer: the pill took 380ms and the text 240ms,
+// so mid-travel a label sat half on green in the wrong colour. One element
+// being revealed cannot get out of step with itself. The clip is driven from
+// `:checked` in CSS, so it is right on first paint, and clicks pass through
+// the copy to the real labels beneath.
 
 .sc-seg {
     position: relative;
-    display: flex;
-    border: 2px solid $sc-brand;
-    border-radius: 0.75rem;
-    overflow: hidden;
-
-    &__pill {
-        position: absolute;
-        z-index: 0;
-        inset-block: 0;
-        left: 0;
-        width: 50%;
-        background-color: $sc-brand;
-        box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.2);
-        transition: transform 0.38s $sc-spring;
-    }
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    padding: 4px;
+    border: 2px solid $sc-line-strong;
+    border-radius: 0.8rem;
+    background-color: $sc-paper-tint;
 
     &__input {
         position: absolute;
@@ -950,40 +1041,63 @@ body {
         pointer-events: none;
     }
 
-    &__opt {
-        position: relative;
-        z-index: 1;
-        flex: 1;
-        text-align: center;
-        padding: 0.85rem 0.5rem;
+    &__opt,
+    &__on > span {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        min-height: 3.1rem;
+        padding: 0.4rem 0.5rem;
+        border-radius: 0.55rem;
         font-size: 1rem;
-        font-weight: 600;
-        color: $sc-brand;
+        font-weight: 650;
+        text-align: center;
+
+        svg {
+            flex: 0 0 auto;
+            width: 1.1rem;
+            height: 1.1rem;
+        }
+    }
+
+    &__opt {
+        color: $sc-ink-muted;
         cursor: pointer;
-        transition: color 0.24s $sc-swift;
     }
 
-    // The second radio being checked drives the pill across and swaps the
-    // emphasis. Weight as well as colour, because weight is what survives a
-    // cheap screen at arm's length — and it means the selection is not carried
-    // by colour alone.
-    &__input:checked + &__opt {
-        color: #fff;
-        font-weight: 700;
+    // Weight as well as colour on the chosen side, because weight is what
+    // survives a cheap screen at arm's length — and it means the selection is
+    // not carried by colour alone.
+    &__on {
+        position: absolute;
+        inset: 0;
+        padding: 4px;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        pointer-events: none;
+        clip-path: inset(4px 50% 4px 4px round 0.55rem);
+        transition: clip-path 250ms $sc-ease-in-out;
+
+        > span {
+            border-radius: 0;
+            background-color: $sc-brand;
+            color: #fff;
+            font-weight: 700;
+        }
     }
 
-    // The pill is the LAST child for this to work at all: `~` only reaches
-    // siblings that follow the subject. With the pill written first the rule
-    // silently never matched.
-    &__input#type-url:checked ~ &__pill {
-        transform: translateX(100%);
+    // The copy is the LAST child for this to work at all: `~` only reaches
+    // siblings that follow the subject. Pinned by VerifyPageTest.
+    &__input#type-url:checked ~ &__on {
+        clip-path: inset(4px 4px 4px 50% round 0.55rem);
     }
 
     // Keyboard focus has to land somewhere visible, and the real input is
     // hidden. The label carries the ring instead.
     &__input:focus-visible + &__opt {
         outline: 3px solid $sc-brand;
-        outline-offset: -3px;
+        outline-offset: 2px;
     }
 }
 
@@ -1010,23 +1124,35 @@ body {
         transform 0.34s $sc-spring,
         box-shadow 0.2s $sc-swift;
 
-    // A spring, not a linear nudge. Down fast on press, settle on release —
-    // about 2.5% overshoot, which reads as physical rather than bouncy.
+    // Down fast on a strong ease-out, back up on the spring — about 2.5%
+    // overshoot, which reads as physical rather than bouncy.
     &:active {
-        transform: scale(0.978);
+        transform: scale(0.97);
         box-shadow: 0 1px 0 rgba(0, 0, 0, 0.14);
-        transition-duration: 0.09s;
+        transition:
+            transform 160ms $sc-ease-out,
+            box-shadow 160ms $sc-ease-out;
     }
 
     &[aria-busy="true"] {
         // Not `disabled`: greying it out reads as "this is broken" rather than
         // "this is working". It stays fully coloured and stops responding.
         pointer-events: none;
+        cursor: progress;
     }
 
+    // "Check it" -> "Checking..." crossfades rather than snapping. app.js
+    // sets `is-swapping`, changes the text while it is invisible, then clears it.
     &__label {
         display: block;
-        transition: opacity 0.2s $sc-swift;
+        transition:
+            opacity 150ms ease,
+            transform 150ms $sc-ease-out;
+
+        &.is-swapping {
+            opacity: 0;
+            transform: translateY(-4px);
+        }
     }
 
     // The rail runs along the bottom edge of the button itself. Indeterminate,
@@ -1046,7 +1172,9 @@ body {
             inset-block: 0;
             width: 38%;
             background-color: rgba(255, 255, 255, 0.95);
-            animation: sc-sweep 1.15s ease-in-out infinite;
+            // Constant motion, so linear: an eased sweep appears to hesitate
+            // at each end, which reads as the work stalling.
+            animation: sc-sweep 1.15s linear infinite;
         }
     }
 
@@ -1109,11 +1237,26 @@ body {
 
 .sc-tone {
     --sc-band: #{$sc-ink-muted};
+    --sc-wash: #{$sc-paper-tint};
 
     @each $band in (danger, warning, success, secondary) {
         &--#{$band} {
             --sc-band: var(--bs-#{$band});
         }
+    }
+
+    // The matching tint for each band's "What to do" box. `secondary` (could
+    // not check) keeps the neutral paper tint: there is no finding to colour.
+    &--danger {
+        --sc-wash: #{$sc-wash-danger};
+    }
+
+    &--warning {
+        --sc-wash: #{$sc-wash-warning};
+    }
+
+    &--success {
+        --sc-wash: #{$sc-wash-success};
     }
 }
 
@@ -1155,33 +1298,62 @@ body {
 // "What to do". An arrow rather than a rail down the left edge: the rail on a
 // rounded box is the most generic move in current interface design, and the
 // arrow says what the box is for — the next step.
+//
+// Tinted in the band's own colour (--sc-wash) and headed in it, so the one
+// action reads as part of the verdict. The advice is one instruction per line:
+// the same sentences as the translation files, split by the view, because a
+// reader skimming under stress takes in three short lines where a paragraph
+// gets skipped.
 .sc-todo {
-    display: grid;
-    grid-template-columns: auto 1fr;
-    gap: 0.2rem 0.75rem;
     margin-top: 1.3rem;
-    padding: 1rem 1.1rem;
+    padding: 1.1rem 1.25rem;
     border-radius: $border-radius-sm;
-    background-color: $sc-paper-tint;
-
-    > svg {
-        grid-row: span 2;
-        width: 1.4rem;
-        height: 1.4rem;
-        margin-top: 0.1rem;
-        color: var(--sc-band);
-    }
+    background-color: var(--sc-wash);
 
     h2,
     h3 {
         margin: 0;
-        font-size: 1.02rem;
-        font-weight: 650;
+        font-size: 1.15rem;
+        font-weight: 700;
         letter-spacing: normal;
+        color: var(--sc-band);
+    }
+
+    ul {
+        display: grid;
+        gap: 0.5rem;
+        margin: 0.65rem 0 0;
+        padding: 0;
+        list-style: none;
+    }
+
+    li {
+        display: grid;
+        grid-template-columns: 1.1rem 1fr;
+        gap: 0.6rem;
+        font-size: 1.05rem;
+
+        svg {
+            width: 0.85rem;
+            height: 0.85rem;
+            margin-top: 0.4rem;
+            color: var(--sc-band);
+        }
     }
 
     p {
-        margin: 0;
+        margin: 0.65rem 0 0;
+    }
+
+    // The verified panel's "we checked the address, not the page". A caveat
+    // rather than an instruction, so it stays neutral: tinting it green would
+    // read as more reassurance, which is the opposite of its job.
+    &--scope {
+        background-color: $sc-paper-tint;
+
+        h2 {
+            color: $sc-ink;
+        }
     }
 }
 
@@ -1405,73 +1577,6 @@ body {
     }
 }
 
-// ── Warn your family ────────────────────────────────────────────────────────
-
-.sc-bubble {
-    max-width: 34rem;
-    margin: 1rem 0 0.9rem;
-    padding: 0.85rem 1rem;
-    border-radius: 16px 16px 16px 4px;
-    background-color: #e3efe8;
-    white-space: pre-wrap;
-    word-break: break-word;
-    line-height: 1.55;
-}
-
-.sc-copy {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.45rem;
-    padding: 0.7rem 1rem;
-    border: 2px solid $sc-brand;
-    border-radius: 10px;
-    background-color: $sc-surface;
-    color: $sc-brand;
-    font-weight: 650;
-    cursor: pointer;
-    transition:
-        background-color 0.15s ease-out,
-        color 0.15s ease-out,
-        transform 0.2s $sc-spring;
-
-    svg {
-        width: 1.1rem;
-        height: 1.1rem;
-    }
-
-    &:active {
-        transform: scale(0.97);
-    }
-
-    &[data-done] {
-        background-color: $sc-brand;
-        color: #fff;
-    }
-}
-
-@media (hover: hover) {
-    .sc-copy:not([data-done]):hover {
-        background-color: $sc-paper-tint;
-    }
-}
-
-.sc-note {
-    display: flex;
-    gap: 0.5rem;
-    align-items: flex-start;
-    margin: 0.8rem 0 0;
-    font-size: 0.93rem;
-    color: $sc-ink-muted;
-
-    svg {
-        flex: 0 0 auto;
-        width: 1rem;
-        height: 1rem;
-        margin-top: 0.2rem;
-        color: $sc-brand;
-    }
-}
-
 // ── The wait, shown ─────────────────────────────────────────────────────────
 // On submit app.js swaps the box for a reading view of what was pasted and
 // makes the links safe in front of the reader — a real step, done in the
@@ -1542,6 +1647,26 @@ body {
         color: $sc-ink-muted;
         transition: color 0.3s $sc-swift;
 
+        // Each line rises in as the list is un-hidden. `@starting-style` needs
+        // no JavaScript state; a browser without it shows the list at once.
+        transition:
+            color 0.3s $sc-swift,
+            opacity 250ms ease,
+            transform 250ms $sc-ease-out;
+
+        @starting-style {
+            opacity: 0;
+            transform: translateY(8px);
+        }
+
+        &:nth-child(2) {
+            transition-delay: 0s, 50ms, 50ms;
+        }
+
+        &:nth-child(3) {
+            transition-delay: 0s, 100ms, 100ms;
+        }
+
         &::before {
             content: "";
             flex: 0 0 auto;
@@ -1551,7 +1676,8 @@ body {
             border-radius: 50%;
             transition:
                 background-color 0.3s,
-                border-color 0.3s;
+                border-color 0.3s,
+                transform 200ms $sc-ease-out;
         }
 
         &.is-now {
@@ -1561,6 +1687,7 @@ body {
             &::before {
                 border-color: $sc-brand;
                 background-color: $sc-brand;
+                transform: scale(1.2);
             }
         }
 
@@ -1701,20 +1828,11 @@ body {
     }
 
     .sc-lang__pill,
-    .sc-seg__pill,
     .sc-cta,
     .sc-cta:active,
-    .sc-copy,
     .sc-reason {
         transition: none;
         transform: none;
-    }
-
-    .sc-seg__input#type-url:checked ~ .sc-seg__pill {
-        // The pill must still be in the right place; only the travel is
-        // removed. Suppressing the transform entirely would leave the label
-        // highlighted with the fill under the other option.
-        transform: translateX(100%);
     }
 
     .sc-lang[data-active="ms"] .sc-lang__pill {
@@ -1753,5 +1871,1050 @@ body {
 
     .text-body-secondary {
         color: $sc-on-deep-muted !important;
+    }
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// About and How-to pages
+//
+// Reading pages, so they borrow the landing page's frame — band, hero, a card
+// lifted out of it — and add only what prose needs. Every colour here is an
+// existing token, so PaletteContrastTest's pairs already cover them.
+// ═════════════════════════════════════════════════════════════════════════════
+
+// ── The two page links in the band ──────────────────────────────────────────
+// On a phone the brand, two links and EN/BM do not fit on one line, so the
+// links take a row of their own beneath the brand. From md up they sit
+// between the brand and the language switch.
+
+.sc-nav {
+    order: 3;
+    flex-basis: 100%;
+    display: flex;
+    gap: 1.4rem;
+
+    @include media-breakpoint-up(md) {
+        order: 0;
+        flex-basis: auto;
+        margin-left: auto;
+        margin-right: 0.6rem;
+    }
+
+    &__link {
+        // 44px tall at this size and padding: a finger-sized target for the
+        // same arm's-length reader the language switch is sized for.
+        padding-block: 0.6rem;
+        font-size: 1rem;
+        font-weight: 600;
+        color: $sc-on-deep-muted;
+        text-decoration: none;
+        transition: color 150ms ease;
+
+        // Gated: on a touchscreen :hover sticks after the tap.
+        @media (hover: hover) and (pointer: fine) {
+            &:hover {
+                color: #fff;
+            }
+        }
+
+        // The current page is marked by weight AND an underline, never by
+        // colour alone.
+        &[aria-current="page"] {
+            color: #fff;
+            text-decoration: underline;
+            text-decoration-color: $sc-mint;
+            text-decoration-thickness: 2px;
+            text-underline-offset: 0.4em;
+        }
+    }
+}
+
+// ── A smaller hero ──────────────────────────────────────────────────────────
+// The landing page's 4.4rem heading is a proposition. Here it is a page title,
+// and "How to use ScamSense" is longer than "Is this a scam?".
+
+.sc-hero--page h1 {
+    font-size: clamp(2rem, 6vw, 3.2rem);
+}
+
+.sc-hero--page > p {
+    max-width: 44ch;
+}
+
+// ── Prose inside the card ───────────────────────────────────────────────────
+
+.sc-page {
+    section + section {
+        margin-top: 1.9rem;
+        padding-top: 1.7rem;
+        border-top: 1px solid $sc-line;
+    }
+
+    h2 {
+        font-size: 1.3rem;
+        font-weight: 700;
+        letter-spacing: -0.015em;
+        margin-bottom: 0.9rem;
+    }
+
+    h3 {
+        font-size: 1.05rem;
+        font-weight: 650;
+        margin-bottom: 0.3rem;
+    }
+
+    p,
+    li {
+        font-size: 1rem;
+        line-height: 1.65;
+    }
+
+    ul,
+    ol {
+        padding-left: 1.25rem;
+        margin-bottom: 0;
+    }
+
+    li + li {
+        margin-top: 0.4rem;
+    }
+
+    &__note {
+        margin: 0.9rem 0 0;
+        color: $sc-ink-muted;
+    }
+}
+
+.sc-facts {
+    display: grid;
+    gap: 1.2rem 2rem;
+
+    @include media-breakpoint-up(md) {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    p {
+        color: $sc-ink-muted;
+        margin-bottom: 0;
+    }
+}
+
+// The prose rules above (`.sc-page ol` indent, `li + li` spacing) are for
+// running text. The card grids below are not prose, so they opt out here in
+// one place rather than fighting it rule by rule.
+.sc-page {
+    .sc-howsteps,
+    .sc-lost,
+    .sc-urls .sc-legend {
+        padding-left: 0;
+
+        > li + li {
+            margin-top: 0;
+        }
+    }
+
+    .sc-urls .sc-legend > li + li {
+        margin-top: 0;
+    }
+}
+
+// ── How to use: steps with a drawing of the real control ────────────────────
+// Each drawing is a miniature built from the site's own tokens and strings
+// (not a screenshot), so it stays sharp, follows the language switch, and
+// changes with the design. aria-hidden in the view: the sentence above each
+// drawing carries the instruction.
+
+.sc-howsteps {
+    display: grid;
+    gap: 1rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+
+    @include media-breakpoint-up(md) {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+.sc-howstep {
+    display: grid;
+    grid-template-rows: auto 1fr;
+    overflow: hidden;
+    border: 1px solid $sc-line;
+    border-radius: 0.9rem;
+    background-color: $sc-surface;
+
+    &__text {
+        display: grid;
+        grid-template-columns: 2.4rem 1fr;
+        gap: 0.6rem;
+        align-items: baseline;
+        padding: 1rem 1.1rem 0.9rem;
+
+        p {
+            margin: 0;
+            font-size: 1.05rem;
+        }
+    }
+
+    // The same brand numeral as the home page steps, smaller. Also used by
+    // the "lost money" cards.
+    &__n {
+        color: $sc-brand;
+        font-size: 1.45rem;
+        font-weight: 700;
+        line-height: 1;
+        letter-spacing: -0.04em;
+        font-variant-numeric: tabular-nums;
+    }
+}
+
+// The tinted "screen" each miniature sits on.
+.sc-stage {
+    position: relative;
+    display: grid;
+    place-items: center;
+    min-height: 9.5rem;
+    padding: 1.25rem;
+    border-top: 1px solid $sc-line;
+    background-color: $sc-paper-tint;
+}
+
+.sc-mini {
+    position: relative;
+    width: 100%;
+    max-width: 19rem;
+    font-size: 0.9rem;
+    line-height: 1.4;
+
+    // Room for the phone's copy/paste menu above the box.
+    &--low {
+        margin-top: 1.4rem;
+    }
+}
+
+// A finger's tap, drawn: two static rings at the control's lower right. Static
+// on purpose; the page explains, it does not perform.
+.sc-tap {
+    position: absolute;
+    left: calc(50% + 6.5rem);
+    top: calc(50% + 0.1rem);
+    width: 2.4rem;
+    height: 2.4rem;
+    border: 2px solid $sc-brand;
+    border-radius: 50%;
+    background-color: rgba($sc-brand, 0.12);
+    pointer-events: none;
+
+    &::after {
+        content: "";
+        position: absolute;
+        inset: -0.55rem;
+        border: 2px solid rgba($sc-brand, 0.35);
+        border-radius: 50%;
+    }
+}
+
+.sc-mini-seg {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    padding: 3px;
+    border: 2px solid $sc-line-strong;
+    border-radius: 0.6rem;
+    background-color: $sc-surface;
+
+    span {
+        display: grid;
+        place-items: center;
+        min-height: 2.4rem;
+        border-radius: 0.4rem;
+        color: $sc-ink-muted;
+        font-weight: 650;
+    }
+
+    .is-on {
+        background-color: $sc-brand;
+        color: #fff;
+        font-weight: 700;
+    }
+}
+
+.sc-mini-box {
+    position: relative;
+    min-height: 4.75rem;
+    padding: 0.6rem 0.75rem;
+    border: 2px solid $sc-brand;
+    border-radius: 0.6rem;
+    background-color: $sc-surface;
+    box-shadow: 0 0 0 3px rgba($sc-brand, 0.15);
+}
+
+.sc-caret {
+    display: inline-block;
+    width: 2px;
+    height: 1.05em;
+    margin-left: 1px;
+    vertical-align: -2px;
+    background-color: $sc-ink;
+}
+
+// The phone's own long-press menu, in the dark it is drawn in on most phones.
+.sc-popup {
+    position: absolute;
+    top: -2.1rem;
+    right: 1rem;
+    display: flex;
+    overflow: hidden;
+    border-radius: 0.5rem;
+    background-color: $sc-ink;
+    color: #fff;
+    font-size: 0.82rem;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+
+    span {
+        padding: 0.35rem 0.7rem;
+    }
+
+    .is-on {
+        background-color: mix(#fff, $sc-ink, 22%);
+        font-weight: 700;
+    }
+}
+
+.sc-mini-btn {
+    display: grid;
+    place-items: center;
+    min-height: 2.9rem;
+    border-radius: 0.6rem;
+    background-color: $sc-brand;
+    color: #fff;
+    font-weight: 700;
+    box-shadow: 0 2px 0 $sc-deep;
+    transform: scale(0.97);
+}
+
+.sc-mini-verdict {
+    overflow: hidden;
+    border-radius: $border-radius-sm;
+    background-color: $sc-surface;
+    box-shadow:
+        0 8px 20px -10px rgba(15, 40, 32, 0.35),
+        0 0 0 1px rgba(22, 34, 29, 0.06);
+
+    &__rule {
+        display: block;
+        height: 4px;
+        background-color: var(--sc-band);
+    }
+
+    &__body {
+        padding: 0.6rem 0.75rem 0.75rem;
+
+        strong {
+            display: block;
+            margin: 0.35rem 0;
+            font-size: 1.05rem;
+            letter-spacing: -0.02em;
+        }
+    }
+}
+
+.sc-mini-badge {
+    display: inline-block;
+    padding: 0.15rem 0.6rem;
+    border-radius: 999px;
+    background-color: var(--sc-band);
+    color: #fff;
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
+.sc-mini-reason {
+    display: flex;
+    gap: 0.45rem;
+    align-items: center;
+    color: $sc-ink-muted;
+    font-size: 0.8rem;
+
+    & + & {
+        margin-top: 0.25rem;
+    }
+
+    i {
+        flex: 0 0 auto;
+        display: grid;
+        place-items: center;
+        width: 1.05rem;
+        height: 1.05rem;
+        border-radius: 50%;
+        background-color: var(--sc-band);
+        color: #fff;
+        font-size: 0.65rem;
+        font-style: normal;
+        font-weight: 700;
+    }
+}
+
+.sc-mini-fb {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin: 0.9rem 0 0;
+
+    span {
+        padding: 0.55rem 0.9rem;
+        border: 2px solid $sc-line-strong;
+        border-radius: 0.55rem;
+        background-color: $sc-surface;
+        font-size: 0.92rem;
+        font-weight: 600;
+    }
+}
+
+// ── Answers: the badge exactly as the result page draws it, each row ruled
+// in its own band colour ─────────────────────────────────────────────────────
+.sc-page .sc-answers {
+    display: grid;
+    gap: 0.6rem;
+    padding-left: 0;
+    list-style: none;
+
+    li {
+        display: grid;
+        gap: 0.5rem;
+        align-items: center;
+        padding: 0.75rem 0.9rem;
+        border-left: 5px solid var(--sc-band);
+        border-radius: $border-radius-sm;
+        background-color: $sc-paper-tint;
+
+        @include media-breakpoint-up(md) {
+            grid-template-columns: 15rem 1fr;
+            gap: 1.25rem;
+        }
+
+        p {
+            margin: 0;
+        }
+    }
+
+    li + li {
+        margin-top: 0;
+    }
+
+    // Arriving all at once on a page you scroll through is noise, not
+    // emphasis. The result page keeps its badge animation.
+    .sc-badge {
+        animation: none;
+        justify-self: start;
+    }
+}
+
+// ── Reading an address, drawn ───────────────────────────────────────────────
+// The result page's marks: the owner boxed and a copied name wavy-underlined,
+// both in the example's band colour (green for the real one, red for the
+// fake). .sc-legend and .sc-key are shared with the result page.
+.sc-urls {
+    display: grid;
+    gap: 0.85rem;
+    margin-top: 1.1rem;
+}
+
+.sc-url {
+    padding: 1rem 1rem 0.9rem;
+    border: 1px solid $sc-line;
+    border-radius: 0.75rem;
+    background-color: $sc-surface;
+
+    &__tag {
+        display: flex;
+        gap: 0.4rem;
+        align-items: center;
+        margin: 0 0 0.6rem;
+        color: var(--sc-band);
+        font-size: 0.93rem;
+        font-weight: 700;
+
+        svg {
+            width: 1rem;
+            height: 1rem;
+        }
+    }
+
+    &__addr {
+        margin: 0;
+        font-family: $font-family-monospace;
+        font-size: clamp(0.92rem, 2.4vw, 1.08rem);
+        line-height: 2.1;
+        overflow-wrap: anywhere;
+
+        b {
+            font-weight: 700;
+        }
+    }
+
+    &__dim {
+        color: $sc-ink-muted;
+    }
+
+    &__owner {
+        padding: 0.15em 0.3em;
+        border-radius: 4px;
+        background-color: var(--sc-wash);
+        box-shadow: inset 0 0 0 2px var(--sc-band);
+        font-weight: 700;
+    }
+
+    &__copy {
+        text-decoration: underline wavy $sc-danger;
+        text-decoration-thickness: 1.5px;
+        text-underline-offset: 0.35em;
+    }
+
+    .sc-legend {
+        margin-top: 0.7rem;
+        padding-top: 0.7rem;
+        border-top: 1px dashed $sc-line-strong;
+    }
+}
+
+// ── If you have already lost money: three actions, in order ────────────────
+.sc-lost {
+    display: grid;
+    gap: 0.75rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+
+    @include media-breakpoint-up(md) {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    li {
+        display: grid;
+        grid-template-rows: auto auto 1fr;
+        gap: 0.5rem;
+        padding: 1rem;
+        border: 1px solid $sc-line;
+        border-radius: 0.75rem;
+        background-color: $sc-surface;
+
+        p {
+            margin: 0;
+        }
+    }
+
+    li + li {
+        margin-top: 0;
+    }
+
+    &__top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+
+        .sc-howstep__n {
+            font-size: 1.2rem;
+        }
+    }
+
+    &__ico {
+        display: grid;
+        place-items: center;
+        width: 2.75rem;
+        height: 2.75rem;
+        border-radius: 0.75rem;
+        background-color: $sc-deep-2;
+        color: $sc-mint;
+
+        svg {
+            width: 1.35rem;
+            height: 1.35rem;
+        }
+    }
+
+    // Read off the screen while dialling.
+    &__big {
+        font-size: 1.6rem;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        font-variant-numeric: tabular-nums;
+    }
+}
+
+// "Act quickly": the one line on the page with a deadline in it, on the
+// warning tint (ink 14.47:1, the icon's $sc-warning 5.23:1).
+.sc-hurry {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+    margin: 0.9rem 0 0;
+    padding: 0.85rem 1rem;
+    border-radius: $border-radius-sm;
+    background-color: $sc-wash-warning;
+    font-weight: 650;
+
+    svg {
+        flex: 0 0 auto;
+        width: 1.35rem;
+        height: 1.35rem;
+        color: $sc-warning;
+    }
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// REDESIGN, 2026-09-30 — ADR 0012 amendment of the same date
+//
+// Previewed as a clickable mockup and approved before any of this was written.
+// Every colour is an existing token or one of the three $sc-wash-* tints, all
+// asserted by PaletteContrastTest.
+// ═════════════════════════════════════════════════════════════════════════════
+
+// ── Home: the task beside the proposition ───────────────────────────────────
+// On a wide screen the form sits beside the heading, so the whole task
+// (heading, choice, box, button) is inside the first 1280x800 viewport.
+//
+// Heading and form are ONE grid inside <main> (.sc-home-top), on a band that
+// continues the header's. The first version left the heading in the header
+// and pulled the form up by a fixed distance; that held only while the left
+// column stayed one exact height, and in Malay -- a longer heading, promises
+// that wrap -- the heading ran under the card and the specimen was cropped.
+// A grid sizes each column from its own content, in any language and at any
+// text size.
+//
+// The header on this page is `sc-mast--flush`: no light and no shield, so its
+// flat green and grain meet the band below without a seam. The band carries
+// the shield itself, and `overflow-x: clip` crops it at the side while
+// letting the card hang below the band's bottom edge.
+
+$sc-home-card-w: 34rem;
+// How far the card hangs below the band into the paper.
+$sc-home-overhang: 3rem;
+$sc-home-overhang-lg: 4rem;
+
+.sc-mast--flush {
+    background-image: none;
+
+    .sc-mast__shield {
+        display: none;
+    }
+}
+
+// On a phone the band must end just below the top of the form, as it did
+// before: the card is stacked under the heading, and a band behind the whole
+// card would bury the page in green. So below lg the band is painted by the
+// HEADING column's pseudo-elements, reaching a fixed distance past it into the
+// card; from lg up it is the whole section, behind both columns.
+$sc-home-band-past: 1.4rem + 3rem; // grid gap + how far into the card
+
+@mixin sc-band-surface {
+    background-color: $sc-deep-2;
+}
+
+@mixin sc-band-grain {
+    opacity: 0.5;
+    mix-blend-mode: overlay;
+    background-image: url($sc-grain);
+}
+
+.sc-home-top {
+    position: relative;
+    isolation: isolate;
+    overflow-x: clip;
+    color: $sc-on-deep;
+
+    @include media-breakpoint-up(lg) {
+        @include sc-band-surface;
+
+        // The same static grain as the header, so the two read as one surface.
+        &::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            z-index: -1;
+            @include sc-band-grain;
+        }
+    }
+
+    &__grid {
+        display: grid;
+        gap: 1.4rem;
+
+        > .sc-card {
+            margin-bottom: -$sc-home-overhang;
+        }
+
+        @include media-breakpoint-up(lg) {
+            grid-template-columns: minmax(0, 1fr) $sc-home-card-w;
+            column-gap: 3rem;
+            align-items: start;
+            padding-top: 1.5rem;
+
+            > .sc-card {
+                margin-bottom: -$sc-home-overhang-lg;
+            }
+        }
+    }
+}
+
+// The heading column. It no longer lives in the header, so the hero's own
+// band padding is replaced; the bottom padding is the room the specimen and
+// the promises need inside the band.
+.sc-hero--home {
+    position: relative;
+    padding-block: 0;
+
+    @include media-breakpoint-down(lg) {
+        &::before,
+        &::after {
+            content: "";
+            position: absolute;
+            z-index: -1;
+            top: 0;
+            bottom: calc(-1 * (#{$sc-home-band-past}));
+            left: 50%;
+            width: 100vw;
+            transform: translateX(-50%);
+        }
+
+        &::before {
+            @include sc-band-surface;
+        }
+
+        &::after {
+            @include sc-band-grain;
+        }
+    }
+
+    padding-top: 0.6rem;
+
+    @include media-breakpoint-up(lg) {
+        padding-block: 1.25rem 3rem;
+
+        // Wraps inside its column instead of running under the card:
+        // `.sc-hero h1` sets `max-width: none`, which is what let it overrun.
+        > h1 {
+            font-size: clamp(2.6rem, 4.6vw, 4.2rem);
+        }
+    }
+}
+
+// The section after the band starts below the card's overhang.
+.sc-home-top + .sc-band {
+    padding-top: calc(#{$sc-home-overhang} + clamp(3.5rem, 8vw, 6rem));
+
+    @include media-breakpoint-up(lg) {
+        padding-top: calc(#{$sc-home-overhang-lg} + clamp(3.5rem, 8vw, 6rem));
+    }
+}
+
+// `.sc-hero > p` sets the lead's size and colour and would otherwise win here.
+.sc-hero > .sc-eyebrow,
+.sc-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0 0 0.9rem;
+    max-width: none;
+    color: $sc-mint;
+    font-size: 0.92rem;
+    line-height: 1.4;
+    font-weight: 600;
+
+    &::before {
+        content: "";
+        width: 1.1rem;
+        height: 2px;
+        border-radius: 2px;
+        background-color: currentColor;
+    }
+}
+
+// Three promises beside the heading, before anything is pasted. Desktop only:
+// on a phone the height is needed for the form, and the same promises appear
+// under the button and in the privacy panel.
+.sc-trust {
+    display: none;
+
+    @include media-breakpoint-up(lg) {
+        display: grid;
+        gap: 0.7rem;
+        margin: 1.7rem 0 0;
+        padding: 0;
+        list-style: none;
+        color: $sc-on-deep;
+
+        li {
+            display: flex;
+            gap: 0.75rem;
+            align-items: flex-start;
+        }
+
+        svg {
+            flex: 0 0 auto;
+            width: 1.1rem;
+            height: 1.1rem;
+            margin-top: 0.25rem;
+            color: $sc-mint;
+        }
+    }
+}
+
+// The paste tip under the box, in the words on the phone's own menu.
+.sc-tip {
+    margin: 0.5rem 0 0;
+    font-size: 0.93rem;
+    color: $sc-ink-muted;
+}
+
+// ── Background: static, and each piece means something ─────────────────────
+// ADR 0012 (2026-09-25) rejected a MOVING background and that answer stands:
+// decoration with no meaning, it costs battery on the mid-range Android this
+// is built for, and a drifting gradient is the register a phishing page uses.
+// None of the three below moves.
+
+// 1. A security-print guilloche: the interlaced line pattern printed on
+//    banknotes and cheques so they are hard to copy. One ribbon where the
+//    band meets the paper, fading out both ways, and a faint echo along the
+//    top of the footer. Brand green only, so it cannot compete with a risk
+//    colour (rule 2). public/images/guilloche.svg, 14 KB gzipped, generated
+//    by resources/svg/guilloche.mjs.
+.sc-public main {
+    position: relative;
+    isolation: isolate;
+
+    &::before {
+        content: "";
+        position: absolute;
+        z-index: -1;
+        inset-inline: 0;
+        top: 0;
+        height: 360px;
+        background: url("/images/guilloche.svg") center top / 1440px 360px repeat-x;
+        opacity: 0.22;
+        pointer-events: none;
+        mask-image: linear-gradient(to bottom, transparent, #000 25%, #000 55%, transparent);
+    }
+}
+
+// On the home page <main> opens with the green band, which would hide the
+// ribbon; there it runs under the first section after the band instead.
+.sc-public main:has(> .sc-home-top)::before {
+    display: none;
+}
+
+.sc-home-top + .sc-band {
+    position: relative;
+    isolation: isolate;
+
+    &::before {
+        content: "";
+        position: absolute;
+        z-index: -1;
+        inset-inline: 0;
+        top: 0;
+        height: 360px;
+        background: url("/images/guilloche.svg") center top / 1440px 360px repeat-x;
+        opacity: 0.22;
+        pointer-events: none;
+        mask-image: linear-gradient(to bottom, transparent, #000 25%, #000 55%, transparent);
+    }
+}
+
+.sc-foot::before {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    inset-inline: 0;
+    top: -150px;
+    height: 360px;
+    background: url("/images/guilloche.svg") center / 1440px 360px repeat-x;
+    filter: brightness(3.2) saturate(0.6);
+    opacity: 0.1;
+    pointer-events: none;
+}
+
+// 2. The band shows what the tool looks for: two scam texts as ghosted
+//    message bubbles, the tell-tale phrases underlined in mint. A specimen,
+//    not content: aria-hidden, desktop only, home page only (ADR 0012 keeps
+//    illustration off the result page). Mint, never red: red on the band
+//    would put a risk hue in page furniture. Solid fills, so the front bubble
+//    hides the back one rather than the two texts reading through each other.
+.sc-specimen {
+    display: none;
+
+    @include media-breakpoint-up(lg) {
+        display: block;
+        position: relative;
+        height: 7.5rem;
+        margin-top: 1.75rem;
+        pointer-events: none;
+        user-select: none;
+    }
+}
+
+.sc-ghost {
+    position: absolute;
+    padding: 0.75rem 0.9rem;
+    border: 1px solid rgba($sc-on-deep, 0.12);
+    border-radius: 14px 14px 14px 4px;
+    background-color: mix($sc-on-deep, $sc-deep-2, 5.5%);
+    box-shadow: 0 10px 24px -12px rgba(0, 0, 0, 0.35);
+    color: rgba($sc-on-deep, 0.42);
+    font-size: 0.88rem;
+    line-height: 1.45;
+
+    small {
+        display: block;
+        margin-bottom: 0.25rem;
+        font-size: 0.72rem;
+        letter-spacing: 0.02em;
+        color: rgba($sc-on-deep, 0.32);
+    }
+
+    b {
+        font-weight: 500;
+        color: rgba($sc-on-deep, 0.62);
+        text-decoration: underline 2px rgba($sc-mint, 0.55);
+        text-underline-offset: 3px;
+    }
+
+    &--a {
+        left: 0;
+        top: 0;
+        max-width: 17rem;
+        transform: rotate(-2.5deg);
+    }
+
+    &--b {
+        left: 12rem;
+        top: 2.4rem;
+        max-width: 15.5rem;
+        transform: rotate(1.5deg);
+    }
+}
+
+// 3. The shield in the band's corner is unchanged (.sc-mast__shield).
+
+// ── Result: feedback, and the way on ─────────────────────────────────
+
+.sc-fb {
+    display: grid;
+    gap: 1rem;
+
+    @include media-breakpoint-up(lg) {
+        grid-template-columns: 1fr auto;
+        column-gap: 2rem;
+        align-items: center;
+    }
+
+    // Side by side wherever they fit; each keeps its full label on one line.
+    &__btns {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.6rem;
+
+        form {
+            flex: 1 1 auto;
+        }
+
+        .btn {
+            white-space: nowrap;
+        }
+
+        @include media-breakpoint-up(lg) {
+            flex-wrap: nowrap;
+        }
+    }
+}
+
+.sc-cta--again {
+    max-width: 26rem;
+    margin-inline: auto;
+    text-decoration: none;
+
+    &:hover {
+        color: #fff;
+    }
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .sc-cta:hover {
+        background-color: $sc-brand-dark;
+    }
+}
+
+// ── Entrances ───────────────────────────────────────────────────────────────
+// Home page, first view: a 50ms stagger so the page assembles rather than
+// pops, the form arriving last because that is where the eye should end.
+// Start states live only inside keyframes, so anything whose animation never
+// runs is simply visible. Never blocks input.
+
+@keyframes sc-lift-in {
+    from {
+        opacity: 0;
+        transform: translateY(20px) scale(0.98);
+    }
+}
+
+@keyframes sc-fade {
+    from {
+        opacity: 0;
+    }
+}
+
+.sc-enter {
+    animation: sc-rise 500ms $sc-ease-out both;
+    animation-delay: calc(var(--sc-d, 0) * 50ms);
+}
+
+.sc-card.sc-enter {
+    animation-name: sc-lift-in;
+    animation-duration: 600ms;
+}
+
+.sc-specimen.sc-enter {
+    animation-name: sc-fade;
+    animation-duration: 900ms;
+}
+
+// Scroll reveal for the sections below the fold. app.js arms it only for
+// sections that start OFF screen, and only when motion is allowed, so nothing
+// visible at load ever blinks out; it fires once and stops watching.
+.sc-reveal[data-reveal] > * {
+    transition:
+        opacity 500ms $sc-ease-out,
+        transform 500ms $sc-ease-out;
+    transition-delay: calc(var(--sc-d, 0) * 70ms);
+}
+
+.sc-reveal[data-reveal="armed"] > * {
+    opacity: 0;
+    transform: translateY(16px);
+}
+
+// Every piece above is switched off under reduced motion, as the rest of the
+// site's motion is (ADR 0012). Nothing here moves layout, so removing the
+// motion leaves every element where it belongs.
+@media (prefers-reduced-motion: reduce) {
+    .sc-enter,
+    .sc-card.sc-enter,
+    .sc-specimen.sc-enter {
+        animation: none;
+    }
+
+    .sc-seg__on,
+    .sc-cta__label,
+    .sc-back,
+    .sc-back__arrow,
+    .sc-steps-live li,
+    .sc-steps-live li::before {
+        transition: none;
+    }
+
+    .sc-back:active,
+    .sc-back:hover .sc-back__arrow,
+    .sc-steps-live li.is-now::before {
+        transform: none;
     }
 }

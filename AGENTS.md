@@ -351,14 +351,33 @@ ruff check . && black . && pytest
         `tests/Feature/PaletteContrastTest.php` reads the Sass variables and
         recomputes every pair. Do not satisfy it by lowering
         `$min-contrast-ratio` — it asserts the WCAG thresholds directly.
-      ↳ Tap-to-fill examples on the form: bodies stay Malay in BOTH locales (a
-        Malaysian on an English UI still receives Malay scam SMS), labels are
-        neutral ("Parcel notice", never "Parcel scam") so the button does not
-        announce a verdict the model has not produced. Every example is checked
-        end to end against the running model, not written and trusted.
+      ↳ **REMOVED 2026-09-29, Shafiq's decision:** the tap-to-fill example buttons
+        (Parcel notice, Prize message, Electricity bill, Bank link) and their
+        JavaScript are gone from the form. Do not reintroduce them unasked. If
+        they come back: bodies stay Malay in BOTH locales, labels stay neutral
+        ("Parcel notice", never "Parcel scam"), and each is checked end to end
+        against the running model, not written and trusted.
+      ↳ About (`/about`) and How to use (`/how-to-use`) pages, linked from the
+        band. No accuracy percentages on either, and the verified-address list
+        is described as NOT AI. Both pinned by `InfoPagesTest`.
       ↳ Malay reviewed by Shafiq: `pelik`, `tidak pasti`, `alamat` throughout.
       ↳ Risk carried by icon + text + colour; icons are inline SVG so a failed
         webfont cannot reduce the verdict to colour alone.
+      ↳ **REDESIGN 2026-09-30, approved from a mockup** (ADR 0012 amendment):
+        form beside the heading on desktop, two-column verdict, "What to do"
+        in the band's tint and one sentence per line, static guilloche and a
+        scam specimen in the band. The background does NOT move — that answer
+        stands. The segment control is now `.sc-seg__on` (a clipped copy),
+        not a pill; it must stay after the radios. Keep the enum icon the
+        ONLY `{!! !!}` in the app: new icons go in as literal SVG.
+      ↳ The new Malay strings in `lang/ms.json` are a first draft awaiting
+        Shafiq's review.
+      ↳ **REMOVED 2026-09-30, Shafiq's decision:** "Warn your family" (the
+        copyable message on the high band) — view, clipboard JS, styles and
+        strings. Do not reintroduce it unasked.
+      ↳ How to use pairs each step with a drawing of the real control, built
+        from the site's own strings (not screenshots). **The design is frozen
+        for deployment**: that was the last design change.
 - [x] Phase 7 — Feedback loop + moderation queue — see `docs/adr/0008`
       ↳ The gate is a MODEL INVARIANT, not a service convention: TrainingSample
         refuses to create a community row without approved feedback and a named
@@ -396,6 +415,17 @@ ruff check . && black . && pytest
         stay, behind a <details>, as the ext-zip fallback and for anyone wanting
         one file. `ext-zip` is in composer.json require so a build without it
         fails at install, not at the button.
+      ↳ **FIXED 2026-09-30: "Download everything" returned a blank page.**
+        `CsvExporter` called PHP's `flush()` after each chunk. `flush()` sends
+        the RESPONSE (headers included), not the file being written, so while
+        the zip's CSVs were being written to disk the headers went out empty
+        and the zip response then died with "headers already sent". Single
+        downloads were unaffected. Now it flushes only when the handle is
+        `php://output` (`CsvExporter::streamsToResponse`, pinned by a test).
+        Invisible in tests (no real headers in a test run); verified under a
+        real PHP web server. The zip also went out `Cache-Control: public`
+        (Laravel's download default); it now sends `no-store, private` like
+        the single routes, asserted for both.
       ↳ `ExportController::datasets()` describes each export ONCE. The archive
         and the single routes must produce byte-identical files; two code paths
         writing "the submissions export" is how the zip quietly starts carrying

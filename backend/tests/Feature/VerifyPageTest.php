@@ -75,39 +75,9 @@ it('states what it is doing during the wait, in plain words, in both locales', f
 
     $this->withSession(['locale' => 'ms'])
         ->get('/')
-        ->assertSee('Membaca apa yang anda tampal...')
-        ->assertSee('Membandingkan dengan penipuan yang pernah kami lihat...')
+        ->assertSee('Membaca apa yang anda letakkan...')
+        ->assertSee('Membandingkan dengan scam yang pernah kami lihat...')
         ->assertSee('Menyiapkan jawapan anda...');
-});
-
-it('offers examples that set the right type and stay Malay in both locales', function (): void {
-    // The examples exist so a first-time visitor -- who arrived to look, not
-    // because something happened to them -- has something to check, and so a
-    // demonstration is one tap rather than a paste from a notes file.
-    //
-    // Each chip carries the type it belongs to, because an example that fills
-    // the box and leaves the wrong toggle selected teaches the user that the
-    // toggle does not matter, which is the opposite of true.
-    $english = $this->get('/')
-        ->assertSee('Or try one of these:')
-        ->assertSee('data-example-type="message"', escape: false)
-        ->assertSee('data-example-type="url"', escape: false)
-        ->getContent();
-
-    // The bodies stay in Malay whatever the interface language. A Malaysian who
-    // prefers English still receives Malay scam SMS, so translating them would
-    // show the user a shape they will never actually be sent. Only the labels
-    // are translated -- pinned here because "translate everything" is the
-    // obvious instinct and it would be wrong.
-    $malay = $this->withSession(['locale' => 'ms'])->get('/')
-        ->assertSee('Atau cuba salah satu ini:')
-        ->assertSee('Mesej bungkusan')
-        ->getContent();
-
-    foreach (['Parcel anda tidak dapat dihantar', 'Bil elektrik anda bagi bulan Ogos'] as $body) {
-        expect($english)->toContain($body);
-        expect($malay)->toContain($body);
-    }
 });
 
 it('takes its character caps from the same config the validator uses', function (): void {
@@ -139,30 +109,31 @@ it('keeps the character count out of the screen reader, boundary aside', functio
         ->assertSee('Ini terlalu panjang. Sila buang :count huruf.');
 });
 
-it('keeps the segment pill after the inputs, or it cannot move', function (): void {
+it('keeps the segment highlight after the inputs, or it cannot move', function (): void {
     /*
      | A silent CSS failure, and the reason this test exists.
      |
-     | The pill is driven by `#type-url:checked ~ .sc-seg__pill`. `~` only
-     | reaches siblings that come AFTER the subject, so with the pill written
-     | first in the markup the rule never matched -- and nothing said so. The
-     | pill stayed on the left while the labels swapped colour, which left
-     | white text on white and green text on the green fill: both captions
-     | disappeared the moment anyone chose "A link".
+     | The chosen side is drawn by `.sc-seg__on`, clipped by
+     | `#type-url:checked ~ .sc-seg__on`. `~` only reaches siblings that come
+     | AFTER the subject, so written first in the markup the rule never
+     | matches -- and nothing says so. This happened once already, with the
+     | sliding pill this replaced: it stayed on the left while the labels
+     | swapped colour, and both captions disappeared the moment anyone chose
+     | "A link".
      |
      | Nothing about that is visible to a test that only checks the page
      | renders, so the ordering is asserted directly.
      */
     $html = $this->get('/')->assertOk()->getContent();
 
-    $pill = strpos($html, 'sc-seg__pill');
+    $highlight = strpos($html, 'sc-seg__on');
     $lastInput = strrpos($html, 'id="type-url"');
 
-    expect($pill)->not->toBeFalse('the pill must be rendered')
+    expect($highlight)->not->toBeFalse('the highlight must be rendered')
         ->and($lastInput)->not->toBeFalse('the url radio must be rendered')
-        ->and($pill)->toBeGreaterThan(
+        ->and($highlight)->toBeGreaterThan(
             $lastInput,
-            'the pill must follow the radios or the sibling selector cannot reach it',
+            'the highlight must follow the radios or the sibling selector cannot reach it',
         );
 });
 
@@ -234,9 +205,24 @@ it('defangs the submitted url so it cannot be clicked', function (): void {
 it('defangs urls embedded inside a message', function (): void {
     fakeMl(0.93, 'legitimate');
 
-    submit('Klik https://prize-my.xyz/claim sekarang', 'message')
+    $html = submit('Klik https://prize-my.xyz/claim sekarang', 'message')
         ->assertOk()
-        ->assertSee('hxxps://prize-my[.]xyz/claim');
+        ->getContent();
+
+    /*
+     | Read as the reader sees it: the echo's TEXT, with tags removed. The
+     | evidence mark for ".xyz" sits inside the link, so the defanged link is
+     | split by a <mark> in the markup. This test once passed only because the
+     | "Warn your family" bubble (removed 2026-09-30) repeated the link as one
+     | unbroken string, which hid that it was asserting against markup.
+     */
+    preg_match('/<pre class="sc-echo">(.*?)<\/pre>/s', $html, $echo);
+    // The mark's number badge is aria-hidden decoration; drop it before reading.
+    $withoutBadges = preg_replace('/<span class="sc-num"[^>]*>.*?<\/span>/s', '', $echo[1] ?? '');
+    $visible = html_entity_decode(strip_tags((string) $withoutBadges));
+
+    expect($visible)->toContain('hxxps://prize-my[.]xyz/claim')
+        ->and($html)->not->toContain('https://prize-my.xyz');
 });
 
 it('never emits the submitted url inside an href', function (): void {
@@ -513,7 +499,7 @@ it('renders the submission form in Malay', function (): void {
 
     $this->get('/')
         ->assertOk()
-        ->assertSee('Adakah ini penipuan?')
+        ->assertSee('Adakah ini Scam?')
         ->assertSee('Semak sekarang')
         ->assertDontSee('Is this a scam?');
 });
@@ -522,7 +508,7 @@ it('translates the footer safety line, which is the most consequential on the si
     $this->withSession(['locale' => 'ms']);
 
     $this->get('/')
-        ->assertSee('segera hubungi bank anda dan buat laporan polis')
+        ->assertSee('segera hubungi bank anda dan laporkan kepada polis')
         ->assertDontSee('contact your bank immediately');
 });
 
@@ -726,3 +712,70 @@ it('UAT: a legitimate bank message never claims the message is safe', function (
         ->assertSee('This does not guarantee the message is genuine.')
         ->assertDontSee('This message is safe');
 });
+
+/*
+|--------------------------------------------------------------------------
+| The 2026-09-30 redesign (ADR 0012 amendment)
+|--------------------------------------------------------------------------
+*/
+
+it('shows the promises beside the heading in both locales', function (): void {
+    // Passed through a variable in the view, so the literal-string scan in
+    // "translates every public-facing string" cannot see them. Asserted here.
+    $this->get('/')
+        ->assertSee('We never open the link you paste.')
+        ->assertSee('We never ask who you are.')
+        ->assertSee('How it works');
+
+    $this->withSession(['locale' => 'ms'])->get('/')
+        ->assertSee('Kami tidak pernah bertanya siapa anda.')
+        ->assertSee('Nombor telefon dan nombor akaun dibuang sebelum kami simpan apa-apa.')
+        ->assertSee('Bagaimana ia berfungsi')
+        // The phone's own menu words, not the site's.
+        ->assertSee('Salin', escape: false)
+        ->assertSee('Tampal', escape: false);
+});
+
+it('keeps the scam specimen in the band out of reach', function (): void {
+    /*
+     | Two example scam texts decorate the band. They must never be read out
+     | as content, and they must never carry a live-looking address: the band
+     | is the one place on the site a reader is not expecting to be warned.
+     */
+    $html = $this->get('/')->assertOk()->getContent();
+
+    preg_match('/<div class="sc-specimen[^"]*"[^>]*>(.*?)<\/div>\s*<\/div>\s*<\/div>/s', $html, $specimen);
+
+    expect($specimen)->not->toBeEmpty('the specimen must be rendered')
+        ->and($specimen[0])->toContain('aria-hidden="true"')
+        ->and($specimen[0])->toContain('hxxps://')
+        ->and($specimen[0])->not->toContain('https://')
+        ->and($specimen[0])->not->toContain('href=');
+});
+
+it('splits "What to do" into lines without dropping a word', function (string $band, float $probability): void {
+    /*
+     | The advice is shown one sentence per line, split in the view from the
+     | translation's own text. A split that loses a sentence would silently
+     | drop an instruction -- for the high band, one of "do not send money",
+     | "do not open any link", "contact them another way".
+     */
+    fakeMl($probability, $probability < 0.20 ? 'legitimate' : 'scam');
+
+    $html = submit('Sila bayar sekarang di https://unlisted-example-site.test/pay', 'message')
+        ->assertOk()
+        ->getContent();
+
+    $action = __('verdict.'.$band.'.action.message');
+    $sentences = preg_split('/(?<=[.!?])\s+/u', trim($action), -1, PREG_SPLIT_NO_EMPTY);
+
+    expect(count($sentences))->toBeGreaterThan(1);
+
+    foreach ($sentences as $sentence) {
+        expect($html)->toContain('<span>'.e($sentence).'</span>');
+    }
+})->with([
+    'high' => ['high', 0.93],
+    'medium' => ['medium', 0.45],
+    'low' => ['low', 0.05],
+]);

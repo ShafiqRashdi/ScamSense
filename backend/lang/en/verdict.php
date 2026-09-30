@@ -178,23 +178,5 @@ return [
         'tail' => 'Anything after the first single slash does not change who owns it.',
     ],
 
-    /*
-     | "Warn your family", on the high band only. The message keeps "likely":
-     | the platform never claims more than the verdict does, and a forwarded
-     | message is exactly where an overclaim would travel furthest. The link
-     | inside it stays defanged so forwarding it cannot cause an accidental tap.
-     */
-    'share' => [
-        'heading' => 'Warn your family',
-        'explain' => 'Scam messages are often passed around family groups. Copy this and send it to them.',
-        'button' => 'Copy message',
-        'copied' => 'Copied',
-        'note' => 'The link stays in its safe form, so nobody can open it by accident.',
-        'message' => [
-            'url' => 'ScamSense says this link is likely a scam. Do not open it:',
-            'message' => 'ScamSense says this message is likely a scam. Do not reply, do not open any link in it, and do not send money.',
-        ],
-    ],
-
     'check_another' => 'Check something else',
 ];

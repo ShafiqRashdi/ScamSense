@@ -126,6 +126,7 @@ function markBusyOnSubmit(form) {
         const label = button.querySelector(".sc-cta__label");
         if (label) {
             label.textContent = idleLabel;
+            label.classList.remove("is-swapping");
         }
 
         button.removeAttribute("aria-busy");
@@ -246,9 +247,19 @@ function markBusyOnSubmit(form) {
         submitted = true;
         button.setAttribute("aria-busy", "true");
 
+        // "Check it" -> "Checking..." as a crossfade: out, swap while it is
+        // invisible, back in. Instant under reduced motion.
         const label = button.querySelector(".sc-cta__label");
         if (label) {
-            label.textContent = button.dataset.busyLabel;
+            if (prefersReducedMotion()) {
+                label.textContent = button.dataset.busyLabel;
+            } else {
+                label.classList.add("is-swapping");
+                later(() => {
+                    label.textContent = button.dataset.busyLabel;
+                    label.classList.remove("is-swapping");
+                }, 150);
+            }
         }
 
         showReading();
@@ -271,48 +282,6 @@ function markBusyOnSubmit(form) {
 }
 
 document.querySelectorAll("form[data-busy-form]").forEach(markBusyOnSubmit);
-
-/*
- | Copy to clipboard ("Warn your family").
- |
- | The button ships hidden and is revealed only where the clipboard API exists,
- | so no one is offered a button that does nothing. If the write is refused, the
- | text is selected instead so it can be copied by hand.
- */
-document.querySelectorAll("[data-copy]").forEach((button) => {
-    const source = document.getElementById(button.dataset.copy);
-    const label = button.querySelector("[data-copy-label]");
-
-    if (!source || !navigator.clipboard) {
-        return;
-    }
-
-    button.hidden = false;
-    const idle = label?.textContent ?? "";
-
-    const selectSource = () => {
-        const range = document.createRange();
-        range.selectNodeContents(source);
-        const selection = window.getSelection();
-        selection?.removeAllRanges();
-        selection?.addRange(range);
-    };
-
-    button.addEventListener("click", () => {
-        navigator.clipboard.writeText(source.textContent.trim()).then(() => {
-            button.dataset.done = "";
-            if (label) {
-                label.textContent = button.dataset.copiedLabel;
-            }
-            window.setTimeout(() => {
-                delete button.dataset.done;
-                if (label) {
-                    label.textContent = idle;
-                }
-            }, 2200);
-        }, selectSource);
-    });
-});
 
 /*
  | Reason n and mark n light up together on hover or focus, so a reader can
@@ -359,44 +328,6 @@ document.querySelectorAll("textarea[data-autogrow]").forEach((field) => {
     if (field.value !== "") {
         growToFit(field);
     }
-});
-
-/*
- | Tap-to-fill examples.
- |
- | A first-time visitor has nothing to paste — they came to look, not because
- | something happened to them — and the largest element on the page was an empty
- | box. These fill it, and they make a demonstration one tap rather than a paste
- | from a notes file.
- |
- | Each example also sets the message/link toggle, because an example that fills
- | the box and leaves the wrong type selected teaches the user that the toggle
- | does not matter, which is the opposite of true.
- */
-document.querySelectorAll("[data-example-text]").forEach((chip) => {
-    chip.addEventListener("click", () => {
-        const field = document.querySelector("textarea[data-autogrow]");
-        const type = document.querySelector(
-            `input[name="type"][value="${chip.dataset.exampleType}"]`,
-        );
-
-        if (!field) {
-            return;
-        }
-
-        if (type) {
-            type.checked = true;
-        }
-
-        field.value = chip.dataset.exampleText;
-        growToFit(field);
-
-        // Focus the box rather than the button. The next thing the user does is
-        // read what landed there or press Check it, and leaving focus on a chip
-        // means a keyboard user has to travel back past every other chip.
-        field.focus();
-        field.setSelectionRange(field.value.length, field.value.length);
-    });
 });
 
 /*
@@ -496,3 +427,33 @@ function attachLengthFeedback(field) {
 }
 
 document.querySelectorAll("textarea[data-autogrow]").forEach(attachLengthFeedback);
+
+/*
+ | Scroll reveal for the sections below the fold ("How it works", the privacy
+ | panel). Fires once per section and then stops watching.
+ |
+ | Armed only for a section that starts OFF screen, and only when motion is
+ | allowed. Content already visible at load is never hidden and re-shown, and
+ | with no JavaScript (or no IntersectionObserver) nothing is ever hidden at
+ | all: the CSS hides only `[data-reveal="armed"]`, which only this sets.
+ */
+if (!prefersReducedMotion() && "IntersectionObserver" in window) {
+    const observer = new IntersectionObserver(
+        (entries) => {
+            entries.forEach((entry) => {
+                if (entry.isIntersecting) {
+                    entry.target.dataset.reveal = "shown";
+                    observer.unobserve(entry.target);
+                }
+            });
+        },
+        { rootMargin: "0px 0px -80px 0px" },
+    );
+
+    document.querySelectorAll(".sc-reveal").forEach((section) => {
+        if (section.getBoundingClientRect().top > window.innerHeight) {
+            section.dataset.reveal = "armed";
+            observer.observe(section);
+        }
+    });
+}

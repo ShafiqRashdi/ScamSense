@@ -1,6 +1,6 @@
 # ADR 0012 — The interface is designed for an anxious reader, not a browsing one
 
-- **Status:** Accepted. Contrast defect closed 2026-09-08; **amended 2026-09-25** — the page now hangs from a masthead (see the amendment at the end). The reasoning below is unchanged; the execution is.
+- **Status:** Accepted. Contrast defect closed 2026-09-08; **amended 2026-09-25, 2026-09-27 and 2026-09-30** — the page now hangs from a masthead (see the amendment at the end). The reasoning below is unchanged; the execution is.
 - **Date:** 2026-09-07
 - **Phase:** 6 (public interface)
 - **Artefacts:** `backend/resources/css/app.scss`, `backend/resources/views/verify/*`
@@ -471,3 +471,159 @@ Computed from the Sass source by `PaletteContrastTest`.
   bare `pos-semakan.xyz/update` inside a message is echoed as typed. Recorded
   here rather than changed, because widening the pattern changes what the
   security tests assert.
+
+---
+
+## Amendment, 2026-09-30 — the task beside the question, and a background that stays still
+
+### Context
+
+Asked to improve the design using the installed design skills and the Inspo
+reference archive, with a preview to approve before any code changed. A
+clickable mockup was built outside the repository from the real tokens, copy
+and icons, reviewed at desktop and phone width, and approved ("i like it").
+Animation was then added with the `animate` skill, and the user asked what
+could make the background less plain.
+
+What the audit of the live pages found:
+
+- **Desktop wasted its first screen.** The heading sat above a full-width form
+  (the textarea was ~1000px wide), and below the privacy notes the page was
+  empty. At 1280x800 the button was the last thing visible.
+- **The verdict heading was still only a step above its own body text** (26px
+  against 19px).
+- **"What to do" was grey reference**, visually unrelated to the verdict it
+  belonged to, and set as one paragraph.
+- **The segment control's pill and its labels ran on different timers** (380ms
+  against 240ms), so mid-travel a label sat on the green in the wrong colour.
+
+### Decisions
+
+**The form moves up beside the heading on wide screens.** Heading, promises and
+the specimen on the left; the form card on the right, lifting out of the band.
+The whole task fits the first 1280x800 viewport. Heading and form are one grid
+inside `<main>` (`.sc-home-top`), on a band that continues the header's (the
+header is `sc-mast--flush` on this page, so the two meet without a seam). The
+skip link lands on the heading, then the form. Below `lg` the band is painted
+from the heading column down to just inside the card, as before.
+
+> **The first build of this was wrong in Malay.** It kept the heading in the
+> header and pulled the form up by a fixed distance, which held only while the
+> left column stayed one exact height. "Adakah ini Scam?" is longer and the
+> Malay promises wrap, so the heading ran under the card and the specimen was
+> cropped. Caught by Shafiq on screen the same day. A shared grid sizes each
+> column from its own content, in any language and at any text size.
+
+**The verdict is two columns on wide screens**: the finding on the left, "What
+to do" on the right, both in one glance. The heading is display-sized
+(`clamp(1.9rem, 4.2vw, 2.75rem)`). When the verified panel owns the `h1`, the
+verdict below it steps down so the two do not compete (decision 5).
+
+**"What to do" takes the band's own tint** (`$sc-wash-danger`,
+`-warning`, `-success`) with its heading in the band colour, and is shown one
+instruction per line. The lines are the translation's own sentences, split in
+the view: the lang files are unchanged, so the test that every band carries
+both submission types still covers exactly what is shown. The verified panel's
+"we checked the address, not the page" stays neutral grey: it is a caveat, and
+tinting it green would read as more reassurance.
+
+**The segment control reveals a clipped copy** of both labels, white on green,
+instead of sliding a pill under labels that recolour on their own. One element
+cannot drift out of step with itself. Still driven by `:checked`, still correct
+on first paint, still last in the DOM (pinned by `VerifyPageTest`).
+
+**Other surfaces:** "How it works" gets a section heading and large brand
+numerals and becomes a real `<ol>` (the old `aria-label` on a `<span>` is
+ignored by many screen readers); the privacy notice becomes a panel with an icon
+per promise; the footer puts "If you have lost money…" in its own box and adds
+About / How to use / the project line; About and How to use share the frame,
+the entrance and the new numerals.
+
+### The background
+
+The 2026-09-25 answer stands: **no moving background.** Three static pieces,
+each carrying meaning:
+
+1. **A security-print guilloche** — the interlaced line pattern on banknotes
+   and cheques, i.e. the visual language of "hard to forge". One ribbon where
+   the band meets the paper, fading both ways, and a faint echo in the footer.
+   Brand green only (rule 2). `public/images/guilloche.svg`, 14 KB gzipped,
+   generated by `backend/resources/svg/guilloche.mjs`. Public pages only; the
+   admin area gets none of it.
+2. **A specimen in the home band**: two scam texts as ghosted message bubbles,
+   the tell-tale phrases underlined in **mint, never red** (red on the band
+   would put a risk hue in furniture). `aria-hidden`, desktop only, home page
+   only (the result page stays free of illustration), bodies in Malay in both
+   locales, and the link written already defanged. A test asserts all of that.
+3. The existing shield in the band's corner, unchanged.
+
+### Motion
+
+Every addition names what it is for (the `animate` skill's gate):
+
+| | Purpose | Ingredients |
+|---|---|---|
+| Home entrance, 50ms stagger, form last | Rare, first view | `sc-rise` 500ms ease-out; card `sc-lift-in` 600ms |
+| "How it works" and privacy reveal | Explanation, once | Armed only if the section starts off screen; fires once |
+| Segment clip | State indication | `clip-path` 250ms `$sc-ease-in-out` |
+| Press on every primary button | Feedback | `scale(0.97)` 160ms `$sc-ease-out`, release on the existing spring |
+| "Check it" → "Checking..." | Preventing a jarring change | Label crossfade 150ms |
+| Waiting checklist | State indication | `@starting-style` rise, 50ms stagger |
+| Loading rail | Constant motion | Now `linear`: an eased sweep appears to stall at each end |
+| Copy → tick | Feedback | Icon crossfade 200ms, transitions not keyframes |
+
+Hover effects are gated to `(hover: hover) and (pointer: fine)`. All of it is
+off under `prefers-reduced-motion`, as the rest of the site's motion is.
+Rejected: movement on the reasons or marked words on hover (text being read
+does not move), and any animated background.
+
+### Contrast, measured
+
+The three tints were computed before use and are asserted by
+`PaletteContrastTest`:
+
+| Pair | Ratio |
+|---|---:|
+| `$sc-ink` on `$sc-wash-danger` | 14.20 |
+| `$sc-danger` on `$sc-wash-danger` | 6.52 |
+| `$sc-ink` on `$sc-wash-warning` | 14.47 |
+| `$sc-warning` on `$sc-wash-warning` | 5.23 |
+| `$sc-ink` on `$sc-wash-success` | 14.39 |
+| `$sc-success` / `$sc-brand` on `$sc-wash-success` | 6.29 |
+| `$sc-brand` on `$sc-paper` (step numerals) | 6.34 |
+| `$sc-mint` on `$sc-deep-2` (eyebrow) | 5.94 |
+
+### Consequences
+
+- No new unescaped output. The segment icons are literal SVG and the paste tip
+  uses quotation marks rather than bold, so the enum icon on the result page
+  stays the only `{!! !!}` in the application.
+- Seven new English strings, translated in `lang/ms.json`. **The Malay is a
+  first draft for Shafiq's review.** The paste tip names the phone's own menu
+  words, "Salin" and "Tampal", which is deliberate even though the site itself
+  now says "letakkan".
+- Not verified on a physical phone. Headless Edge cannot lay out narrower than
+  496px, so the narrowest checked width is 496px; the 390px layout was checked
+  on the mockup, which uses the same breakpoints.
+
+### Later the same day: How to use drawn, "Warn your family" removed
+
+- **How to use now shows each step.** Every instruction is paired with a small
+  drawing of the real control (the Message / Link choice, the box with the
+  phone's own Copy / Paste menu, the button, a result), built from the site's
+  tokens and strings rather than screenshots, so it follows the language switch
+  and the design. The address section draws both examples with the result
+  page's marks (owner boxed, copied name wavy-underlined), reusing the result
+  page's own legend strings. "Lost money" is three cards with 997 set large.
+  Previewed as a mockup and approved before it was built.
+- **"Warn your family" is removed from the high band** (Shafiq's decision:
+  not needed). The view section, its clipboard script, its styles and its
+  strings in both locales are gone, so nothing is left half-wired. This
+  supersedes that part of the 2026-09-27 amendment.
+- One test (`defangs urls embedded inside a message`) had been passing only
+  because the removed bubble repeated the link unbroken. It now reads the
+  echo's visible text, which is what it always meant to check.
+- Last design change before deployment. A dead-code pass followed: every `sc-`
+  class, keyframe and palette variable in `app.scss` is now used by a view or
+  the script; four rules that matched nothing were deleted and a duplicated
+  `.sc-bar` merged.
