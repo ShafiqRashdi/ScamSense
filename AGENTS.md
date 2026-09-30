@@ -273,9 +273,11 @@ ruff check . && black . && pytest
 - [x] Phase 0 — repo scaffold, both services boot, health check green — see `docs/adr/0001`
 - [x] Phase 1 — DB schema, migrations, seeders — see `docs/adr/0002`
 - [x] Phase 2 — URL lexical features + Random Forest — see `docs/adr/0003`, `docs/adr/0004`
-      ↳ CANONICAL FIGURE: **test F1 0.8984** (phishing class), from
-        `models/rf-url-v1.2.0-no-https`, the shipped artefact. Recall 0.9780,
-        precision 0.8308, on 44,890 held-out rows, domain-grouped split, 22 features.
+      ↳ CANONICAL FIGURE: **test F1 0.8979** (phishing class), from
+        `models/rf-url-v2.0.0-pathnorm`, the served artefact (see
+        `docs/RESULTS.md`; it replaced `rf-url-v1.2.0-no-https`, 0.8984,
+        a change of −0.0005). Never quote 0.8984 in slides or the report. Recall 0.9687,
+        precision 0.8368, on 44,890 held-out rows, domain-grouped split, 22 features.
         Every other F1 in ADR 0004 belongs to a superseded or comparison artefact.
       ↳ `uses_https` was dropped: all 23,936 Tranco rows had `https://` added during
         dataset assembly, so the feature was partly an artefact of how the CSV was

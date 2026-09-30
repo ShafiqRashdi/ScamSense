@@ -13,9 +13,9 @@ Read this first, then `AGENTS.md` for the standing rules. This file is *state*;
 1. ~~Get Shafiq's three Malay decisions and update the 4 tests.~~ Done
    2026-09-30: 420 tests, 419 pass, 1 skipped; pint clean.
 2. **Commit** the redesign, the export fix and the test-key fix.
-3. **Fix `docs/deployment.md`** (the `railway run` defect) and **the AGENTS.md
-   URL figure**. Both are described under "Known defects to fix before
-   deploying".
+3. ~~**Fix `docs/deployment.md`** (the `railway run` defect) and **the AGENTS.md
+   URL figure**.~~ Done 2026-09-30. (Described under "Known defects to fix before
+   deploying", kept for the record.)
 4. **Shafiq pushes.** Then delete the two `backup/*` branches.
 5. **Railway:** set the $5 hard cap first; no public domain on the ML
    service; daily purge cron.

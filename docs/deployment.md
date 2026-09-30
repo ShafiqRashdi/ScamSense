@@ -200,9 +200,20 @@ sends HSTS automatically once requests arrive over HTTPS
 
 ## 4. Seed the administrator, then rotate
 
+**Run one-off commands inside the deployed service, never with `railway run`.**
+`railway run` executes on *your* machine with Railway's variables injected. Your
+machine cannot resolve `*.railway.internal`, so it can reach neither MySQL nor
+the ML service, and every command below would fail or, worse, act on a local
+database. Open a shell inside the `backend` service instead:
+
 ```bash
-railway run php artisan db:seed --class=AdminUserSeeder
+railway ssh --service <backend-service-name>
+# now inside the container, in the app directory:
+php artisan db:seed --class=AdminUserSeeder
 ```
+
+Every `php artisan` command in the rest of this guide is run from that shell.
+Confirm the flags with `railway ssh --help` on the installed CLI version.
 
 The seeder never ships a fixed password. With `ADMIN_PASSWORD` set it uses that;
 without it, it generates a random one and prints it **once**.
@@ -217,11 +228,12 @@ account keeps its old password.
 printed password may persist in the deploy history (finding 10).
 
 ```bash
+# Inside `railway ssh` on the backend service.
 # Preferred: set ADMIN_PASSWORD in the platform's secret store, then
-railway run php artisan scamsense:admin-password --from-env
+php artisan scamsense:admin-password --from-env
 
 # Or interactively — reads without echo, nothing enters the log
-railway run php artisan scamsense:admin-password
+php artisan scamsense:admin-password
 ```
 
 A password you supply is never printed. `--generate` is available and prints
@@ -239,20 +251,24 @@ the sample submissions and the demo moderation queue.
 
 ## 5. Schedule the retention purge
 
-The purge is scheduled in `routes/console.php`, but Laravel's scheduler needs
-something to run it every minute. Add a **cron service** in the same Railway
-project, from the same repository and root directory:
+The scheduler has exactly one job, the daily purge, so run the purge itself
+once a day rather than booting Laravel every minute to ask whether it is due
+(1,440 boots a day would spend the usage credit for nothing). Add a **cron
+service** in the same Railway project, from the same repository and root
+directory, with the start command:
 
 ```
-php artisan schedule:run
+php artisan scamsense:purge
 ```
 
-with a cron expression of `* * * * *`.
+and the cron expression `15 3 * * *` (03:15 UTC daily). The service must
+exit when the command finishes, which `scamsense:purge` does.
 
 Verify it works before relying on it:
 
 ```bash
-railway run php artisan scamsense:purge --dry-run
+# Inside `railway ssh` on the backend service
+php artisan scamsense:purge --dry-run
 ```
 
 That reports what would be deleted and deletes nothing. The submission form
@@ -360,8 +376,15 @@ submission to be slow and every one after it to be fast.
 **Before that, confirm the chain actually answers:**
 
 ```bash
-railway run php artisan scamsense:doctor
+# Inside `railway ssh` on the backend service, never from your own machine
+php artisan scamsense:doctor
 ```
+
+**Expect the URL probe to show one false positive.** The doctor checks
+`https://www.utm.my/about/`, which currently comes back "scam at 0.3179"
+(threshold 0.3105). That is the known ADR 0006 limit, and `utm.my` is not
+`.edu.my`, so the verified-address gate does not catch it. The doctor proves
+the chain answers, not that this verdict is right.
 
 It sends a real signed request for both a link and a message. A pass means a
 submission will produce a genuine verdict; anything else names the broken link
