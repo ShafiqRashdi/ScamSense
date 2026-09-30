@@ -25,6 +25,12 @@ Read this first, then `AGENTS.md` for the standing rules. This file is *state*;
    2026**. SSH: `ssh -i ~/.ssh/scamsense_vm azureuser@<address>`.
 6. ~~Doctor~~ All 5 checks pass on the VM. Ports 5001/3306 are loopback only
    and unreachable from outside; HTTPS, HSTS, CSP present; debug off.
+6a. **Monitoring probes, 1–6 Oct:** cron on the VM runs 5 fixed probes a day
+   at random times (`docs/monitoring-probes.md`, log at
+   `/var/log/scamsense-probes.log`). They add rows to `submissions`:
+   **never quote the dashboard total as usage**; run
+   `deploy/monitoring/count.sh` on the VM for probes vs real. Delete
+   `/etc/cron.d/scamsense-probes` after 6 October.
 7. **Set the admin password** with `scamsense:admin-password` on the VM (the
    seeder's password is random and never shown).
 8. **Screenshots for Figures 4.9–4.15.**
