@@ -31,9 +31,38 @@ Read this first, then `AGENTS.md` for the standing rules. This file is *state*;
    **never quote the dashboard total as usage**; run
    `deploy/monitoring/count.sh` on the VM for probes vs real. Delete
    `/etc/cron.d/scamsense-probes` after 6 October.
-7. **Set the admin password** with `scamsense:admin-password` on the VM (the
-   seeder's password is random and never shown).
-8. **Screenshots for Figures 4.9–4.15.**
+7. ~~Set the admin password.~~ Done 2026-09-30 (Shafiq logged in). The
+   first attempt put the password in a command line; it is burned and was
+   replaced. It remains in the VM's `auth.log`/journal only.
+7a. ~~Navigation bugs found on the live site~~ Fixed and deployed 2026-09-30:
+   Post/Redirect/Get for `/result`, language switch returns to the page it
+   came from, feedback returns to the result, admin brand goes to the
+   dashboard. `NavigationTest` and `AdminIsolationTest` audit every link and
+   form and every admin route. **Session serialisation is JSON on purpose:
+   never put objects in the session** (`ResultSessionTest`).
+
+**The design is finished (Shafiq, 2026-09-30). Next phase, in order:**
+
+8. **Screenshots for Figures 4.9–4.15** from the live site, EN and BM, desktop
+   and a real phone. Use the fixed probe texts in `docs/monitoring-probes.md`
+   so each screenshot is reproducible.
+9. **Report.** Drafts live in `C:\dev\ScamSense-Report\` (Chapter 4
+   corrected, Chapter 5 draft, word-prompts). Use the `fyp-documentation`
+   skill. Every figure from `docs/RESULTS.md`; update Chapter 4's deployment
+   section for Azure (ADR 0013) and add the monitoring run of 1–6 Oct.
+10. **Slides for Wed 7 Oct.** Live demo plan with a fallback (screenshots,
+    local `start.bat`). Talking points: the architecture rules, the
+    moderation gate, the verified-address list (not AI), the honest limits
+    (ADR 0006 URL false positives; the message model rating short ordinary
+    messages "Not certain", seen in the probes).
+11. **Housekeeping:** limit SSH (Azure NSG, port 22) to Shafiq's IP; back up
+    `C:\Users\Acer\.ssh\scamsense_vm`; set an Azure budget alert and a
+    reminder before the credit expires (~30 Oct); after 6 Oct delete
+    `/etc/cron.d/scamsense-probes`; optionally add the threat-intel keys on
+    the VM (`.env`, then `update.sh --no-pull`).
+12. **Still open, not blocking:** UAT participants (none recruited); the
+    high-band "no located reasons" copy bug (below); the supervisor question
+    on permanent hosting.
 
 **Skills:** `.claude/skills/` now holds 20 skills, including
 `fyp-documentation`, `laravel-feature`, `ml-endpoint`, `security-review` and
@@ -64,7 +93,7 @@ Shafiq's three decisions, now applied and tested:
 
 ---
 
-## Known defects to fix before deploying
+## Defects found before deploying (both fixed 2026-09-30)
 
 **`docs/deployment.md` uses `railway run` where it must not.** Five commands
 (lines 204, 221, 224, 255, 363: admin seeder, `admin-password` twice, purge,
@@ -72,13 +101,12 @@ doctor) use `railway run`. That runs the command **on the local PC** with
 Railway's variables injected, and the local PC cannot reach
 `*.railway.internal`, so it cannot reach the ML service or MySQL. These
 commands must run inside the deployed web service (`railway ssh`; confirm the
-syntax with `railway --help`). **Not fixed yet. Propose the edit to Shafiq
-before making it.**
+syntax with `railway --help`). **Fixed 2026-09-30** (commit `a26acb8`).
 
 **AGENTS.md §9 Phase 2 "CANONICAL FIGURE" is outdated.** It says URL F1
 **0.8984** from `rf-url-v1.2.0-no-https`. The served model is
 `rf-url-v2.0.0-pathnorm` and `docs/RESULTS.md` gives **0.8979**, a change of
-−0.0005. `RESULTS.md` is the source of truth. Fix the line, and never quote
+−0.0005. `RESULTS.md` is the source of truth. **Fixed 2026-09-30.** Never quote
 0.8984 in slides.
 
 ---
