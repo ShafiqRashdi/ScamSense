@@ -1,0 +1,13 @@
+# ScamSense monitoring probes, 1-6 October 2026 (docs/monitoring-probes.md).
+# Install:  sudo install -m 644 scamsense-probes.cron /etc/cron.d/scamsense-probes
+# Times are UTC (the VM's clock); Malaysia is UTC+8. One run a day at a
+# randomly chosen time, sets A and B alternating. The year guard stops the
+# entries firing again in October 2027. Delete the file after 6 October.
+#
+# min hour day month dow  user       command
+58 13 1 10 *  azureuser  [ "$(date -u +\%Y)" = 2026 ] && bash /var/www/scamsense/deploy/monitoring/probes.sh A >> /var/log/scamsense-probes.log 2>&1
+42 04 2 10 *  azureuser  [ "$(date -u +\%Y)" = 2026 ] && bash /var/www/scamsense/deploy/monitoring/probes.sh B >> /var/log/scamsense-probes.log 2>&1
+43 03 3 10 *  azureuser  [ "$(date -u +\%Y)" = 2026 ] && bash /var/www/scamsense/deploy/monitoring/probes.sh A >> /var/log/scamsense-probes.log 2>&1
+15 13 4 10 *  azureuser  [ "$(date -u +\%Y)" = 2026 ] && bash /var/www/scamsense/deploy/monitoring/probes.sh B >> /var/log/scamsense-probes.log 2>&1
+04 05 5 10 *  azureuser  [ "$(date -u +\%Y)" = 2026 ] && bash /var/www/scamsense/deploy/monitoring/probes.sh A >> /var/log/scamsense-probes.log 2>&1
+17 12 6 10 *  azureuser  [ "$(date -u +\%Y)" = 2026 ] && bash /var/www/scamsense/deploy/monitoring/probes.sh B >> /var/log/scamsense-probes.log 2>&1

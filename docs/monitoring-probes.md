@@ -56,6 +56,33 @@ The URL probes behave as designed: both genuine addresses are caught by the
 verified-address list (which is not AI, and caps the band rather than changing
 the score; ADR 0007), and all three look-alikes are rated likely scams.
 
+## Schedule and results
+
+The runs are cron entries on the VM itself
+(`deploy/monitoring/scamsense-probes.cron`, installed as
+`/etc/cron.d/scamsense-probes`). A cloud-scheduled agent was tried first and
+could not run: its sandbox's network policy rejected connections to the site.
+
+| Day | Malaysia time | UTC | Set |
+|---|---|---|---|
+| Thu 1 Oct | 21:58 | 13:58 | A |
+| Fri 2 Oct | 12:42 | 04:42 | B |
+| Sat 3 Oct | 11:43 | 03:43 | A |
+| Sun 4 Oct | 21:15 | 13:15 | B |
+| Mon 5 Oct | 13:04 | 05:04 | A |
+| Tue 6 Oct | 20:17 | 12:17 | B |
+
+Each run appends to `/var/log/scamsense-probes.log` on the VM:
+
+```bash
+ssh -i ~/.ssh/scamsense_vm azureuser@scamsense.malaysiawest.cloudapp.azure.com cat /var/log/scamsense-probes.log
+```
+
+The probes go out through the site's public address, so they exercise DNS,
+TLS, Caddy, PHP, MySQL and the ML service. What they cannot report is the VM
+itself being down: then no run happens and no line is written, so a missing
+day in the log is itself the signal.
+
 ## Operational notes
 
 - Each probe is a fresh visitor: its own session, CSRF token and English
