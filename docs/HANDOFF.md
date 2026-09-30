@@ -18,10 +18,13 @@ Read this first, then `AGENTS.md` for the standing rules. This file is *state*;
    deploying", kept for the record.)
 4. ~~Push, then delete the two `backup/*` branches.~~ Done 2026-09-30:
    `origin/master` = `master` at `a26acb8`; backups deleted.
-5. **Deploy to Azure, not Railway** (ADR 0013: Railway declined the card).
-   Free account, $200 credit, **expires about 30 October 2026**. Create the
-   VM, then run `deploy/azure/setup.sh`; follow `docs/deployment-azure.md`.
-6. **The doctor runs at the end of `update.sh`**, on the VM.
+5. ~~Deploy to Azure~~ **LIVE 2026-09-30 at
+   https://scamsense.malaysiawest.cloudapp.azure.com** (ADR 0013: Railway
+   declined the card). VM `ScamSense`, B2als_v2, Malaysia West, IP
+   85.211.199.150. Free account, $200 credit, **expires about 30 October
+   2026**. SSH: `ssh -i ~/.ssh/scamsense_vm azureuser@<address>`.
+6. ~~Doctor~~ All 5 checks pass on the VM. Ports 5001/3306 are loopback only
+   and unreachable from outside; HTTPS, HSTS, CSP present; debug off.
 7. **Set the admin password** with `scamsense:admin-password` on the VM (the
    seeder's password is random and never shown).
 8. **Screenshots for Figures 4.9–4.15.**

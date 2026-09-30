@@ -379,8 +379,13 @@ bash "$APP_DIR/deploy/azure/update.sh" --no-pull
 # it (docs/deployment.md §4).
 step "Administrator account"
 cd "$APP_DIR/backend"
+# The configuration cache must be cleared first: with it in place Laravel
+# ignores environment variables, the seeder sees no ADMIN_PASSWORD, and it
+# generates one and PRINTS it (which happened on the first real run).
+sudo -u www-data php artisan config:clear
 sudo -u www-data env ADMIN_PASSWORD="$(openssl rand -hex 24)" \
     php artisan db:seed --class=AdminUserSeeder --force --no-interaction
+sudo -u www-data php artisan config:cache
 
 cat <<EOF
 
