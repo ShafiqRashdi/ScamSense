@@ -87,10 +87,47 @@ class CsvExporter
                 $written++;
             }
 
-            flush();
+            $this->flushChunk($handle);
         });
 
         return $written;
+    }
+
+    /**
+     * Whether a handle is the HTTP response itself, rather than a file.
+     *
+     * Public so the rule below is pinned by a test: it is invisible in a test
+     * run, where no real headers are ever sent.
+     *
+     * @param  resource  $handle
+     */
+    public static function streamsToResponse(mixed $handle): bool
+    {
+        return (stream_get_meta_data($handle)['uri'] ?? '') === 'php://output';
+    }
+
+    /**
+     * Push a finished chunk on its way.
+     *
+     * PHP's flush() sends the RESPONSE, not the handle -- and the first flush
+     * sends the headers with it. For a streamed download that is what we want.
+     * For "Download everything" it was the bug: the chunks are written to files
+     * that go into a zip, so the first flush() sent empty headers before the zip
+     * response existed, Laravel then failed with "headers already sent", and
+     * the browser was left on a blank page. The single-file downloads kept
+     * working because their headers had already gone out.
+     *
+     * @param  resource  $handle
+     */
+    private function flushChunk(mixed $handle): void
+    {
+        if (self::streamsToResponse($handle)) {
+            flush();
+
+            return;
+        }
+
+        fflush($handle);
     }
 
     /**

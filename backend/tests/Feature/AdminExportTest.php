@@ -192,11 +192,15 @@ it('serves model metrics as json so a figure keeps its qualifier', function (): 
         ->and($response->headers->get('content-type'))->toContain('application/json');
 });
 
-it('never lets an export be cached for whoever asks next', function (): void {
-    $response = $this->actingAs(admin())->get(route('admin.exports.submissions'))->assertOk();
+it('never lets an export be cached for whoever asks next', function (string $route): void {
+    // The zip is included because it once went out as `Cache-Control: public`:
+    // Laravel's file download defaults to public, and only the single-file
+    // routes set no-store. It carries every export at once.
+    $response = $this->actingAs(admin())->get(route($route))->assertOk();
 
-    expect($response->headers->get('cache-control'))->toContain('no-store');
-});
+    expect($response->headers->get('cache-control'))->toContain('no-store')
+        ->and($response->headers->get('cache-control'))->not->toContain('public');
+})->with(['admin.exports.submissions', 'admin.exports.all']);
 
 /*
 |--------------------------------------------------------------------------
@@ -285,4 +289,29 @@ it('does not leave exported personal data lying in storage', function (): void {
 
     expect($csvs)->toBe([])
         ->and($dirs)->toBe([], 'the workspace directory should be removed too');
+});
+
+it('flushes the response only when it is writing to the response', function (): void {
+    /*
+     | "Download everything" once returned a blank page while every single
+     | download worked. CsvExporter called PHP's flush() after each chunk;
+     | flush() sends the RESPONSE and its headers, not the file being written,
+     | so the zip's own headers could no longer be sent ("headers already
+     | sent"). No other test here could see it: a test run sends no real
+     | headers, so the archive test passed throughout.
+     |
+     | The rule is therefore pinned directly: only php://output is the
+     | response. A file on its way into the zip is not.
+     */
+    $file = fopen('php://temp', 'w+b');
+    $disk = tmpfile();
+    $output = fopen('php://output', 'wb');
+
+    expect(CsvExporter::streamsToResponse($file))->toBeFalse()
+        ->and(CsvExporter::streamsToResponse($disk))->toBeFalse()
+        ->and(CsvExporter::streamsToResponse($output))->toBeTrue();
+
+    fclose($file);
+    fclose($disk);
+    fclose($output);
 });

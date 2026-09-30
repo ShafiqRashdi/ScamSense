@@ -118,7 +118,17 @@ class ExportController extends Controller
 
         $this->audit('archive', $rows);
 
-        return response()->download($zipPath, $filename)->deleteFileAfterSend();
+        $response = response()->download($zipPath, $filename, [
+            'Content-Type' => 'application/zip',
+        ])->deleteFileAfterSend();
+
+        // Set AFTER construction: Laravel's download() marks the response
+        // public, which would let a shared cache keep a copy of every export.
+        // The single-file routes already send no-store; the zip carries the
+        // same data, all of it, and went out as `Cache-Control: public`.
+        $response->headers->set('Cache-Control', 'no-store, private');
+
+        return $response;
     }
 
     /** Submissions with the verdict each one produced. */
