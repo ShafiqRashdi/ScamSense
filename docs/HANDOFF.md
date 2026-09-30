@@ -34,6 +34,14 @@ Read this first, then `AGENTS.md` for the standing rules. This file is *state*;
 7. ~~Set the admin password.~~ Done 2026-09-30 (Shafiq logged in). The
    first attempt put the password in a command line; it is burned and was
    replaced. It remains in the VM's `auth.log`/journal only.
+7b. **Threat intel is ON on the live site** (2026-09-30): both keys copied
+   from the local `.env` to the VM without being displayed. Verified with
+   Google's test URL `http://malware.testing.google.test/testing/malware/`:
+   Safe Browsing flagged it (MALWARE) and the result showed "reported as
+   dangerous by a security service"; VirusTotal answered (1 engine). The
+   VirusTotal free quota (4/min, 500/day) is SHARED with the laptop. Note:
+   Safe Browsing's cached response echoes the matched URL, so
+   `threat_intel_cache` can hold a flagged URL for 24 hours despite `url_hash`.
 7a. ~~Navigation bugs found on the live site~~ Fixed and deployed 2026-09-30:
    Post/Redirect/Get for `/result`, language switch returns to the page it
    came from, feedback returns to the result, admin brand goes to the
@@ -111,18 +119,17 @@ syntax with `railway --help`). **Fixed 2026-09-30** (commit `a26acb8`).
 
 ---
 
-## Latest session — 2026-09-30: public UI redesign (uncommitted)
+## Session of 2026-09-30: public UI redesign (committed and deployed)
 
 > **The design is FROZEN for deployment.** Shafiq called this the last design
-> change before deploying. The next job is shipping (commit, push, Railway),
-> not more visual work — push back if a session drifts into restyling.
+> change before deploying. It is now committed, pushed and live on Azure;
+> push back if a session drifts into restyling.
 
 Approved from a clickable mockup, then ported into the real code. Full
 reasoning, contrast table and rejected ideas: **ADR 0012, amendment of
-2026-09-30**. The redesign is not committed yet (the rest of `master` is
-committed but not pushed; see "Repository"). The working tree also still holds
-Shafiq's own uncommitted work from before (About / How to use pages, the removed
-example buttons, and Malay wording edits in `lang/ms.json`).
+2026-09-30**. *(Historical note: at the time of writing, the redesign and
+Shafiq's earlier About / How to use, example-button and `ms.json` work were
+uncommitted. All of it has since been committed and pushed; see "Repository".)*
 
 **What changed**
 
@@ -314,20 +321,19 @@ arithmetic**. Compute, do not estimate.
 ### Blocking — the user must do these
 
 1. ~~Push to GitHub.~~ Done 2026-09-30.
-2. **Azure VM.** Not deployed yet. Railway's Hobby subscription failed with
-   a card decline on 2026-09-30 (ADR 0013), so the target is one Ubuntu
-   24.04 VM on the Azure free account ($200, 30 days, spending limit on).
-   - Follow `docs/deployment-azure.md`; `deploy/azure/setup.sh` does the work.
+2. ~~**Azure VM.**~~ Live 2026-09-30 (see item 5 at the top; ADR 0013).
+   Railway declined the card, so it is one Ubuntu 24.04 VM on the Azure free
+   account ($200, 30 days, spending limit on).
+   - `docs/deployment-azure.md`; `deploy/azure/setup.sh` / `update.sh`.
    - ML service and MySQL bind to loopback, so rule 1 holds by construction.
    - **Credit expires about 30 October 2026.** Upgrade to pay-as-you-go before
      then if the site must stay up for marking.
    - The Railway guide (`docs/deployment.md`) stays, in case payment works later.
-3. **Set the admin password** on the deployed instance. Use a new one:
-   `admin_2002` is in shell history.
+3. ~~**Set the admin password**~~ Done 2026-09-30 (item 7 at the top).
 4. **UAT participants.** `docs/uat-questionnaire.md` and `docs/uat-form.html`
    exist; nobody has been recruited. The citation index says plainly there is
    nothing to cite.
-5. **Screenshots for Figures 4.9–4.15.** Needs a running instance.
+5. **Screenshots for Figures 4.9–4.15.** The live instance is up; see item 8 at the top.
 
 ### Known gaps, already recorded honestly
 
@@ -356,10 +362,13 @@ only, corpus labelled by one person.
 - **CSS sibling combinators only reach *later* siblings.** A pill written before
   its inputs silently never matches — that shipped once and made both segment
   labels invisible.
-- **The VirusTotal free tier is 4 lookups a minute and 500 a day, and the
-  deployed site shares the key.** In a live demo, checking more than 4 new
-  links in a minute gives partial verdicts. Repeated links are cached for 24
-  hours, so rehearse with the links you will show.
+- **The VirusTotal free tier is 4 lookups a minute and 500 a day.** As of
+  2026-09-30 the live server has **no** VirusTotal or Safe Browsing key set,
+  so URL verdicts there come from the model and the verified-address list
+  only, and use no quota. If the keys are added (item 11), the site and any
+  local run with the same key share the quota: more than 4 new links in a
+  minute gives partial verdicts, and repeated links are cached for 24 hours,
+  so rehearse with the links you will show.
 - **The doctor's URL probe shows a false positive.** `scamsense:doctor` checks
   `https://www.utm.my/about/`, which comes back "scam at 0.3179" (threshold
   0.3105). That is the ADR 0006 false-positive limit. `utm.my` is not
