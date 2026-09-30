@@ -43,25 +43,31 @@ Everything is set up by two scripts in `deploy/azure/`:
 
 | Setting | Value | Why |
 |---|---|---|
-| Resource group | new: `scamsense` | Deleting it later removes everything in one step |
-| Name | `scamsense-vm` | |
-| Region | Southeast Asia (Singapore) | Closest to Malaysia. If the size is unavailable, East Asia |
+| Resource group | new: `ScamSense_group` | Deleting it later removes everything in one step |
+| Name | `ScamSense` (resource group `ScamSense_group`) | |
+| Region | **Malaysia West** | In Malaysia. Southeast Asia offered no suitable size to this subscription |
 | Image | Ubuntu Server 24.04 LTS, x64 | The scripts are written for it |
-| Size | **B2s** (2 vCPU, 4 GB) | MySQL, PHP and the model with room to spare during the demo |
+| Size | **B2als_v2** (2 vCPU, 4 GB, about $31/month) | Room to spare for MySQL, PHP and the model. B2s was unavailable; the 1 GB B2ats_v2 is too small |
 | Authentication | **SSH public key**, username `azureuser` | No password to guess |
-| Key pair | Generate new, name `scamsense-vm` | Download the `.pem` when asked. It is shown **once** |
+| Key pair | Generate new | Azure offers the private key **once**. If the download is missed, see below |
 | Inbound ports | SSH (22), HTTP (80), HTTPS (443) | Nothing else |
 | OS disk | Standard SSD, default size | |
 | Auto-shutdown (Management tab) | **Off** | Otherwise the site goes down at night |
 
-Save the key as `C:\Users\Acer\.ssh\scamsense-vm.pem`. **Never** put it
-inside the ScamSense folder.
+Also set **Availability options: No infrastructure redundancy required**;
+pinning a zone hides most sizes.
+
+**The key actually in use** is `C:\Users\Acer\.ssh\scamsense_vm`, made on the
+PC after the portal's download was missed, and installed through VM → Help →
+Reset password → *Add SSH public key* → *Use existing public key*. Only the
+`.pub` half ever leaves the PC. **Never** put the private key inside the
+ScamSense folder.
 
 **After it is created:**
 
-1. **DNS name.** VM → Overview → *DNS name: Not configured* → set the label to
-   `scamsense-demo` (or any free name) → Save. The site's address becomes
-   `scamsense-demo.southeastasia.cloudapp.azure.com`. HTTPS needs this name;
+1. **DNS name.** VM → Overview → *DNS name: Not configured* → label
+   `scamsense` → Save. The site's address is
+   **`scamsense.malaysiawest.cloudapp.azure.com`** (public IP 85.211.199.150). HTTPS needs this name;
    Let's Encrypt does not issue certificates for bare IP addresses.
 2. **Limit SSH to your IP.** VM → Networking → the SSH rule → Source:
    *My IP address*. Port 22 open to the whole internet attracts constant
@@ -73,13 +79,13 @@ Windows' SSH refuses a key file that other accounts can read. Once, in
 PowerShell:
 
 ```powershell
-icacls "$env:USERPROFILE\.ssh\scamsense-vm.pem" /inheritance:r /grant:r "$($env:USERNAME):R"
+icacls "$env:USERPROFILE\.ssh\scamsense_vm" /inheritance:r /grant:r "$($env:USERNAME):R"
 ```
 
 Then:
 
 ```powershell
-ssh -i "$env:USERPROFILE\.ssh\scamsense-vm.pem" azureuser@scamsense-demo.southeastasia.cloudapp.azure.com
+ssh -i "$env:USERPROFILE\.ssh\scamsense_vm" azureuser@scamsense.malaysiawest.cloudapp.azure.com
 ```
 
 ## 3. Run the setup
@@ -87,8 +93,8 @@ ssh -i "$env:USERPROFILE\.ssh\scamsense-vm.pem" azureuser@scamsense-demo.southea
 Copy the script up and run it (from `C:\dev\scamsense`):
 
 ```powershell
-scp -i "$env:USERPROFILE\.ssh\scamsense-vm.pem" deploy/azure/setup.sh azureuser@<address>:
-ssh -i "$env:USERPROFILE\.ssh\scamsense-vm.pem" azureuser@<address>
+scp -i "$env:USERPROFILE\.ssh\scamsense_vm" deploy/azure/setup.sh azureuser@<address>:
+ssh -i "$env:USERPROFILE\.ssh\scamsense_vm" azureuser@<address>
 sudo bash setup.sh
 ```
 
@@ -152,10 +158,10 @@ Check both:
 From your PC:
 
 ```powershell
-$site = "https://scamsense-demo.southeastasia.cloudapp.azure.com"
+$site = "https://scamsense.malaysiawest.cloudapp.azure.com"
 curl.exe -sI $site | Select-String "HTTP/|strict-transport|content-security|x-content-type"
 curl.exe -s "$site/no-such-page" | Select-String "vendor/laravel"     # must print nothing
-curl.exe -s --max-time 5 "http://scamsense-demo.southeastasia.cloudapp.azure.com:5001/health"   # must fail
+curl.exe -s --max-time 5 "http://scamsense.malaysiawest.cloudapp.azure.com:5001/health"   # must fail
 ```
 
 Then the browser checks from `docs/deployment.md` §6: the Maybank address
@@ -173,7 +179,7 @@ sudo bash /var/www/scamsense/deploy/azure/update.sh
 
 ## Cost and the credit
 
-- Free account: **$200 credit for 30 days**. B2s costs roughly $1–1.30 a day.
+- Free account: **$200 credit for 30 days**. B2als_v2 is $0.0428 an hour, about $1.03 a day.
   Check the exact figure under Cost Management; prices change.
 - While on the free credit Azure **stops** resources when the credit is used
   up rather than charging the card.

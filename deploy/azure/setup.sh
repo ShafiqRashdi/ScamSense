@@ -8,7 +8,7 @@
 #
 # or, to skip the two questions:
 #
-#     sudo DOMAIN=scamsense-demo.southeastasia.cloudapp.azure.com \
+#     sudo DOMAIN=scamsense.malaysiawest.cloudapp.azure.com \
 #          ADMIN_EMAIL=you@example.com bash setup.sh
 #
 # Safe to re-run. Every step checks before it changes anything, and the
@@ -57,7 +57,7 @@ DOMAIN="${DOMAIN_IN:-${DOMAIN:-}}"
 ADMIN_EMAIL="${ADMIN_EMAIL_IN:-${ADMIN_EMAIL:-}}"
 
 if [[ -z "$DOMAIN" ]]; then
-    read -rp "Public address (e.g. scamsense-demo.southeastasia.cloudapp.azure.com): " DOMAIN
+    read -rp "Public address (e.g. scamsense.malaysiawest.cloudapp.azure.com): " DOMAIN
 fi
 if [[ -z "$ADMIN_EMAIL" ]]; then
     read -rp "Administrator email address: " ADMIN_EMAIL

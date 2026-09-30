@@ -24,7 +24,8 @@ machine in the room.
 
 ## Decision
 
-Deploy everything to **one Ubuntu 24.04 virtual machine** (B2s, 2 vCPU, 4 GB, Southeast Asia),
+Deploy everything to **one Ubuntu 24.04 virtual machine** (B2als_v2, 2 vCPU, 4 GB, Malaysia West,
+`scamsense.malaysiawest.cloudapp.azure.com`),
 set up by `deploy/azure/setup.sh` and updated by `deploy/azure/update.sh`:
 
 - **Caddy** terminates TLS with a Let's Encrypt certificate for the VM's Azure DNS name and
@@ -65,7 +66,7 @@ depth, and it keeps the contract identical to local development.
 ## Consequences
 
 - **The credit lasts 30 days** (to about 30 October 2026). Keeping the site after that means
-  upgrading to pay-as-you-go, at roughly $30–40 a month for B2s, or resizing down.
+  upgrading to pay-as-you-go, at about $31 a month for B2als_v2 ($0.0428 an hour).
 - **We now own the operating system.** Ubuntu's unattended security upgrades are on by default;
   PHP, Node and Python come from `ondrej/php`, NodeSource and `deadsnakes`, which update with
   the rest of the system.
