@@ -1,5 +1,15 @@
 # Chapter 4 figure sources
 
+> **Figures 4.1–4.4 are now drawn from `v2/`** (2026-10-01). The `.dc.html`
+> interface artboards below predate the 2026-09-30 redesign (no About / How to
+> use links, no paste tip, no "How it works", no numbered reasons or address
+> breakdown, no footer) and their badges rendered clipped. The v2 files are
+> plain HTML with one shared `wire.css`, so they render in any browser:
+> `node v2/render.mjs <output-dir>` (needs `playwright-core` and Edge). Same
+> rules as before: grey bars for body text, real words only on controls, tabs
+> and labels, every word copy the site ships. The system diagrams (4.5, 4.6,
+> 4.8) and the direction studies below are unchanged.
+
 Each `.dc.html` file is one artboard; `canvas.json` lays them out and names the
 pages. They are the sources for Figures 4.1–4.6 and 4.8.
 
