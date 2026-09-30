@@ -66,8 +66,7 @@ Read this first, then `AGENTS.md` for the standing rules. This file is *state*;
 11. **Housekeeping:** limit SSH (Azure NSG, port 22) to Shafiq's IP; back up
     `C:\Users\Acer\.ssh\scamsense_vm`; set an Azure budget alert and a
     reminder before the credit expires (~30 Oct); after 6 Oct delete
-    `/etc/cron.d/scamsense-probes`; optionally add the threat-intel keys on
-    the VM (`.env`, then `update.sh --no-pull`).
+    `/etc/cron.d/scamsense-probes`. (Threat-intel keys: done, item 7b.)
 12. **Still open, not blocking:** UAT participants (none recruited); the
     high-band "no located reasons" copy bug (below); the supervisor question
     on permanent hosting.
@@ -362,13 +361,11 @@ only, corpus labelled by one person.
 - **CSS sibling combinators only reach *later* siblings.** A pill written before
   its inputs silently never matches — that shipped once and made both segment
   labels invisible.
-- **The VirusTotal free tier is 4 lookups a minute and 500 a day.** As of
-  2026-09-30 the live server has **no** VirusTotal or Safe Browsing key set,
-  so URL verdicts there come from the model and the verified-address list
-  only, and use no quota. If the keys are added (item 11), the site and any
-  local run with the same key share the quota: more than 4 new links in a
-  minute gives partial verdicts, and repeated links are cached for 24 hours,
-  so rehearse with the links you will show.
+- **The VirusTotal free tier is 4 lookups a minute and 500 a day, and the
+  live site shares the key with the laptop** (item 7b). In a live demo,
+  checking more than 4 new links in a minute gives partial verdicts, and a
+  local test run with real keys eats the same quota. Repeated links are cached
+  for 24 hours, so rehearse with the links you will show.
 - **The doctor's URL probe shows a false positive.** `scamsense:doctor` checks
   `https://www.utm.my/about/`, which comes back "scam at 0.3179" (threshold
   0.3105). That is the ADR 0006 false-positive limit. `utm.my` is not

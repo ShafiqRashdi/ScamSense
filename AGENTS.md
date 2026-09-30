@@ -55,12 +55,17 @@ flag it instead of building it.
               ┌──────────────────┐   ┌──────────────────────────┐
               │ Flask ML service │   │ Google Safe Browsing API │
               │  (ml-service/)   │   │ VirusTotal API           │
-              │ • DistilBERT     │   └──────────────────────────┘
+              │ • TF-IDF + LR    │   └──────────────────────────┘
               │   → message text │
               │ • RandomForest   │
               │   → URL features │
               └──────────────────┘
 ```
+
+Served models: `tfidf-msg-v3.0.0-collected-my` for messages and
+`rf-url-v2.0.0-pathnorm` for URLs (`docs/RESULTS.md`). DistilBERT was measured
+twice and **not shipped** (ADR 0009, §9 Phase 3). Do not draw it as the
+message model in any diagram or slide.
 
 ### Hard architectural rules
 
@@ -84,7 +89,7 @@ scamsense/
 ├── SKILLS.md
 ├── .claude/skills/          # agent skills, see SKILLS.md
 ├── docs/                    # ADRs, diagrams, FYP chapter source
-├── backend/                 # Laravel 12
+├── backend/                 # Laravel 13
 │   ├── app/Http/Controllers/
 │   ├── app/Http/Requests/
 │   ├── app/Services/        # business logic lives HERE
@@ -160,7 +165,7 @@ Changing this contract is a breaking change. Update both sides, both test suites
     { "code": "urgency_language", "weight": 0.31, "evidence": "segera dalam 24 jam" },
     { "code": "prize_claim",      "weight": 0.27, "evidence": "anda memenangi" }
   ],
-  "model_version": "distilbert-msg-v1.2.0",
+  "model_version": "tfidf-msg-v3.0.0-collected-my",
   "inference_ms": 180
 }
 ```
@@ -372,8 +377,8 @@ ruff check . && black . && pytest
         stands. The segment control is now `.sc-seg__on` (a clipped copy),
         not a pill; it must stay after the radios. Keep the enum icon the
         ONLY `{!! !!}` in the app: new icons go in as literal SVG.
-      ↳ The new Malay strings in `lang/ms.json` are a first draft awaiting
-        Shafiq's review.
+      ↳ The Malay strings in `lang/ms.json` were reviewed and decided by
+        Shafiq on 2026-09-30 (see `docs/HANDOFF.md`, "Malay wording").
       ↳ **REMOVED 2026-09-30, Shafiq's decision:** "Warn your family" (the
         copyable message on the high band) — view, clipboard JS, styles and
         strings. Do not reintroduce it unasked.
@@ -459,7 +464,10 @@ ruff check . && black . && pytest
         English and Bahasa Malaysia.
       ↳ Docker Compose regardless of the hosting outcome: it serves the local demo, a VPS
         deploy, and reproducibility on an examiner's machine equally.
-      ↳ Deployment target is still open. Ask the supervisor the narrow question: does a
-        publicly reachable demo URL suffice, or must it be permanently hosted?
+      ↳ **Deployed and live since 2026-09-30** at
+        https://scamsense.malaysiawest.cloudapp.azure.com (ADR 0013). Still open,
+        not blocking: ask the supervisor the narrow question: does a publicly
+        reachable demo URL suffice, or must it be permanently hosted? The Azure
+        credit expires about 30 October 2026.
 
 Agents: update this checklist as phases complete.
