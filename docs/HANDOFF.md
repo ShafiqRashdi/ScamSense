@@ -39,9 +39,15 @@ Read this first, then `AGENTS.md` for the standing rules. This file is *state*;
    Google's test URL `http://malware.testing.google.test/testing/malware/`:
    Safe Browsing flagged it (MALWARE) and the result showed "reported as
    dangerous by a security service"; VirusTotal answered (1 engine). The
-   VirusTotal free quota (4/min, 500/day) is SHARED with the laptop. Note:
-   Safe Browsing's cached response echoes the matched URL, so
-   `threat_intel_cache` can hold a flagged URL for 24 hours despite `url_hash`.
+   VirusTotal free quota (4/min, 500/day) is SHARED with the laptop.
+   ~~Safe Browsing's cached response echoes the matched URL~~ **Fixed
+   2026-10-01:** the client now caches `{threat_type, match_count}` only, like
+   VirusTotal (`ThreatIntelCacheTest`). Rows written before the deploy expire
+   within 24 hours.
+7c. **The live retraining set holds 4 approved items that are Shafiq's own
+   test feedback (30 Sep), not public reports.** Not exported, so no model has
+   seen them. Do not describe them as community reports; exclude or reject
+   them before the first real dataset export.
 7a. ~~Navigation bugs found on the live site~~ Fixed and deployed 2026-09-30:
    Post/Redirect/Get for `/result`, language switch returns to the page it
    came from, feedback returns to the result, admin brand goes to the
@@ -51,7 +57,12 @@ Read this first, then `AGENTS.md` for the standing rules. This file is *state*;
 
 **The design is finished (Shafiq, 2026-09-30). Next phase, in order:**
 
-8. **Screenshots for Figures 4.9–4.15** from the live site, EN and BM, desktop
+8. **Screenshots for Figures 4.9–4.15:** desktop set taken 1 Oct 2026, in
+   `C:\dev\ScamSense-Report\screenshots\2026-10-01\` (4.9–4.13 scripted,
+   `manifest-results.json`; 4.14/4.15 by Shafiq; feedback #7 for 4.15 was probe
+   4, to be rejected). Still to do: phone shots; optionally 4.14 in the 7-day
+   view. The dashboard counts days in UTC (`config/app.php`). Original plan:
+   from the live site, EN and BM, desktop
    and a real phone. Use the fixed probe texts in `docs/monitoring-probes.md`
    so each screenshot is reproducible.
 9. **Report.** Drafts live in `C:\dev\ScamSense-Report\` (Chapter 4

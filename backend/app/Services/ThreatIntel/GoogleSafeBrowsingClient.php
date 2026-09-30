@@ -82,9 +82,16 @@ class GoogleSafeBrowsingClient
         $body = $response->json() ?? [];
         $matches = (array) ($body['matches'] ?? []);
 
+        // Keep a summary, never the body. A match echoes the submitted URL
+        // back (`threat.url`), and the cache is keyed on a hash precisely so
+        // the URL is not stored. VirusTotalClient keeps a summary for the same
+        // reason.
+        $threatType = (string) ($matches[0]['threatType'] ?? '');
+        $summary = ['threat_type' => $threatType, 'match_count' => count($matches)];
+
         $result = $matches === []
-            ? ThreatIntelResult::clean(self::PROVIDER, $body)
-            : ThreatIntelResult::hit(self::PROVIDER, $body, (string) ($matches[0]['threatType'] ?? ''));
+            ? ThreatIntelResult::clean(self::PROVIDER, $summary)
+            : ThreatIntelResult::hit(self::PROVIDER, $summary, $threatType);
 
         $this->store($hash, $result);
 
@@ -103,9 +110,11 @@ class GoogleSafeBrowsingClient
             return null;
         }
 
+        $summary = $entry->response ?? [];
+
         return $entry->is_malicious
-            ? ThreatIntelResult::hit(self::PROVIDER, $entry->response ?? [])
-            : ThreatIntelResult::clean(self::PROVIDER, $entry->response ?? []);
+            ? ThreatIntelResult::hit(self::PROVIDER, $summary, (string) ($summary['threat_type'] ?? ''))
+            : ThreatIntelResult::clean(self::PROVIDER, $summary);
     }
 
     private function store(string $hash, ThreatIntelResult $result): void
