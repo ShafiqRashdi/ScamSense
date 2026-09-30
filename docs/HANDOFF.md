@@ -18,10 +18,12 @@ Read this first, then `AGENTS.md` for the standing rules. This file is *state*;
    deploying", kept for the record.)
 4. ~~Push, then delete the two `backup/*` branches.~~ Done 2026-09-30:
    `origin/master` = `master` at `a26acb8`; backups deleted.
-5. **Railway:** set the $5 hard cap first; no public domain on the ML
-   service; daily purge cron.
-6. **Run the doctor inside Railway**, not from the local PC.
-7. **Rotate the admin password.**
+5. **Deploy to Azure, not Railway** (ADR 0013: Railway declined the card).
+   Free account, $200 credit, **expires about 30 October 2026**. Create the
+   VM, then run `deploy/azure/setup.sh`; follow `docs/deployment-azure.md`.
+6. **The doctor runs at the end of `update.sh`**, on the VM.
+7. **Set the admin password** with `scamsense:admin-password` on the VM (the
+   seeder's password is random and never shown).
 8. **Screenshots for Figures 4.9–4.15.**
 
 **Skills:** `.claude/skills/` now holds 20 skills, including
@@ -275,20 +277,16 @@ arithmetic**. Compute, do not estimate.
 ### Blocking — the user must do these
 
 1. ~~Push to GitHub.~~ Done 2026-09-30.
-2. **Railway.** Not deployed yet. Hobby plan, ~$5/month.
-   - **Set a hard usage limit at $5 first**, before creating the project. That
-     turns "I might be billed more" into "I cannot be."
-   - Target was **1 October**, to keep spend down while leaving margin.
-   - Follow `docs/deployment.md`, **after** fixing its `railway run` defect
-     (see "Known defects to fix before deploying").
-   - **Do not click Generate Domain on the ML service.** One click puts the
-     prediction endpoint on the internet and breaks the architecture.
-   - Use a **daily** cron (`15 3 * * *`, `php artisan scamsense:purge`), not the
-     per-minute `schedule:run` the guide originally specified — the scheduler
-     has exactly one daily job, and a 24/7 service booting Laravel 1,440 times a
-     day would eat the credit for nothing.
-3. **Rotate the admin password** on the deployed instance. `admin_2002` is in
-   their shell history.
+2. **Azure VM.** Not deployed yet. Railway's Hobby subscription failed with
+   a card decline on 2026-09-30 (ADR 0013), so the target is one Ubuntu
+   24.04 VM on the Azure free account ($200, 30 days, spending limit on).
+   - Follow `docs/deployment-azure.md`; `deploy/azure/setup.sh` does the work.
+   - ML service and MySQL bind to loopback, so rule 1 holds by construction.
+   - **Credit expires about 30 October 2026.** Upgrade to pay-as-you-go before
+     then if the site must stay up for marking.
+   - The Railway guide (`docs/deployment.md`) stays, in case payment works later.
+3. **Set the admin password** on the deployed instance. Use a new one:
+   `admin_2002` is in shell history.
 4. **UAT participants.** `docs/uat-questionnaire.md` and `docs/uat-form.html`
    exist; nobody has been recruited. The citation index says plainly there is
    nothing to cite.

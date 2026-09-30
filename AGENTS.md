@@ -448,9 +448,13 @@ ruff check . && black . && pytest
         inbound, but a submitted URL re-entering through an OUTBOUND API call
         reached the log via the HTTP client's exception message. Neither was
         visible by reading the code.
-      ↳ Deployment is ALL-RAILWAY. The ML service stays on the private network
-        and MUST NOT be given a public domain — that single click breaks
-        AGENTS.md §2 rule 1. See `docs/deployment.md`.
+      ↳ **Deployment moved to ONE AZURE VM on 2026-09-30** (ADR 0013): Railway
+        declined the card. Caddy + PHP-FPM + Laravel, with the ML service and
+        MySQL bound to 127.0.0.1, so rule 1 holds by construction. Set up by
+        `deploy/azure/setup.sh`, updated by `deploy/azure/update.sh`; see
+        `docs/deployment-azure.md`. Always run artisan there as www-data.
+      ↳ The Railway guide (`docs/deployment.md`) stays valid. If it is ever
+        used: the ML service MUST NOT be given a public domain.
       ↳ `docs/user-manual.md` covers the public interface and the admin area,
         English and Bahasa Malaysia.
       ↳ Docker Compose regardless of the hosting outcome: it serves the local demo, a VPS
