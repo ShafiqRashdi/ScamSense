@@ -59,9 +59,12 @@ Read this first, then `AGENTS.md` for the standing rules. This file is *state*;
 
 8. **Screenshots for Figures 4.9–4.15:** desktop set taken 1 Oct 2026, in
    `C:\dev\ScamSense-Report\screenshots\2026-10-01\` (4.9–4.13 scripted,
-   `manifest-results.json`; 4.14/4.15 by Shafiq; feedback #7 for 4.15 was probe
-   4, to be rejected). Still to do: phone shots; optionally 4.14 in the 7-day
-   view. The dashboard counts days in UTC (`config/app.php`). Original plan:
+   `manifest-results.json`; 4.14/4.15 by Shafiq, 7-day view, use the
+   `fig-4.14/4.15-cropped.png` versions; feedback #7 for 4.15 was probe 4 and
+   is rejected). Phone set `phone-*.jpg` (Shafiq's own phone, address bar
+   cropped, probe 3): WhatsApp-compressed to 730x1280, so re-send as a
+   document for print quality; the result shots stop above "What we noticed".
+   The dashboard counts days in UTC (`config/app.php`). Original plan:
    from the live site, EN and BM, desktop
    and a real phone. Use the fixed probe texts in `docs/monitoring-probes.md`
    so each screenshot is reproducible.
@@ -174,7 +177,8 @@ decisions (a)–(c) near the top of this file)
    shows *"did not clearly match either a scam or an ordinary message"*
    (`verdict.indicators_none`), which contradicts "Likely a scam". The copy was
    written for the medium band; it needs band-specific wording.
-3. Check on a real phone. Headless Edge cannot render below 496px wide.
+3. ~~Check on a real phone.~~ Done 2026-10-01: home and a high-band result,
+   EN and BM, on Shafiq's phone; layout and Malay as intended.
 4. The new "Salin" / "Tampal" strings in `ms.json` (the drawn phone menu on
    How to use) are part of the same Malay review.
 
