@@ -97,3 +97,8 @@ Thumbs.db
 # by the design skill's seeder; each rebuild is a fresh 2.2 MB blob, so
 # tracking it would grow the repository every time a figure changes.
 /docs/wireframes/scamsense-chapter-4-wireframes.html
+
+# Agent instructions and session handoff notes: kept on the development machine, not published
+.claude/
+SKILLS.md
+docs/HANDOFF.md
